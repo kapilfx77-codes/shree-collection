@@ -5,8 +5,9 @@
 let allProducts = [];
 let filteredProducts = [];
 
-document.addEventListener('DOMContentLoaded', () => {
-    allProducts = getProducts();
+document.addEventListener('DOMContentLoaded', async () => {
+    // Load products from database
+    allProducts = await getProducts();
 
     // Initialize search
     const searchInput = document.getElementById('searchInput');

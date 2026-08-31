@@ -16,9 +16,12 @@ function saveCart() {
 }
 
 // Add item to cart
-function addToCart(productId, size = null, color = null) {
-    const product = getProductById(productId);
-    if (!product) return;
+async function addToCart(productId, size = null, color = null) {
+    const product = await getProductById(productId);
+    if (!product) {
+        showToast('❌ Product not found');
+        return;
+    }
 
     const selectedSize = size || (product.sizes && product.sizes[0]) || 'Free Size';
     const selectedColor = color || (product.colors && product.colors[0]) || 'Standard';
@@ -137,9 +140,12 @@ function showToast(message) {
 }
 
 // Direct WhatsApp order for single product
-function orderViaWhatsApp(productId) {
-    const product = getProductById(productId);
-    if (!product) return;
+async function orderViaWhatsApp(productId) {
+    const product = await getProductById(productId);
+    if (!product) {
+        showToast('❌ Product not found');
+        return;
+    }
 
     const message = encodeURIComponent(
         `Namaste Shree Collection! 🙏\n\nI am interested in ordering:\n*Product:* ${product.name}\n*Price:* NPR ${product.price.toLocaleString('en-IN')}\n*Link:* ${window.location.origin}/product.html?id=${product.id}\n\nPlease let me know the availability and payment details.`
@@ -250,7 +256,7 @@ function copyShopPhone() {
     showToast(`Copied ${SHOP_PHONE} to clipboard!`);
 }
 
-function handleCheckoutSubmit(e) {
+async function handleCheckoutSubmit(e) {
     e.preventDefault();
 
     const name = document.getElementById('custName').value.trim();
@@ -299,19 +305,18 @@ _Please confirm my order and share shipping updates!_ 🙏`;
 
     // Call createOrder from db.js - must succeed before clearing cart
     if (typeof createOrder === 'function') {
-        createOrder(orderRecord).then(success => {
-            if (success) {
-                // Order saved successfully
-                cart = [];
-                saveCart();
-                closeCheckoutModal();
-                showToast('✓ Order saved! Opening WhatsApp...');
-                window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
-            } else {
-                // Order save failed - db.js already showed error
-                showToast('❌ Could not save order. Please try again.');
-            }
-        });
+        const success = await createOrder(orderRecord);
+        if (success) {
+            // Order saved successfully
+            cart = [];
+            saveCart();
+            closeCheckoutModal();
+            showToast('✓ Order saved! Opening WhatsApp...');
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
+        } else {
+            // Order save failed - db.js already showed error
+            showToast('❌ Could not save order. Please try again.');
+        }
     } else {
         // createOrder not available
         showToast('❌ Database not ready. Please refresh and try again.');

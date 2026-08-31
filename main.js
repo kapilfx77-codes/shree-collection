@@ -9,11 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Home Page Featured Products
-function initHomePage() {
+async function initHomePage() {
     const featuredGrid = document.getElementById('featuredProducts');
     if (!featuredGrid) return;
 
-    const featured = getFeaturedProducts();
+    // Show loading state
+    featuredGrid.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">Loading products...</p>';
+
+    const featured = await getFeaturedProducts();
 
     if (featured.length === 0) {
         featuredGrid.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No featured products available</p>';

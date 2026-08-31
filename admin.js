@@ -337,9 +337,13 @@ function handleProductSubmit(e) {
     }
 }
 
-function loadProductsList() {
+async function loadProductsList() {
     const productsList = document.getElementById('productsList');
-    const allProducts = getProducts();
+
+    // Show loading state
+    productsList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">Loading products...</p>';
+
+    const allProducts = await getProducts();
 
     if (allProducts.length === 0) {
         productsList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">No products yet. Add your first product above!</p>';
@@ -368,8 +372,8 @@ function loadProductsList() {
     `).join('');
 }
 
-function editProduct(id) {
-    const product = getProductById(id);
+async function editProduct(id) {
+    const product = await getProductById(id);
     if (!product) {
         showToast('❌ Product not found');
         return;
@@ -405,22 +409,24 @@ function editProduct(id) {
     }
 }
 
-function deleteProductHandler(id) {
-    const product = getProductById(id);
-    if (!product) return;
+async function deleteProductHandler(id) {
+    const product = await getProductById(id);
+    if (!product) {
+        showToast('❌ Product not found');
+        return;
+    }
 
     if (!confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
         return;
     }
 
-    deleteProduct(id).then(success => {
-        if (success) {
-            showToast('Product deleted successfully');
-            loadProductsList();
-        } else {
-            showToast('❌ Failed to delete product');
-        }
-    });
+    const success = await deleteProduct(id);
+    if (success) {
+        showToast('Product deleted successfully');
+        loadProductsList();
+    } else {
+        showToast('❌ Failed to delete product');
+    }
 }
 
 function resetProductForm() {
@@ -434,9 +440,13 @@ function resetProductForm() {
 // ORDERS MANAGEMENT
 // ==========================================================================
 
-function loadOrdersList() {
+async function loadOrdersList() {
     const ordersList = document.getElementById('ordersList');
-    const orders = JSON.parse(localStorage.getItem('shree_collection_orders')) || [];
+
+    // Show loading state
+    ordersList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">Loading orders...</p>';
+
+    const orders = await getOrders();
 
     if (orders.length === 0) {
         ordersList.innerHTML = '<p style="text-align: center; color: var(--text-muted); padding: 40px;">No orders yet. Orders will appear here once customers complete checkout.</p>';
@@ -447,8 +457,8 @@ function loadOrdersList() {
         <div class="order-item">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
                 <div>
-                    <h4 style="font-size: 1rem; color: var(--primary); font-weight: 700;">${order.orderId}</h4>
-                    <p style="font-size: 0.85rem; color: var(--text-muted);">${order.date}</p>
+                    <h4 style="font-size: 1rem; color: var(--primary); font-weight: 700;">${order.order_id}</h4>
+                    <p style="font-size: 0.85rem; color: var(--text-muted);">${new Date(order.created_at).toLocaleString()}</p>
                 </div>
                 <div style="text-align: right;">
                     <p style="font-size: 1.15rem; font-weight: 700; color: var(--text-dark);">NPR ${order.total.toLocaleString('en-IN')}</p>
@@ -472,27 +482,39 @@ function loadOrdersList() {
             </div>
 
             <div style="margin-top: 12px; display: flex; gap: 8px;">
-                <a href="https://wa.me/977${order.phone}?text=${encodeURIComponent('Hello ' + order.name + ', your order ' + order.orderId + ' is being processed!')}"
+                <a href="https://wa.me/977${order.phone}?text=${encodeURIComponent('Hello ' + order.name + ', your order ' + order.order_id + ' is being processed!')}"
                    class="btn-edit" style="text-decoration: none; display: inline-block;" target="_blank">
                     Contact Customer
                 </a>
-                <button class="btn-delete" onclick="deleteOrder('${order.orderId}')">Delete Order</button>
+                <button class="btn-delete" onclick="deleteOrder(${order.id})">Delete Order</button>
             </div>
         </div>
     `).join('');
 }
 
-function deleteOrder(orderId) {
+async function deleteOrder(orderId) {
     if (!confirm('Are you sure you want to delete this order from the history?')) {
         return;
     }
 
-    let orders = JSON.parse(localStorage.getItem('shree_collection_orders')) || [];
-    orders = orders.filter(o => o.orderId !== orderId);
-    localStorage.setItem('shree_collection_orders', JSON.stringify(orders));
+    if (!isSupabaseReady()) {
+        showToast('❌ Database not ready');
+        return;
+    }
 
-    showToast('Order deleted from history');
-    loadOrdersList();
+    try {
+        const { error } = await supabaseClient
+            .from('orders')
+            .delete()
+            .eq('id', orderId);
+
+        if (error) throw error;
+        showToast('Order deleted from history');
+        loadOrdersList();
+    } catch (err) {
+        console.error('❌ Error deleting order:', err);
+        showToast('❌ Failed to delete order');
+    }
 }
 
 // ==========================================================================

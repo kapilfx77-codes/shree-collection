@@ -285,6 +285,54 @@ async function uploadImage(file) {
 }
 
 // ==========================================================================
+// HELPER FUNCTIONS
+// ==========================================================================
+
+async function getProductById(productId) {
+    if (!isSupabaseReady()) {
+        showSupabaseError();
+        return null;
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('id', productId)
+            .single();
+
+        if (error) throw error;
+        return data || null;
+    } catch (err) {
+        console.error('❌ Error fetching product by ID:', err);
+        showSupabaseError();
+        return null;
+    }
+}
+
+async function getFeaturedProducts() {
+    if (!isSupabaseReady()) {
+        showSupabaseError();
+        return [];
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('products')
+            .select('*')
+            .eq('featured', true)
+            .order('id', { ascending: true });
+
+        if (error) throw error;
+        return data || [];
+    } catch (err) {
+        console.error('❌ Error fetching featured products:', err);
+        showSupabaseError();
+        return [];
+    }
+}
+
+// ==========================================================================
 // INITIALIZATION
 // ==========================================================================
 
