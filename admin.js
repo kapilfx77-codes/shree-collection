@@ -295,27 +295,29 @@ function handleProductSubmit(e) {
         inStock: true
     };
 
-    let allProducts = getProducts();
-
     if (editingProductId) {
-        // Update existing product
-        const index = allProducts.findIndex(p => p.id === editingProductId);
-        if (index !== -1) {
-            allProducts[index] = productData;
-            showToast('Product updated successfully!');
-        }
+        // Update existing product in Supabase
+        updateProduct(editingProductId, productData).then(result => {
+            if (result) {
+                showToast('Product updated successfully!');
+                resetProductForm();
+                loadProductsList();
+            } else {
+                showToast('❌ Failed to update product');
+            }
+        });
     } else {
-        // Add new product
-        allProducts.push(productData);
-        showToast('New product added successfully!');
+        // Add new product to Supabase
+        addProduct(productData).then(result => {
+            if (result) {
+                showToast('New product added successfully!');
+                resetProductForm();
+                loadProductsList();
+            } else {
+                showToast('❌ Failed to add product');
+            }
+        });
     }
-
-    // Save to localStorage
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allProducts));
-    updateStorageMeter();
-
-    resetProductForm();
-    loadProductsList();
 }
 
 function loadProductsList() {
@@ -343,7 +345,7 @@ function loadProductsList() {
             </div>
             <div class="product-list-actions">
                 <button class="btn-edit" onclick="editProduct(${product.id})">Edit</button>
-                <button class="btn-delete" onclick="deleteProduct(${product.id})">Delete</button>
+                <button class="btn-delete" onclick="deleteProductHandler(${product.id})">Delete</button>
             </div>
         </div>
     `).join('');
@@ -369,7 +371,7 @@ function editProduct(id) {
     showToast('Editing: ' + product.name);
 }
 
-function deleteProduct(id) {
+function deleteProductHandler(id) {
     const product = getProductById(id);
     if (!product) return;
 
@@ -377,14 +379,17 @@ function deleteProduct(id) {
         return;
     }
 
-    let allProducts = getProducts();
-    allProducts = allProducts.filter(p => p.id !== id);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allProducts));
-    updateStorageMeter();
-
-    showToast('Product deleted successfully');
-    loadProductsList();
+    deleteProduct(id).then(success => {
+        if (success) {
+            showToast('Product deleted successfully');
+            loadProductsList();
+        } else {
+            showToast('❌ Failed to delete product');
+        }
+    });
 }
+
+function deleteProduct(id) {
 
 function resetProductForm() {
     editingProductId = null;
