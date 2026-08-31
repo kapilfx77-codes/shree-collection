@@ -282,9 +282,16 @@ function switchTab(tabName) {
 function handleProductSubmit(e) {
     e.preventDefault();
 
+    // Check if form elements exist
+    const nameEl = document.getElementById('productName');
+    if (!nameEl) {
+        showToast('❌ Form not ready');
+        return;
+    }
+
     const productData = {
         id: editingProductId || Date.now(),
-        name: document.getElementById('productName').value.trim(),
+        name: nameEl.value.trim(),
         price: parseInt(document.getElementById('productPrice').value),
         originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
         description: document.getElementById('productDescription').value.trim(),
@@ -360,28 +367,32 @@ function editProduct(id) {
 
     editingProductId = id;
 
-    // Wait for element to be ready
-    const waitForElement = setInterval(() => {
-        const el = document.getElementById('productName');
-        if (el) {
-            clearInterval(waitForElement);
-
-            el.value = product.name;
-            document.getElementById('productPrice').value = product.price;
-            document.getElementById('productOriginalPrice').value = product.originalPrice || '';
-            document.getElementById('productDescription').value = product.description;
-            document.getElementById('productSizes').value = product.sizes.join(', ');
-            document.getElementById('productColors').value = product.colors.join(', ');
-            document.getElementById('productImages').value = product.images.join(', ');
-            document.getElementById('productFeatured').checked = product.featured;
-
-            const form = document.getElementById('productForm');
-            if (form) {
-                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-            showToast('Editing: ' + product.name);
+    try {
+        const nameEl = document.getElementById('productName');
+        if (!nameEl) {
+            showToast('❌ Form elements not ready');
+            return;
         }
-    }, 50);
+
+        nameEl.value = product.name;
+        document.getElementById('productPrice').value = product.price;
+        const origPriceEl = document.getElementById('productOriginalPrice');
+        if (origPriceEl) origPriceEl.value = product.originalPrice || '';
+        document.getElementById('productDescription').value = product.description;
+        document.getElementById('productSizes').value = product.sizes.join(', ');
+        document.getElementById('productColors').value = product.colors.join(', ');
+        document.getElementById('productImages').value = product.images.join(', ');
+        document.getElementById('productFeatured').checked = product.featured;
+
+        const form = document.getElementById('productForm');
+        if (form) {
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        showToast('Editing: ' + product.name);
+    } catch (err) {
+        console.error('Error editing product:', err);
+        showToast('❌ Error loading form');
+    }
 }
 
 function deleteProductHandler(id) {
