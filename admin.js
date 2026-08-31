@@ -389,8 +389,6 @@ function deleteProductHandler(id) {
     });
 }
 
-function deleteProduct(id) {
-
 function resetProductForm() {
     editingProductId = null;
     document.getElementById('productForm').reset();
