@@ -298,10 +298,9 @@ function handleProductSubmit(e) {
         }
 
         const productData = {
-            id: editingProductId || Date.now(),
             name: nameEl.value.trim(),
-            price: parseInt(priceEl.value),
-            original_price: parseInt(document.getElementById('productOriginalPrice')?.value) || null,
+            price: parseInt(priceEl.value.trim().replace(/,/g,'')) || 0,
+            original_price: document.getElementById('productOriginalPrice')?.value ? parseInt(document.getElementById('productOriginalPrice').value.trim().replace(/,/g,'')) || null : null,
             description: descEl.value.trim(),
             sizes: sizesEl.value.split(',').map(s => s.trim()).filter(Boolean),
             colors: colorsEl.value.split(',').map(c => c.trim()).filter(Boolean),
