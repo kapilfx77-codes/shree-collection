@@ -93,7 +93,8 @@ async function addProduct(productData) {
             .select();
 
         if (error) throw error;
-        productsCacheTTL = 0; // Invalidate cache
+        productsCacheTTL = 0;
+        productsCache = null; // Force refresh
         return data?.[0] || null;
     } catch (err) {
         console.error('❌ Error adding product:', err);
@@ -116,7 +117,8 @@ async function updateProduct(productId, updates) {
             .select();
 
         if (error) throw error;
-        productsCacheTTL = 0; // Invalidate cache
+        productsCacheTTL = 0;
+        productsCache = null; // Force refresh
         return data?.[0] || null;
     } catch (err) {
         console.error('❌ Error updating product:', err);
@@ -138,7 +140,8 @@ async function deleteProduct(productId) {
             .eq('id', productId);
 
         if (error) throw error;
-        productsCacheTTL = 0; // Invalidate cache
+        productsCacheTTL = 0; // Force refresh
+        productsCache = null;  // Clear cache
         return true;
     } catch (err) {
         console.error('❌ Error deleting product:', err);
