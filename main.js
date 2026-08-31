@@ -28,8 +28,8 @@ async function initHomePage() {
 
 // Create Product Card HTML
 function createProductCard(product) {
-    const discount = product.originalPrice
-        ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    const discount = product.original_price
+        ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
         : 0;
 
     return `
@@ -46,7 +46,7 @@ function createProductCard(product) {
                 <a href="product.html?id=${product.id}" class="product-title">${product.name}</a>
                 <div class="product-prices">
                     <span class="current-price">NPR ${product.price.toLocaleString('en-IN')}</span>
-                    ${product.originalPrice ? `<span class="original-price">NPR ${product.originalPrice.toLocaleString('en-IN')}</span>` : ''}
+                    ${product.original_price ? `<span class="original-price">NPR ${product.original_price.toLocaleString('en-IN')}</span>` : ''}
                 </div>
                 <div class="product-colors">
                     ${product.colors.slice(0, 4).map(color => `

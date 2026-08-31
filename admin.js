@@ -301,7 +301,7 @@ function handleProductSubmit(e) {
             id: editingProductId || Date.now(),
             name: nameEl.value.trim(),
             price: parseInt(priceEl.value),
-            originalPrice: parseInt(document.getElementById('productOriginalPrice')?.value) || null,
+            original_price: parseInt(document.getElementById('productOriginalPrice')?.value) || null,
             description: descEl.value.trim(),
             sizes: sizesEl.value.split(',').map(s => s.trim()).filter(Boolean),
             colors: colorsEl.value.split(',').map(c => c.trim()).filter(Boolean),
@@ -360,7 +360,7 @@ async function loadProductsList() {
                 </p>
                 <p style="font-size: 0.95rem; font-weight: 700; color: var(--primary);">
                     NPR ${product.price.toLocaleString('en-IN')}
-                    ${product.originalPrice ? `<span style="text-decoration: line-through; color: var(--text-muted); font-weight: 400; margin-left: 8px;">NPR ${product.originalPrice.toLocaleString('en-IN')}</span>` : ''}
+                    ${product.original_price ? `<span style="text-decoration: line-through; color: var(--text-muted); font-weight: 400; margin-left: 8px;">NPR ${product.original_price.toLocaleString('en-IN')}</span>` : ''}
                 </p>
                 ${product.featured ? '<span style="font-size: 0.75rem; background: var(--gold); color: #FFF; padding: 2px 8px; border-radius: 4px; display: inline-block; margin-top: 4px;">FEATURED</span>' : ''}
             </div>
@@ -391,7 +391,7 @@ async function editProduct(id) {
         nameEl.value = product.name;
         document.getElementById('productPrice').value = product.price;
         const origPriceEl = document.getElementById('productOriginalPrice');
-        if (origPriceEl) origPriceEl.value = product.originalPrice || '';
+        if (origPriceEl) origPriceEl.value = product.original_price || '';
         document.getElementById('productDescription').value = product.description;
         document.getElementById('productSizes').value = product.sizes.join(', ');
         document.getElementById('productColors').value = product.colors.join(', ');

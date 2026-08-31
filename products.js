@@ -4,7 +4,7 @@ const products = [
         id: 1,
         name: "Korean Pant",
         price: 1400,
-        originalPrice: null,
+        original_price: null,
         colors: ["Standard"],
         sizes: ["Free Size"],
         images: [
@@ -19,7 +19,7 @@ const products = [
         id: 2,
         name: "Paper Plazo",
         price: 275,
-        originalPrice: null,
+        original_price: null,
         colors: ["Standard"],
         sizes: ["Free Size"],
         images: [
@@ -34,7 +34,7 @@ const products = [
         id: 3,
         name: "Cord Set",
         price: 1250,
-        originalPrice: 1600,
+        original_price: 1600,
         colors: ["Standard"],
         sizes: ["Free Size", "Size 4"],
         images: [
@@ -49,7 +49,7 @@ const products = [
         id: 4,
         name: "Designer Suit - Cream",
         price: 2100,
-        originalPrice: null,
+        original_price: null,
         colors: ["Cream"],
         sizes: ["Free Size"],
         images: [
@@ -64,7 +64,7 @@ const products = [
         id: 18,
         name: "Designer Suit - Mehroon",
         price: 1600,
-        originalPrice: null,
+        original_price: null,
         colors: ["Mehroon"],
         sizes: ["Free Size"],
         images: [
@@ -79,7 +79,7 @@ const products = [
         id: 19,
         name: "Designer Suit - Pink",
         price: 1600,
-        originalPrice: null,
+        original_price: null,
         colors: ["Pink"],
         sizes: ["Free Size"],
         images: [
@@ -94,7 +94,7 @@ const products = [
         id: 20,
         name: "Designer Suit - Rust",
         price: 1600,
-        originalPrice: null,
+        original_price: null,
         colors: ["Rust"],
         sizes: ["Free Size"],
         images: [
@@ -109,7 +109,7 @@ const products = [
         id: 21,
         name: "Designer Suit - Reban",
         price: 1500,
-        originalPrice: null,
+        original_price: null,
         colors: ["Reban"],
         sizes: ["Free Size"],
         images: [
@@ -124,7 +124,7 @@ const products = [
         id: 5,
         name: "Baran Pant",
         price: 1350,
-        originalPrice: null,
+        original_price: null,
         colors: ["Standard"],
         sizes: ["Free Size"],
         images: [
@@ -139,7 +139,7 @@ const products = [
         id: 6,
         name: "Paper Set",
         price: 275,
-        originalPrice: null,
+        original_price: null,
         colors: ["Standard"],
         sizes: ["Free Size"],
         images: [
@@ -154,7 +154,7 @@ const products = [
         id: 7,
         name: "Designer Tshirt - Patti",
         price: 260,
-        originalPrice: null,
+        original_price: null,
         colors: ["Patti"],
         sizes: ["Free Size"],
         images: [
@@ -169,7 +169,7 @@ const products = [
         id: 25,
         name: "Designer Tshirt - Moti",
         price: 270,
-        originalPrice: null,
+        original_price: null,
         colors: ["Moti"],
         sizes: ["Free Size"],
         images: [
@@ -184,7 +184,7 @@ const products = [
         id: 26,
         name: "Designer Tshirt - Design",
         price: 1050,
-        originalPrice: null,
+        original_price: null,
         colors: ["Design"],
         sizes: ["Free Size"],
         images: [
@@ -199,7 +199,7 @@ const products = [
         id: 8,
         name: "Ethnic Top",
         price: 600,
-        originalPrice: 650,
+        original_price: 650,
         colors: ["Standard", "G"],
         sizes: ["Free Size"],
         images: [
@@ -214,7 +214,7 @@ const products = [
         id: 9,
         name: "Traditional Kurta - Pink",
         price: 1000,
-        originalPrice: null,
+        original_price: null,
         colors: ["Pink"],
         sizes: ["Free Size"],
         images: [
@@ -229,7 +229,7 @@ const products = [
         id: 22,
         name: "Traditional Kurta - Light Pink",
         price: 650,
-        originalPrice: null,
+        original_price: null,
         colors: ["Light Pink"],
         sizes: ["Free Size"],
         images: [
@@ -244,7 +244,7 @@ const products = [
         id: 23,
         name: "Traditional Kurta - Dull",
         price: 1950,
-        originalPrice: null,
+        original_price: null,
         colors: ["Dull"],
         sizes: ["Free Size"],
         images: [
@@ -259,7 +259,7 @@ const products = [
         id: 24,
         name: "Traditional Kurta - Red",
         price: 1850,
-        originalPrice: null,
+        original_price: null,
         colors: ["Red"],
         sizes: ["Free Size"],
         images: [
@@ -274,7 +274,7 @@ const products = [
         id: 10,
         name: "Festive Set",
         price: 1500,
-        originalPrice: 1950,
+        original_price: 1950,
         colors: ["Standard", "K"],
         sizes: ["Free Size", "Size 1"],
         images: [
@@ -289,7 +289,7 @@ const products = [
         id: 11,
         name: "Kaju Design Set",
         price: 1200,
-        originalPrice: null,
+        original_price: null,
         colors: ["Reban"],
         sizes: ["Free Size"],
         images: [
@@ -304,7 +304,7 @@ const products = [
         id: 12,
         name: "Silk Saree",
         price: 2000,
-        originalPrice: null,
+        original_price: null,
         colors: ["Silk"],
         sizes: ["Free Size"],
         images: [
@@ -319,7 +319,7 @@ const products = [
         id: 13,
         name: "Banmansika Saree",
         price: 1550,
-        originalPrice: null,
+        original_price: null,
         colors: ["Banmansika"],
         sizes: ["Free Size"],
         images: [
@@ -334,7 +334,7 @@ const products = [
         id: 14,
         name: "Alexa Georgette Saree",
         price: 700,
-        originalPrice: null,
+        original_price: null,
         colors: ["Alexa"],
         sizes: ["Georgette"],
         images: [
@@ -349,7 +349,7 @@ const products = [
         id: 15,
         name: "Khaddi Saree",
         price: 1650,
-        originalPrice: null,
+        original_price: null,
         colors: ["Khaddi"],
         sizes: ["Free Size"],
         images: [
@@ -364,7 +364,7 @@ const products = [
         id: 16,
         name: "Babli Saree",
         price: 2400,
-        originalPrice: null,
+        original_price: null,
         colors: ["Babli"],
         sizes: ["Free Size"],
         images: [
@@ -379,7 +379,7 @@ const products = [
         id: 17,
         name: "Sapan Saree",
         price: 800,
-        originalPrice: null,
+        original_price: null,
         colors: ["Sapan"],
         sizes: ["Free Size"],
         images: [
