@@ -360,22 +360,28 @@ function editProduct(id) {
 
     editingProductId = id;
 
-    // Set form values immediately
-    document.getElementById('productName').value = product.name;
-    document.getElementById('productPrice').value = product.price;
-    document.getElementById('productOriginalPrice').value = product.originalPrice || '';
-    document.getElementById('productDescription').value = product.description;
-    document.getElementById('productSizes').value = product.sizes.join(', ');
-    document.getElementById('productColors').value = product.colors.join(', ');
-    document.getElementById('productImages').value = product.images.join(', ');
-    document.getElementById('productFeatured').checked = product.featured;
+    // Wait for element to be ready
+    const waitForElement = setInterval(() => {
+        const el = document.getElementById('productName');
+        if (el) {
+            clearInterval(waitForElement);
 
-    // Scroll to form
-    const form = document.getElementById('productForm');
-    if (form) {
-        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        showToast('Editing: ' + product.name);
-    }
+            el.value = product.name;
+            document.getElementById('productPrice').value = product.price;
+            document.getElementById('productOriginalPrice').value = product.originalPrice || '';
+            document.getElementById('productDescription').value = product.description;
+            document.getElementById('productSizes').value = product.sizes.join(', ');
+            document.getElementById('productColors').value = product.colors.join(', ');
+            document.getElementById('productImages').value = product.images.join(', ');
+            document.getElementById('productFeatured').checked = product.featured;
+
+            const form = document.getElementById('productForm');
+            if (form) {
+                form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            showToast('Editing: ' + product.name);
+        }
+    }, 50);
 }
 
 function deleteProductHandler(id) {
