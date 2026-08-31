@@ -307,7 +307,7 @@ function handleProductSubmit(e) {
             colors: colorsEl.value.split(',').map(c => c.trim()).filter(Boolean),
             images: imagesEl.value.split(',').map(i => i.trim()).filter(Boolean),
             featured: featuredEl ? featuredEl.checked : false,
-            inStock: true
+            in_stock: true
         };
 
         if (editingProductId) {

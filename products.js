@@ -13,7 +13,7 @@ const products = [
         ],
         description: "Comfortable Korean-style pant perfect for casual and semi-formal occasions.",
         featured: true,
-        inStock: true
+        in_stock: true
     },
     {
         id: 2,
@@ -28,7 +28,7 @@ const products = [
         ],
         description: "Light and breezy paper plazo ideal for summer and everyday comfort.",
         featured: false,
-        inStock: false
+        in_stock: false
     },
     {
         id: 3,
@@ -43,7 +43,7 @@ const products = [
         ],
         description: "Stylish coordinated set perfect for parties and special occasions.",
         featured: true,
-        inStock: true
+        in_stock: true
     },
     {
         id: 4,
@@ -58,7 +58,7 @@ const products = [
         ],
         description: "Elegant cream designer suit with intricate embroidery and premium fabric.",
         featured: true,
-        inStock: true
+        in_stock: true
     },
     {
         id: 18,
@@ -73,7 +73,7 @@ const products = [
         ],
         description: "Elegant mehroon designer suit with intricate embroidery and premium fabric.",
         featured: false,
-        inStock: false
+        in_stock: false
     },
     {
         id: 19,
@@ -88,7 +88,7 @@ const products = [
         ],
         description: "Elegant pink designer suit with intricate embroidery and premium fabric.",
         featured: false,
-        inStock: false
+        in_stock: false
     },
     {
         id: 20,
@@ -103,7 +103,7 @@ const products = [
         ],
         description: "Elegant rust designer suit with intricate embroidery and premium fabric.",
         featured: false,
-        inStock: false
+        in_stock: false
     },
     {
         id: 21,
@@ -118,7 +118,7 @@ const products = [
         ],
         description: "Elegant reban designer suit with intricate embroidery and premium fabric.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 5,
@@ -133,7 +133,7 @@ const products = [
         ],
         description: "Traditional Baran pant with comfortable fit and elegant design.",
         featured: false,
-        inStock: false
+        in_stock: false
     },
     {
         id: 6,
@@ -148,7 +148,7 @@ const products = [
         ],
         description: "Light paper fabric set for everyday comfort.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 7,
@@ -163,7 +163,7 @@ const products = [
         ],
         description: "Trendy designer t-shirt with beautiful Patti pattern.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 25,
@@ -178,7 +178,7 @@ const products = [
         ],
         description: "Trendy designer t-shirt with beautiful Moti pattern.",
         featured: false,
-        inStock: false
+        in_stock: false
     },
     {
         id: 26,
@@ -193,7 +193,7 @@ const products = [
         ],
         description: "Premium designer t-shirt with intricate design work.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 8,
@@ -208,7 +208,7 @@ const products = [
         ],
         description: "Stylish ethnic top perfect for casual and semi-formal wear.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 9,
@@ -223,7 +223,7 @@ const products = [
         ],
         description: "Beautiful traditional kurta in vibrant pink color.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 22,
@@ -238,7 +238,7 @@ const products = [
         ],
         description: "Beautiful traditional kurta in soft light pink color.",
         featured: true,
-        inStock: true
+        in_stock: true
     },
     {
         id: 23,
@@ -253,7 +253,7 @@ const products = [
         ],
         description: "Beautiful traditional kurta in elegant dull shade.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 24,
@@ -268,7 +268,7 @@ const products = [
         ],
         description: "Beautiful traditional kurta in bold red color.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 10,
@@ -283,7 +283,7 @@ const products = [
         ],
         description: "Complete festive set perfect for celebrations and special occasions.",
         featured: true,
-        inStock: true
+        in_stock: true
     },
     {
         id: 11,
@@ -298,7 +298,7 @@ const products = [
         ],
         description: "Elegant Kaju design set with intricate embroidery work.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 12,
@@ -313,7 +313,7 @@ const products = [
         ],
         description: "Premium silk saree with elegant drape and luxurious feel. Perfect for weddings and grand celebrations.",
         featured: true,
-        inStock: true
+        in_stock: true
     },
     {
         id: 13,
@@ -328,7 +328,7 @@ const products = [
         ],
         description: "Beautiful Banmansika saree with traditional patterns and vibrant colors.",
         featured: true,
-        inStock: true
+        in_stock: true
     },
     {
         id: 14,
@@ -343,7 +343,7 @@ const products = [
         ],
         description: "Light and flowy Alexa georgette saree perfect for casual and semi-formal occasions.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 15,
@@ -358,7 +358,7 @@ const products = [
         ],
         description: "Traditional Khaddi saree with rich texture and elegant design.",
         featured: false,
-        inStock: true
+        in_stock: true
     },
     {
         id: 16,
@@ -373,7 +373,7 @@ const products = [
         ],
         description: "Premium Babli saree with intricate work and stunning appeal.",
         featured: true,
-        inStock: true
+        in_stock: true
     },
     {
         id: 17,
@@ -388,7 +388,7 @@ const products = [
         ],
         description: "Elegant Sapan saree with beautiful color combinations and comfortable fabric.",
         featured: false,
-        inStock: true
+        in_stock: true
     }
 ];
 
