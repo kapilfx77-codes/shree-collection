@@ -110,13 +110,18 @@ async function updateProduct(productId, updates) {
     }
 
     try {
+        console.log('📤 Updating product:', productId, 'with data:', updates);
         const { data, error } = await supabaseClient
             .from('products')
             .update(updates)
             .eq('id', productId)
             .select();
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Supabase error:', error);
+            throw error;
+        }
+        console.log('✅ Update successful:', data);
         productsCacheTTL = 0;
         productsCache = null; // Force refresh
         return data?.[0] || null;
@@ -134,12 +139,17 @@ async function deleteProduct(productId) {
     }
 
     try {
+        console.log('🗑️ Deleting product:', productId);
         const { error } = await supabaseClient
             .from('products')
             .delete()
             .eq('id', productId);
 
-        if (error) throw error;
+        if (error) {
+            console.error('❌ Supabase error:', error);
+            throw error;
+        }
+        console.log('✅ Delete successful');
         productsCacheTTL = 0; // Force refresh
         productsCache = null;  // Clear cache
         return true;
