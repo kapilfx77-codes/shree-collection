@@ -282,48 +282,58 @@ function switchTab(tabName) {
 function handleProductSubmit(e) {
     e.preventDefault();
 
-    // Check if form elements exist
-    const nameEl = document.getElementById('productName');
-    if (!nameEl) {
-        showToast('❌ Form not ready');
-        return;
-    }
+    try {
+        // Check if form elements exist
+        const nameEl = document.getElementById('productName');
+        const priceEl = document.getElementById('productPrice');
+        const descEl = document.getElementById('productDescription');
+        const sizesEl = document.getElementById('productSizes');
+        const colorsEl = document.getElementById('productColors');
+        const imagesEl = document.getElementById('productImages');
+        const featuredEl = document.getElementById('productFeatured');
 
-    const productData = {
-        id: editingProductId || Date.now(),
-        name: nameEl.value.trim(),
-        price: parseInt(document.getElementById('productPrice').value),
-        originalPrice: parseInt(document.getElementById('productOriginalPrice').value) || null,
-        description: document.getElementById('productDescription').value.trim(),
-        sizes: document.getElementById('productSizes').value.split(',').map(s => s.trim()).filter(Boolean),
-        colors: document.getElementById('productColors').value.split(',').map(c => c.trim()).filter(Boolean),
-        images: document.getElementById('productImages').value.split(',').map(i => i.trim()).filter(Boolean),
-        featured: document.getElementById('productFeatured').checked,
-        inStock: true
-    };
+        if (!nameEl || !priceEl || !descEl || !sizesEl || !colorsEl || !imagesEl) {
+            showToast('❌ Form elements missing');
+            return;
+        }
 
-    if (editingProductId) {
-        // Update existing product in Supabase
-        updateProduct(editingProductId, productData).then(result => {
-            if (result) {
-                showToast('Product updated successfully!');
-                resetProductForm();
-                loadProductsList();
-            } else {
-                showToast('❌ Failed to update product');
-            }
-        });
-    } else {
-        // Add new product to Supabase
-        addProduct(productData).then(result => {
-            if (result) {
-                showToast('New product added successfully!');
-                resetProductForm();
-                loadProductsList();
-            } else {
-                showToast('❌ Failed to add product');
-            }
-        });
+        const productData = {
+            id: editingProductId || Date.now(),
+            name: nameEl.value.trim(),
+            price: parseInt(priceEl.value),
+            originalPrice: parseInt(document.getElementById('productOriginalPrice')?.value) || null,
+            description: descEl.value.trim(),
+            sizes: sizesEl.value.split(',').map(s => s.trim()).filter(Boolean),
+            colors: colorsEl.value.split(',').map(c => c.trim()).filter(Boolean),
+            images: imagesEl.value.split(',').map(i => i.trim()).filter(Boolean),
+            featured: featuredEl ? featuredEl.checked : false,
+            inStock: true
+        };
+
+        if (editingProductId) {
+            updateProduct(editingProductId, productData).then(result => {
+                if (result) {
+                    showToast('✓ Product updated successfully!');
+                    resetProductForm();
+                    loadProductsList();
+                } else {
+                    showToast('❌ Failed to update product');
+                }
+            });
+        } else {
+            addProduct(productData).then(result => {
+                if (result) {
+                    showToast('✓ New product added successfully!');
+                    resetProductForm();
+                    loadProductsList();
+                } else {
+                    showToast('❌ Failed to add product');
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error submitting product:', err);
+        showToast('❌ Error saving product: ' + err.message);
     }
 }
 
