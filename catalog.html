@@ -1,0 +1,201 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalog - Shree Collection</title>
+    <meta name="description" content="Explore handcrafted ethnic sarees, kurtas, and lehengas from Shree Collection. Luxury fashion in Butwal, Nepal with delivery nationwide.">
+    <meta property="og:title" content="Catalog - Shree Collection Luxury Ethnic Wear">
+    <meta property="og:description" content="Explore sarees, kurtas, and lehengas with real-time filters and direct WhatsApp ordering.">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Supabase (for cloud database) -->
+    <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        window.SUPABASE_CONFIG = {
+            url: window.SUPABASE_URL || '',
+            anonKey: window.SUPABASE_ANON_KEY || ''
+        };
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-main" data-config="store-name-upper">SHREE COLLECTION</span>
+                <span class="logo-sub" data-config="location-short">Butwal, Nepal</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="catalog.html" class="active">Catalog</a>
+                <a href="contact.html">Contact</a>
+            </div>
+            <div class="nav-actions">
+                <a href="admin.html" class="admin-badge-btn">Admin</a>
+                <a href="#" class="cart-icon" id="cartBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="9" cy="21" r="1"></circle>
+                        <circle cx="20" cy="21" r="1"></circle>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                    </svg>
+                    <span class="cart-count" id="cartCount">0</span>
+                </a>
+            </div>
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Catalog Header -->
+    <section class="catalog-header">
+        <div class="container">
+            <span class="section-tag">Explore Collection</span>
+            <h1 class="section-title">Premium Women's Fashion</h1>
+            <p class="section-subtitle">Handpicked sarees, kurtas, and lehengas crafted with elegance</p>
+        </div>
+    </section>
+
+    <!-- Catalog Layout -->
+    <div class="container">
+        <div class="catalog-layout">
+            <!-- Sidebar Filters -->
+            <aside class="catalog-sidebar">
+                <div class="filter-group">
+                    <h3 class="filter-title">Search</h3>
+                    <input type="text" id="searchInput" class="search-input-box" placeholder="Search products...">
+                </div>
+
+                <div class="filter-group">
+                    <h3 class="filter-title">Price Range</h3>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <input type="range" id="priceRange" class="price-range-slider" min="0" max="40000" step="500" value="40000" oninput="updatePriceLabel()">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted);">
+                            <span>NPR 0</span>
+                            <span id="priceLabel">NPR 40,000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="filter-group">
+                    <h3 class="filter-title">Size</h3>
+                    <div class="filter-options">
+                        <label class="filter-label">
+                            <input type="checkbox" value="S" onchange="applyFilters()">
+                            <span>Small (S)</span>
+                        </label>
+                        <label class="filter-label">
+                            <input type="checkbox" value="M" onchange="applyFilters()">
+                            <span>Medium (M)</span>
+                        </label>
+                        <label class="filter-label">
+                            <input type="checkbox" value="L" onchange="applyFilters()">
+                            <span>Large (L)</span>
+                        </label>
+                        <label class="filter-label">
+                            <input type="checkbox" value="XL" onchange="applyFilters()">
+                            <span>XL</span>
+                        </label>
+                        <label class="filter-label">
+                            <input type="checkbox" value="Free Size" onchange="applyFilters()">
+                            <span>Free Size</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button onclick="resetFilters()" style="width: 100%; padding: 10px; background: var(--bg-cream); border: 1px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer; font-weight: 600; color: var(--text-dark); margin-top: 16px;">
+                    Reset Filters
+                </button>
+            </aside>
+
+            <!-- Main Catalog Grid -->
+            <main class="catalog-main">
+                <div class="catalog-toolbar">
+                    <div style="font-size: 0.9rem; color: var(--text-muted);">
+                        Showing <strong id="productCount">0</strong> products
+                    </div>
+                    <select id="sortSelect" class="sort-select" onchange="applyFilters()">
+                        <option value="default">Sort by: Default</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="name-az">Name: A-Z</option>
+                    </select>
+                </div>
+
+                <div class="products-grid" id="catalogGrid">
+                    <!-- Products loaded via JavaScript -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 data-config="store-name-upper">SHREE COLLECTION</h3>
+                    <p>Premium women's fashion from Butwal, Nepal. Curated ethnic wear with elegance and tradition.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <a href="index.html">Home</a>
+                    <a href="catalog.html">Catalog</a>
+                    <a href="contact.html">Contact</a>
+                    <a href="admin.html">Admin Panel</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact</h4>
+                    <p>Phone/WhatsApp: <span data-config="primary-phone">9766269025</span></p>
+                    <p>Delivery: All over Nepal</p>
+                    <p data-config="location-medium">Butwal, Rupandehi</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Follow Us</h4>
+                    <p>Stay connected for latest collections and exclusive offers</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p data-config="copyright">&copy; 2026 Shree Collection. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cart Modal -->
+    <div class="modal" id="cartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Your Cart</h2>
+                <button class="close-btn" id="closeCartBtn">&times;</button>
+            </div>
+            <div class="cart-items" id="cartItems"></div>
+            <div class="cart-total-box">
+                <h3 style="color: var(--primary); font-size: 1.3rem;">Total: NPR <span id="cartTotal">0</span></h3>
+                <button class="checkout-btn" id="checkoutBtn">Proceed to Checkout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating WhatsApp -->
+    <a href="#" class="floating-whatsapp" data-config="whatsapp-float" target="_blank" title="Chat on WhatsApp">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"/>
+        </svg>
+    </a>
+
+    <script src="config.js"></script>
+    <script src="db.js"></script>
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+    <script src="main.js"></script>
+    <script src="catalog.js"></script>
+</body>
+</html>
+

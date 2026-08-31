@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Shree Collection</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Supabase (for cloud database) -->
+    <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        window.SUPABASE_CONFIG = {
+            url: window.SUPABASE_URL || '',
+            anonKey: window.SUPABASE_ANON_KEY || ''
+        };
+    </script>
+    <style>
+        /* Login Screen Overlay */
+        .admin-login-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(28, 19, 21, 0.95), rgba(84, 14, 27, 0.95));
+            backdrop-filter: blur(12px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .admin-login-box {
+            background: #FFFFFF;
+            padding: 40px;
+            border-radius: var(--radius-md);
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            border: 1px solid var(--border-color);
+        }
+        .admin-login-box h2 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+        .admin-login-box p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 24px;
+        }
+        .admin-login-input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            margin-bottom: 16px;
+            text-align: center;
+            letter-spacing: 2px;
+            outline: none;
+        }
+        .admin-login-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(122, 28, 44, 0.15);
+        }
+
+        .admin-container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+        .admin-header {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            color: #FFFFFF;
+            padding: 32px 40px;
+            border-radius: var(--radius-md);
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .btn-logout {
+            background: rgba(255,255,255,0.15);
+            color: #FFF;
+            border: 1px solid rgba(255,255,255,0.3);
+            padding: 8px 18px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-logout:hover {
+            background: #DC2626;
+            border-color: #DC2626;
+        }
+        .admin-tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+            border-bottom: 2px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+        .admin-tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            transition: var(--transition);
+        }
+        .admin-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .admin-panel {
+            display: none;
+        }
+        .admin-panel.active {
+            display: block;
+        }
+        .admin-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-field label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .form-field input,
+        .form-field textarea,
+        .form-field select {
+            padding: 10px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.92rem;
+            font-family: inherit;
+            outline: none;
+            transition: var(--transition);
+        }
+        .form-field input:focus,
+        .form-field textarea:focus,
+        .form-field select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(122, 28, 44, 0.1);
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #FFFFFF;
+            border: none;
+            padding: 12px 28px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        .product-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .product-list-item {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            transition: var(--transition);
+        }
+        .product-list-item:hover {
+            box-shadow: var(--shadow-sm);
+        }
+        .product-list-img {
+            width: 80px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: var(--radius-sm);
+        }
+        .product-list-info {
+            flex: 1;
+        }
+        .product-list-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-edit {
+            background: var(--gold);
+            color: var(--text-dark);
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .btn-delete {
+            background: #DC2626;
+            color: #FFF;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .qr-upload-box {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 32px;
+            text-align: center;
+            background: var(--bg-cream);
+        }
+        .order-item {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin-bottom: 12px;
+            background: var(--bg-card);
+        }
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+        .storage-meter {
+            background: #FFFFFF;
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-dark);
+        }
+        .storage-meter-bar {
+            flex: 1;
+            height: 8px;
+            background: #E5E7EB;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .storage-meter-fill {
+            height: 100%;
+            background: #10B981;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <!-- Password Authentication Modal -->
+    <div id="adminLoginModal" class="admin-login-overlay">
+        <div class="admin-login-box">
+            <div style="width: 50px; height: 50px; background: var(--bg-cream); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: var(--primary);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+            </div>
+            <h2>Admin Login</h2>
+            <p>Enter the store password to manage Shree Collection</p>
+            <form onsubmit="handleAdminLogin(event)">
+                <input type="password" id="adminPasswordInput" class="admin-login-input" placeholder="Enter Password" required autofocus>
+                <div id="loginErrorMsg" style="color: #DC2626; font-size: 0.85rem; margin-bottom: 12px; display: none;">Incorrect password. Please try again.</div>
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 14px;">Unlock Dashboard</button>
+            </form>
+            <p style="margin-top: 16px; font-size: 0.8rem; color: var(--text-muted);">
+                <a href="index.html" style="color: var(--primary); text-decoration: none;">← Return to Storefront</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-main">SHREE COLLECTION</span>
+                <span class="logo-sub">Admin Panel</span>
+            </a>
+            <div class="nav-links">
+                <a href="index.html">Home</a>
+                <a href="catalog.html">Catalog</a>
+                <a href="contact.html">Contact</a>
+                <a href="admin.html" class="active">Admin</a>
+            </div>
+            <div class="nav-actions">
+                <button onclick="handleAdminLogout()" class="btn-logout">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="admin-container" id="adminDashboardContent" style="display: none;">
+        <div class="admin-header">
+            <div>
+                <h1 style="font-size: 1.8rem; margin-bottom: 4px;">Store Management Dashboard</h1>
+                <p style="opacity: 0.9; font-size: 0.95rem;">Manage your products, view customer orders, and update QR payment</p>
+            </div>
+            <div>
+                <button onclick="handleAdminLogout()" class="btn-logout">Logout</button>
+            </div>
+        </div>
+
+        <!-- Storage Meter -->
+        <div class="storage-meter" id="storageUsageMeter">
+            <span>💾 Browser Storage:</span>
+            <div class="storage-meter-bar">
+                <div class="storage-meter-fill" id="storageProgressBar" style="width: 0%;"></div>
+            </div>
+            <span id="storageUsageText" style="min-width: 100px; text-align: right; font-size: 0.8rem;">0 MB / 5.0 MB (0%)</span>
+        </div>
+
+        <!-- Admin Tabs -->
+        <div class="admin-tabs">
+            <button class="admin-tab active" onclick="switchTab('products')">Manage Products</button>
+            <button class="admin-tab" onclick="switchTab('orders')">View Orders</button>
+            <button class="admin-tab" onclick="switchTab('qr')">QR Code Settings</button>
+            <button class="admin-tab" onclick="switchTab('heritage')">Heritage Image</button>
+            <button class="admin-tab" onclick="switchTab('security')">Password / Security</button>
+        </div>
+
+        <!-- Products Panel -->
+        <div id="productsPanel" class="admin-panel active">
+            <div class="admin-card">
+                <h2 style="font-size: 1.4rem; margin-bottom: 20px; color: var(--primary);">Add / Edit Product</h2>
+                <form id="productForm">
+                    <input type="hidden" id="productId">
+
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Product Name *</label>
+                            <input type="text" id="productName" required>
+                        </div>
+                        <div class="form-field">
+                            <label>Price (NPR) *</label>
+                            <input type="number" id="productPrice" min="0" step="100" required>
+                        </div>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 16px;">
+                        <label>Description *</label>
+                        <textarea id="productDescription" rows="3" required></textarea>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 16px;">
+                        <label>Available Sizes (comma-separated) *</label>
+                        <input type="text" id="productSizes" placeholder="e.g., S, M, L, XL" required>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 16px;">
+                        <label>Available Colors (comma-separated) *</label>
+                        <input type="text" id="productColors" placeholder="e.g., Red, Blue, Green" required>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 16px;">
+                        <label>Product Images *</label>
+                        <input type="file" id="productImageUpload" accept="image/*" multiple style="margin-bottom: 8px;" onchange="handleImageUpload(event)">
+                        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-bottom: 8px;">Upload images from your device (you can select multiple)</small>
+
+                        <div id="uploadedImagesPreviews" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;"></div>
+
+                        <input type="text" id="productImages" placeholder="Or paste image URLs separated by commas" style="margin-top: 8px;">
+                        <small style="color: var(--text-muted); font-size: 0.8rem;">Alternative: Paste image URLs from web</small>
+                    </div>
+
+                    <div class="form-field" style="margin-bottom: 20px;">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" id="productFeatured" style="width: auto;">
+                            <span>Mark as Featured Product</span>
+                        </label>
+                    </div>
+
+                    <div style="display: flex; gap: 12px;">
+                        <button type="submit" class="btn-primary">Save Product</button>
+                        <button type="button" class="btn-primary" style="background: var(--text-muted);" onclick="resetProductForm()">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="admin-card">
+                <h2 style="font-size: 1.4rem; margin-bottom: 20px; color: var(--primary);">Current Products</h2>
+                <div id="productsList" class="product-list"></div>
+            </div>
+        </div>
+
+        <!-- Orders Panel -->
+        <div id="ordersPanel" class="admin-panel">
+            <div class="admin-card">
+                <h2 style="font-size: 1.4rem; margin-bottom: 20px; color: var(--primary);">Order History</h2>
+                <div id="ordersList"></div>
+            </div>
+        </div>
+
+        <!-- QR Settings Panel -->
+        <div id="qrPanel" class="admin-panel">
+            <div class="admin-card">
+                <h2 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--primary);">Payment QR Code (Assets Folder)</h2>
+                <p style="color: var(--text-muted); margin-bottom: 24px;">The checkout QR code is loaded directly from the local <strong style="color: var(--primary);">assets/qr-code.png</strong> file in your project folder.</p>
+
+                <div class="qr-upload-box">
+                    <div style="margin-bottom: 16px;">
+                        <img id="currentQR" src="assets/qr-code.png" alt="Current QR Code" style="max-width: 220px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); padding: 8px; background: #fff;">
+                    </div>
+                    <p style="font-size: 0.95rem; font-weight: 600; color: var(--text-dark); margin-bottom: 8px;">Current File: <code>assets/qr-code.png</code></p>
+                    <small style="color: var(--text-muted); font-size: 0.85rem; display: block; max-width: 500px; margin: 0 auto 16px;">
+                        To update the QR code: Simply copy your screenshot image, rename it to <strong>qr-code.png</strong>, and place/replace it inside the <strong>assets/</strong> folder!
+                    </small>
+                </div>
+
+                <div style="margin-top: 24px; padding: 20px; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: var(--radius-sm);">
+                    <strong style="color: #92400E; font-size: 1.05rem;">📁 Easy Step-by-Step Instructions:</strong>
+                    <ol style="margin: 10px 0 0 20px; color: #78350F; font-size: 0.95rem; line-height: 1.8;">
+                        <li>Take a screenshot of your eSewa, Fonepay, or Banking QR code.</li>
+                        <li>Rename that image file to <code>qr-code.png</code>.</li>
+                        <li>Paste it inside the <code>D:\Shree Website\assets\</code> folder (replacing the placeholder).</li>
+                        <li>Deploy or refresh and your new QR code will automatically appear on checkout!</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security / Password Panel -->
+        <div id="securityPanel" class="admin-panel">
+            <div class="admin-card">
+                <h2 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--primary);">Change Admin Password</h2>
+                <p style="color: var(--text-muted); margin-bottom: 24px;">Update the password used to access this admin panel.</p>
+
+                <form onsubmit="handleChangePassword(event)" style="max-width: 400px;">
+                    <div class="form-field" style="margin-bottom: 16px;">
+                        <label>Current Password *</label>
+                        <input type="password" id="currentPass" required>
+                    </div>
+                    <div class="form-field" style="margin-bottom: 20px;">
+                        <label>New Password *</label>
+                        <input type="password" id="newPass" required minlength="4">
+                    </div>
+                    <button type="submit" class="btn-primary">Update Password</button>
+                </form>
+            </div>
+
+            <div class="admin-card">
+                <h2 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--primary);">Reset Product Catalog</h2>
+                <p style="color: var(--text-muted); margin-bottom: 16px;">If products are not showing correctly, reset the catalog to reload from database.</p>
+                <div style="padding: 16px; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: var(--radius-sm); margin-bottom: 16px;">
+                    <strong style="color: #92400E;">⚠️ Warning:</strong>
+                    <p style="color: #78350F; margin-top: 8px; font-size: 0.9rem;">This will clear all products in localStorage and reload the default catalog from products.js. Any products you added via admin panel will be removed.</p>
+                </div>
+                <button onclick="resetProductCatalog()" class="btn-primary" style="background: #DC2626;">Reset Product Catalog</button>
+            </div>
+        </div>
+
+        <!-- Heritage Image Panel -->
+        <div id="heritagePanel" class="admin-panel">
+            <div class="admin-card">
+                <h2 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--primary);">Heritage Section Image</h2>
+                <p style="color: var(--text-muted); margin-bottom: 24px;">Upload an image for the "About Shree Collection" section on the homepage.</p>
+
+                <div style="margin-bottom: 20px;">
+                    <input type="file" id="heritageImageUpload" accept="image/*" onchange="handleHeritageUpload(event)" style="margin-bottom: 12px;">
+                    <small style="color: var(--text-muted); font-size: 0.85rem; display: block;">Recommended: 800x480px or similar landscape image</small>
+                </div>
+
+                <div id="heritagePreviewContainer" style="margin-top: 20px;">
+                    <p style="font-weight: 600; margin-bottom: 8px;">Current Heritage Image:</p>
+                    <img id="heritagePreview" src="" alt="Heritage Preview" style="max-width: 100%; height: 300px; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: none;">
+                    <div id="heritageNoImage" style="padding: 40px; background: var(--bg-cream); border-radius: var(--radius-md); text-align: center; color: var(--text-muted);">
+                        No heritage image uploaded yet
+                    </div>
+                </div>
+
+                <button onclick="removeHeritageImage()" class="btn-primary" style="background: #DC2626; margin-top: 16px;">Remove Heritage Image</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 data-config="store-name-upper">SHREE COLLECTION</h3>
+                    <p>Admin dashboard for managing your online boutique</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Storefront Links</h4>
+                    <a href="index.html">Home</a>
+                    <a href="catalog.html">Catalog</a>
+                    <a href="contact.html">Contact</a>
+                </div>
+                <div class="footer-section">
+                    <h4>Help & Support</h4>
+                    <p>Phone: <span data-config="primary-phone">9766269025</span></p>
+                    <p>Location: <span data-config="location-short">Butwal, Nepal</span></p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p data-config="copyright">&copy; 2026 Shree Collection Admin Panel</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="db.js"></script>
+    <script src="products.js"></script>
+    <script src="cart.js"></script>
+    <script src="main.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>
