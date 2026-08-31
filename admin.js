@@ -546,4 +546,3 @@ function resetProductCatalog() {
         window.location.reload();
     }, 2000);
 }
-
