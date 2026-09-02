@@ -323,6 +323,13 @@ function handleProductSubmit(e) {
                 }
             });
         } else {
+            // Generate next available ID for new products
+            const allProducts = await getProducts();
+            const maxId = allProducts.length > 0
+                ? Math.max(...allProducts.map(p => p.id))
+                : 0;
+            productData.id = maxId + 1;
+
             addProduct(productData).then(result => {
                 if (result) {
                     showToast('✓ New product added successfully!');
