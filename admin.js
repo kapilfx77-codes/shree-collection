@@ -323,14 +323,13 @@ function handleProductSubmit(e) {
                 }
             });
         } else {
-            // Generate next available ID for new products
-            const allProducts = await getProducts();
-            const maxId = allProducts.length > 0
-                ? Math.max(...allProducts.map(p => p.id))
-                : 0;
-            productData.id = maxId + 1;
-
-            addProduct(productData).then(result => {
+            // For new products: generate ID synchronously using existing data if available
+            addProduct({
+                ...productData,
+                id: (typeof productsCache !== 'undefined' && productsCache && productsCache.length > 0)
+                    ? Math.max(...productsCache.map(p => p.id)) + 1
+                    : Date.now()
+            }).then(result => {
                 if (result) {
                     showToast('✓ New product added successfully!');
                     resetProductForm();
