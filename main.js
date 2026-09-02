@@ -2,6 +2,15 @@
 // SHREE COLLECTION - MAIN SCRIPTS (Home page & Global)
 // ==========================================================================
 
+// Inline SVG placeholder used when a product row has no images.
+// Data URI so it never triggers a network request or a broken-image icon.
+const PLACEHOLDER_IMAGE = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="500" viewBox="0 0 400 500">' +
+    '<rect width="400" height="500" fill="#F3EDEA"/>' +
+    '<text x="200" y="250" text-anchor="middle" font-family="Inter,sans-serif" font-size="18" fill="#A08C86">No image</text>' +
+    '</svg>'
+);
+
 document.addEventListener('DOMContentLoaded', () => {
     initHomePage();
     initMobileMenu();
@@ -32,15 +41,22 @@ function createProductCard(product) {
         ? Math.round(((product.original_price - product.price) / product.original_price) * 100)
         : 0;
 
+    // Resilient to rows that have no images (older/URL-less products)
+    const images = Array.isArray(product.images) ? product.images.filter(Boolean) : [];
+    const thumb = images[0] || PLACEHOLDER_IMAGE;
+    const colors = Array.isArray(product.colors) ? product.colors.filter(Boolean) : [];
+
     return `
         <div class="product-card">
             <div class="product-image-wrap">
-                <img src="${product.images[0]}" alt="${product.name}" loading="lazy">
+                <a href="product.html?id=${product.id}" style="display: block; cursor: pointer;" aria-label="View ${product.name} details">
+                    <img src="${thumb}" alt="${product.name}" loading="lazy" style="cursor: pointer;">
+                </a>
                 ${product.featured ? '<div class="product-badge">Featured</div>' : ''}
                 ${discount > 0 ? `<div class="product-discount-badge">-${discount}%</div>` : ''}
-                <button class="product-quick-view-btn" onclick="window.location.href='product.html?id=${product.id}'">
+                <a href="product.html?id=${product.id}" class="product-quick-view-btn" style="text-decoration: none; display: inline-block;">
                     View Details
-                </button>
+                </a>
             </div>
             <div class="product-info">
                 <a href="product.html?id=${product.id}" class="product-title">${product.name}</a>
@@ -49,7 +65,7 @@ function createProductCard(product) {
                     ${product.original_price ? `<span class="original-price">NPR ${product.original_price.toLocaleString('en-IN')}</span>` : ''}
                 </div>
                 <div class="product-colors">
-                    ${product.colors.slice(0, 4).map(color => `
+                    ${colors.slice(0, 4).map(color => `
                         <span class="color-dot" style="background-color: ${getColorHex(color)};" title="${color}"></span>
                     `).join('')}
                 </div>

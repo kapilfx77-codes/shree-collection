@@ -278,9 +278,22 @@
             loadProductDetail(productId);
         });
 
-        function loadProductDetail(id) {
-            currentProduct = getProductById(id);
+        async function loadProductDetail(id) {
             const container = document.getElementById('productDetailContainer');
+
+            try {
+                currentProduct = await getProductById(id);
+            } catch (error) {
+                console.error('Error loading product:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 100px 20px;">
+                        <h2>Error Loading Product</h2>
+                        <p style="color: var(--text-muted); margin: 12px 0 24px;">Failed to load product: ${error.message}</p>
+                        <a href="catalog.html" class="cta-button">Back to Catalog</a>
+                    </div>
+                `;
+                return;
+            }
 
             if (!currentProduct) {
                 container.innerHTML = `
@@ -294,20 +307,31 @@
             }
 
             document.title = `${currentProduct.name} - Shree Collection`;
-            selectedSize = currentProduct.sizes[0] || 'Free Size';
-            selectedColor = currentProduct.colors[0] || 'Standard';
 
-            const discount = currentProduct.originalPrice
-                ? Math.round(((currentProduct.originalPrice - currentProduct.price) / currentProduct.originalPrice) * 100)
+            // Normalise fields that may be missing/null on rows created via the admin panel
+            const images = Array.isArray(currentProduct.images) ? currentProduct.images.filter(Boolean) : [];
+            const sizes = Array.isArray(currentProduct.sizes) ? currentProduct.sizes.filter(Boolean) : [];
+            const colors = Array.isArray(currentProduct.colors) ? currentProduct.colors.filter(Boolean) : [];
+            const originalPrice = currentProduct.original_price || null;
+
+            if (images.length === 0) images.push(PLACEHOLDER_IMAGE);
+            if (sizes.length === 0) sizes.push('Free Size');
+            if (colors.length === 0) colors.push('Standard');
+
+            selectedSize = sizes[0];
+            selectedColor = colors[0];
+
+            const discount = originalPrice
+                ? Math.round(((originalPrice - currentProduct.price) / originalPrice) * 100)
                 : 0;
 
             container.innerHTML = `
                 <div class="product-detail-layout">
                     <!-- Gallery -->
                     <div class="product-gallery">
-                        <img src="${currentProduct.images[0]}" alt="${currentProduct.name}" id="mainProductImg" class="gallery-main-img">
+                        <img src="${images[0]}" alt="${currentProduct.name}" id="mainProductImg" class="gallery-main-img">
                         <div class="gallery-thumbs">
-                            ${currentProduct.images.map((img, idx) => `
+                            ${images.map((img, idx) => `
                                 <img src="${img}" class="gallery-thumb ${idx === 0 ? 'active' : ''}" onclick="switchImage('${img}', this)" alt="Thumbnail">
                             `).join('')}
                         </div>
@@ -315,14 +339,11 @@
 
                     <!-- Meta & Purchase Actions -->
                     <div class="product-meta-section">
-                        <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; color: var(--gold-dark); font-weight: 700;">
-                            ${currentProduct.category}
-                        </div>
                         <h1 style="font-size: 2.2rem; color: var(--text-dark); line-height: 1.2;">${currentProduct.name}</h1>
 
                         <div class="product-price-row">
                             <span class="product-price-large">NPR ${currentProduct.price.toLocaleString('en-IN')}</span>
-                            ${currentProduct.originalPrice ? `<span class="product-price-strike">NPR ${currentProduct.originalPrice.toLocaleString('en-IN')}</span>` : ''}
+                            ${originalPrice ? `<span class="product-price-strike">NPR ${originalPrice.toLocaleString('en-IN')}</span>` : ''}
                             ${discount > 0 ? `<span style="background: var(--gold); color: #FFF; font-size: 0.8rem; font-weight: 700; padding: 4px 8px; border-radius: 4px;">SAVE ${discount}%</span>` : ''}
                         </div>
 
@@ -337,7 +358,7 @@
                                 <span id="selectedSizeLabel" style="color: var(--primary);">${selectedSize}</span>
                             </div>
                             <div class="size-pills">
-                                ${currentProduct.sizes.map((s, i) => `
+                                ${sizes.map((s, i) => `
                                     <button class="size-pill ${i === 0 ? 'selected' : ''}" onclick="selectSize('${s}', this)">${s}</button>
                                 `).join('')}
                             </div>
@@ -350,7 +371,7 @@
                                 <span id="selectedColorLabel" style="color: var(--primary);">${selectedColor}</span>
                             </div>
                             <div class="color-pills">
-                                ${currentProduct.colors.map((c, i) => `
+                                ${colors.map((c, i) => `
                                     <button class="color-pill ${i === 0 ? 'selected' : ''}" onclick="selectColor('${c}', this)">
                                         <span class="color-dot" style="background-color: ${getColorHex(c)};"></span>
                                         <span>${c}</span>
@@ -398,7 +419,7 @@
             `;
 
             // Load related products
-            loadRelatedProducts(currentProduct.category, currentProduct.id);
+            loadRelatedProducts(currentProduct.id);
         }
 
         function switchImage(src, thumbEl) {
@@ -434,12 +455,12 @@
             window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
         }
 
-        function loadRelatedProducts(category, excludeId) {
+        async function loadRelatedProducts(excludeId) {
             const grid = document.getElementById('relatedProductsGrid');
             if (!grid) return;
 
-            const related = getProducts()
-                .filter(p => p.id !== excludeId && (p.category === category || p.featured))
+            const related = (await getProducts())
+                .filter(p => p.id !== excludeId)
                 .slice(0, 3);
 
             if (related.length === 0) {

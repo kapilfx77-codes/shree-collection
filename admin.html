@@ -342,11 +342,11 @@
 
         <!-- Admin Tabs -->
         <div class="admin-tabs">
-            <button class="admin-tab active" onclick="switchTab('products')">Manage Products</button>
-            <button class="admin-tab" onclick="switchTab('orders')">View Orders</button>
-            <button class="admin-tab" onclick="switchTab('qr')">QR Code Settings</button>
-            <button class="admin-tab" onclick="switchTab('heritage')">Heritage Image</button>
-            <button class="admin-tab" onclick="switchTab('security')">Password / Security</button>
+            <button class="admin-tab active" onclick="switchTab('products', event)">Manage Products</button>
+            <button class="admin-tab" onclick="switchTab('orders', event)">View Orders</button>
+            <button class="admin-tab" onclick="switchTab('qr', event)">QR Code Settings</button>
+            <button class="admin-tab" onclick="switchTab('heritage', event)">Heritage Image</button>
+            <button class="admin-tab" onclick="switchTab('security', event)">Password / Security</button>
         </div>
 
         <!-- Products Panel -->
@@ -385,7 +385,7 @@
                     <div class="form-field" style="margin-bottom: 16px;">
                         <label>Product Images *</label>
                         <input type="file" id="productImageUpload" accept="image/*" multiple style="margin-bottom: 8px;" onchange="handleImageUpload(event)">
-                        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-bottom: 8px;">Upload images from your device (you can select multiple)</small>
+                        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-bottom: 8px;">Upload images from your device (you can select multiple, max 5MB each). Images are stored in Supabase Storage.</small>
 
                         <div id="uploadedImagesPreviews" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;"></div>
 

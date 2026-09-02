@@ -269,34 +269,49 @@ async function createOrder(orderData) {
 // IMAGE UPLOAD - Supabase Storage only
 // ==========================================================================
 
+// Uploads a single File to the `product-images` Storage bucket and returns its
+// public URL. Returns { url, error } so callers can surface the real failure
+// (missing bucket, RLS policy, size limit) instead of silently dropping images.
+const PRODUCT_IMAGES_BUCKET = 'product-images';
+
 async function uploadImage(file) {
     if (!isSupabaseReady()) {
-        showSupabaseError();
-        return null;
+        return { url: null, error: 'Database not connected' };
     }
 
     try {
+        // Preserve the original extension; sanitise the rest of the name
+        const extMatch = /\.([a-zA-Z0-9]+)$/.exec(file.name || '');
+        const ext = extMatch ? extMatch[1].toLowerCase() : 'jpg';
         const randomStr = Math.random().toString(36).substring(2, 11);
-        const fileName = `${Date.now()}-${randomStr}-${file.name}`;
+        const fileName = `${Date.now()}-${randomStr}.${ext}`;
 
-        const { error } = await supabaseClient.storage
-            .from('product-images')
+        const { error: uploadErr } = await supabaseClient.storage
+            .from(PRODUCT_IMAGES_BUCKET)
             .upload(fileName, file, {
                 cacheControl: '3600',
-                upsert: false
+                upsert: false,
+                contentType: file.type || 'image/jpeg'
             });
 
-        if (error) throw error;
+        if (uploadErr) {
+            console.error('❌ Storage upload error:', uploadErr);
+            return { url: null, error: uploadErr.message || 'Upload failed' };
+        }
 
-        const { data: publicUrl } = supabaseClient.storage
-            .from('product-images')
+        const { data: publicData } = supabaseClient.storage
+            .from(PRODUCT_IMAGES_BUCKET)
             .getPublicUrl(fileName);
 
-        return publicUrl.publicUrl || null;
+        const url = publicData?.publicUrl || null;
+        if (!url) {
+            return { url: null, error: 'Could not resolve public URL. Is the bucket public?' };
+        }
+
+        return { url, error: null };
     } catch (err) {
         console.error('❌ Error uploading image:', err);
-        showSupabaseError();
-        return null;
+        return { url: null, error: err.message || String(err) };
     }
 }
 

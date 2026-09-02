@@ -3,7 +3,7 @@
 // ==========================================================================
 
 let editingProductId = null;
-let uploadedImages = []; // Store base64 images temporarily
+let uploadedImages = []; // Selected File objects, uploaded to Supabase Storage on submit
 
 document.addEventListener('DOMContentLoaded', () => {
     // Check authentication on page load
@@ -66,37 +66,30 @@ function handleImageUpload(event) {
 
     if (files.length === 0) return;
 
-    // Convert each file to base64
     Array.from(files).forEach(file => {
         if (!file.type.startsWith('image/')) {
             alert('Please upload only image files');
             return;
         }
 
-        // Check file size (max 2MB per image to avoid localStorage limits)
-        if (file.size > 2 * 1024 * 1024) {
-            alert(`${file.name} is too large. Please use images under 2MB.`);
+        // Max 5MB per image (Supabase Storage default limit is generous vs. localStorage)
+        if (file.size > 5 * 1024 * 1024) {
+            alert(`${file.name} is too large. Please use images under 5MB.`);
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const base64Image = e.target.result;
-            uploadedImages.push(base64Image);
+        // Keep the real File object for upload; use a blob URL only for the preview
+        uploadedImages.push(file);
+        const objectUrl = URL.createObjectURL(file);
+        const index = uploadedImages.length - 1;
 
-            // Show preview
-            const preview = document.createElement('div');
-            preview.style.cssText = 'position: relative; width: 80px; height: 80px;';
-            preview.innerHTML = `
-                <img src="${base64Image}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
-                <button type="button" onclick="removeUploadedImage(${uploadedImages.length - 1})" style="position: absolute; top: -6px; right: -6px; background: #DC2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1; padding: 0;">×</button>
-            `;
-            previewContainer.appendChild(preview);
-
-            // Update the hidden input with all uploaded images
-            updateProductImagesInput();
-        };
-        reader.readAsDataURL(file);
+        const preview = document.createElement('div');
+        preview.style.cssText = 'position: relative; width: 80px; height: 80px;';
+        preview.innerHTML = `
+            <img src="${objectUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
+            <button type="button" onclick="removeUploadedImage(${index})" style="position: absolute; top: -6px; right: -6px; background: #DC2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1; padding: 0;">×</button>
+        `;
+        previewContainer.appendChild(preview);
     });
 }
 
@@ -107,26 +100,16 @@ function removeUploadedImage(index) {
     const previewContainer = document.getElementById('uploadedImagesPreviews');
     previewContainer.innerHTML = '';
 
-    uploadedImages.forEach((img, idx) => {
+    uploadedImages.forEach((file, idx) => {
+        const objectUrl = URL.createObjectURL(file);
         const preview = document.createElement('div');
         preview.style.cssText = 'position: relative; width: 80px; height: 80px;';
         preview.innerHTML = `
-            <img src="${img}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
+            <img src="${objectUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
             <button type="button" onclick="removeUploadedImage(${idx})" style="position: absolute; top: -6px; right: -6px; background: #DC2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1; padding: 0;">×</button>
         `;
         previewContainer.appendChild(preview);
     });
-
-    updateProductImagesInput();
-}
-
-function updateProductImagesInput() {
-    const imageInput = document.getElementById('productImages');
-
-    // If there are uploaded images, use them
-    if (uploadedImages.length > 0) {
-        imageInput.value = uploadedImages.join(',');
-    }
 }
 
 function clearUploadedImages() {
@@ -254,7 +237,7 @@ function handleChangePassword(event) {
 }
 
 // Tab Switching
-function switchTab(tabName) {
+function switchTab(tabName, evt) {
     // Hide all panels
     document.querySelectorAll('.admin-panel').forEach(panel => {
         panel.classList.remove('active');
@@ -267,7 +250,9 @@ function switchTab(tabName) {
 
     // Activate selected panel and tab
     document.getElementById(tabName + 'Panel').classList.add('active');
-    event.target.classList.add('active');
+    if (evt && evt.target) {
+        evt.target.classList.add('active');
+    }
 
     // Reload data if needed
     if (tabName === 'products') loadProductsList();
@@ -279,7 +264,7 @@ function switchTab(tabName) {
 // PRODUCT MANAGEMENT
 // ==========================================================================
 
-function handleProductSubmit(e) {
+async function handleProductSubmit(e) {
     e.preventDefault();
 
     try {
@@ -297,6 +282,40 @@ function handleProductSubmit(e) {
             return;
         }
 
+        // Collect image URLs: pasted URLs first, then files uploaded to Supabase Storage
+        const urlImages = imagesEl.value.split(',').map(i => i.trim()).filter(Boolean);
+        let imageUrls = [...urlImages];
+
+        if (uploadedImages.length > 0) {
+            const submitBtn = document.querySelector('#productForm button[type="submit"]');
+            const originalBtnText = submitBtn ? submitBtn.textContent : '';
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Uploading images…';
+            }
+
+            try {
+                for (let i = 0; i < uploadedImages.length; i++) {
+                    const file = uploadedImages[i];
+                    const result = await uploadImage(file);
+
+                    // uploadImage returns {url, error} — surface the real Storage error
+                    if (!result || result.error) {
+                        const msg = result?.error || 'unknown error';
+                        showToast(`❌ Image ${i + 1} (${file.name}) failed to upload: ${msg}`);
+                        console.error('Storage upload failed:', msg);
+                        return; // Do NOT save the product without its image
+                    }
+                    imageUrls.push(result.url);
+                }
+            } finally {
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                }
+            }
+        }
+
         const productData = {
             name: nameEl.value.trim(),
             price: parseInt(priceEl.value.trim().replace(/,/g,'')) || 0,
@@ -304,43 +323,42 @@ function handleProductSubmit(e) {
             description: descEl.value.trim(),
             sizes: sizesEl.value.split(',').map(s => s.trim()).filter(Boolean),
             colors: colorsEl.value.split(',').map(c => c.trim()).filter(Boolean),
-            images: imagesEl.value.split(',').map(i => i.trim()).filter(Boolean),
+            images: imageUrls,
             featured: featuredEl ? featuredEl.checked : false,
             in_stock: true
         };
 
         if (editingProductId) {
-            updateProduct(editingProductId, productData).then(result => {
-                if (result) {
-                    showToast('✓ Product updated successfully!');
-                    resetProductForm();
-                    // Force bypass cache when reloading after update
-                    setTimeout(() => {
-                        window.location.reload(true);
-                    }, 1000);
-                } else {
-                    showToast('❌ Failed to update product');
-                }
-            });
+            const result = await updateProduct(editingProductId, productData);
+            if (result) {
+                showToast('✓ Product updated successfully!');
+                resetProductForm();
+                // Force bypass cache when reloading after update
+                setTimeout(() => {
+                    window.location.reload(true);
+                }, 1000);
+            } else {
+                showToast('❌ Failed to update product');
+            }
         } else {
             // For new products: generate ID synchronously using existing data if available
-            addProduct({
+            const result = await addProduct({
                 ...productData,
                 id: (typeof productsCache !== 'undefined' && productsCache && productsCache.length > 0)
                     ? Math.max(...productsCache.map(p => p.id)) + 1
                     : Date.now()
-            }).then(result => {
-                if (result) {
-                    showToast('✓ New product added successfully!');
-                    resetProductForm();
-                    // Force bypass cache when reloading after add
-                    setTimeout(() => {
-                        window.location.reload(true);
-                    }, 1000);
-                } else {
-                    showToast('❌ Failed to add product');
-                }
             });
+
+            if (result) {
+                showToast('✓ New product added successfully!');
+                resetProductForm();
+                // Force bypass cache when reloading after add
+                setTimeout(() => {
+                    window.location.reload(true);
+                }, 1000);
+            } else {
+                showToast('❌ Failed to add product');
+            }
         }
     } catch (err) {
         console.error('Error submitting product:', err);
@@ -363,7 +381,7 @@ async function loadProductsList() {
 
     productsList.innerHTML = allProducts.map(product => `
         <div class="product-list-item">
-            <img src="${product.images[0]}" alt="${product.name}" class="product-list-img">
+            <img src="${(Array.isArray(product.images) && product.images[0]) ? product.images[0] : PLACEHOLDER_IMAGE}" alt="${product.name}" class="product-list-img">
             <div class="product-list-info">
                 <h4 style="font-size: 1.05rem; color: var(--text-dark); margin-bottom: 4px;">${product.name}</h4>
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">
