@@ -10,11 +10,11 @@ const STORE_CONFIG = {
     tagline: 'Premium women\'s fashion from Butwal, Nepal.',
 
     // Phone numbers
-    primaryPhone: '9766269025',       // Orders, payments, WhatsApp (main)
+    primaryPhone: '9841735450',       // Orders, payments, WhatsApp (main)
     secondaryPhone: '9841735450',     // Contact page, customer support
 
     // WhatsApp (include country code 977)
-    whatsappNumber: '9779766269025',
+    whatsappNumber: '9779841735450',
     whatsappNumberSecondary: '9779841735450',
 
     // Location

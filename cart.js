@@ -4,8 +4,8 @@
 
 const CART_STORAGE_KEY = 'shree_collection_cart';
 // Fallbacks if config.js is not loaded
-const SHOP_PHONE = (typeof STORE_CONFIG !== 'undefined') ? STORE_CONFIG.primaryPhone : '9766269025';
-const WHATSAPP_NUMBER = (typeof STORE_CONFIG !== 'undefined') ? STORE_CONFIG.whatsappNumber : '9779766269025';
+const SHOP_PHONE = (typeof STORE_CONFIG !== 'undefined') ? STORE_CONFIG.primaryPhone : '9841735450';
+const WHATSAPP_NUMBER = (typeof STORE_CONFIG !== 'undefined') ? STORE_CONFIG.whatsappNumber : '9779841735450';
 
 let cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || [];
 
@@ -194,7 +194,7 @@ function openCheckoutModal() {
                         </div>
                         <div class="form-group">
                             <label>Phone / WhatsApp *</label>
-                            <input type="tel" id="custPhone" class="form-control" placeholder="e.g. 9766269025" required>
+                            <input type="tel" id="custPhone" class="form-control" placeholder="e.g. 9841735450" required>
                         </div>
                     </div>
 

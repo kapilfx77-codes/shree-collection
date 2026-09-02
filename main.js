@@ -138,11 +138,16 @@ function initScrollAnimations() {
     });
 }
 
-// Smooth Scroll for anchor links
+// Smooth Scroll for anchor links (only internal anchors, skip external links)
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
+        const href = this.getAttribute('href');
+        // Skip if this is an external link that was set by config.js
+        if (href === '#' || href.includes('wa.me') || href.includes('http')) {
+            return;
+        }
         e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
+        const target = document.querySelector(href);
         if (target) {
             target.scrollIntoView({
                 behavior: 'smooth',
