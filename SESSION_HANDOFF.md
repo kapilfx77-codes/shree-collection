@@ -1,64 +1,107 @@
 === SHREE COLLECTION - SESSION HANDOFF SUMMARY ===
 Project: Shree-collection e-commerce (Supabase + Vercel)
 Repo: D:\Shree Website | GitHub: kapilfx77-codes/shree-collection
-Date: 2026-08-31
+Date: 2026-09-02
 
 === ARCHITECTURE ===
 - Frontend: HTML/CSS/JS (index.html, admin.html, catalog.html, product.html, contact.html)
-- Backend: Supabase (products, orders, inventory tables) + localStorage fallback
-- Scripts: db.js (Supabase client), admin.js, catalog.js, cart.js, main.js, products.js
-- Config: config.js, .claude/settings.local.json
+- Backend: Supabase ONLY (products, orders, inventory tables) - NO fallback, NO localStorage
+- Scripts: db.js (Supabase client), admin.js, catalog.js, cart.js, main.js, config.js
+- Config: config.js (centralized store config), .claude/settings.local.json
 - Assets: assets/qr-code.png, assets/favicon.svg
 - Docs: IMPLEMENTATION_SUMMARY.md, SETUP_SUPABASE.md, README.md
 
-=== COMPLETED ===
-1. Added getProductById() + getFeaturedProducts() to db.js
-2. Fixed async/await in catalog.js, main.js, cart.js (await database calls)
-3. Updated admin.js (loadProductsList, editProduct, deleteProductHandler as async; loadOrdersList uses getOrders; deleteOrder uses Supabase)
-4. Fixed column mappings: category removed, in_stock, original_price (snake_case matches DB)
-5. Added console logging to db.js update/delete
-6. Added missing products (2, 3) to Supabase table
-7. Fixed productsCache clear (set to null)
-8. Git pushes: bdbe452, d474da2, ec63775, be5db1e, 4c373e4, a52e121
+=== COMPLETED IN THIS SESSION ===
+1. **Removed hardcoded products.js** - Site now loads ONLY from Supabase, no fallback
+2. **Fixed price input** - Changed from type="number" (step="100") to type="text" with inputmode="numeric" to prevent scroll from changing prices
+3. **Fixed WhatsApp floating button error** - Updated main.js smooth-scroll to skip external links (wa.me URLs)
+4. **Standardized phone number** - Changed all references from 9766269025 to 9841735450 in config.js and cart.js
+5. **Fixed product ID auto-generation** - Admin panel now generates sequential IDs automatically for new products
+6. **Fixed admin.js syntax error** - Resolved `await` outside async function issue that prevented admin panel from loading
+7. **Cleaned database** - Deleted all 26 old products, created 1 test product (ID: 1, "Test Product", NPR 999)
+8. **Deleted old files**:
+   - products.js (hardcoded product array - root cause of cache issues)
+   - shree_collection.db (old SQLite database, not used)
+   - fix_supabase_schema.sql (leftover SQL file)
+   - cache-debug.html, diagnostic.html (temporary diagnostic files with exposed credentials)
+9. **Updated all HTML files** - Removed `<script src="products.js"></script>` from admin.html, catalog.html, index.html, product.html, contact.html
+10. **Cache fixes**:
+    - Added bypassCache parameter to getProducts() in db.js
+    - Force fresh data load on catalog page load
+    - Auto hard-reload after product add/update in admin panel
 
 === CURRENT STATE ===
-- All code fixes pushed to main branch
-- 25/26 products in Supabase (missing: nothing - earlier insert failed due to duplicate, but SELECT shows 1,4-26 exist; only 2 and 3 need insertion)
-- The SQL INSERT for id=2,3 failed with "duplicate key id=1" - this suggests the SQL was run incorrectly (possibly included id=1)
-- Actual remaining database task: Insert products 2 and 3 ONLY (Paper Plazo, Cord Set)
-- Edit/delete operations: Code is fixed, database has data, needs verification
+- Database: 1 test product in Supabase (ID: 1, "Test Product", NPR 999)
+- All changes committed: `130bc6c Fix: admin syntax, price input, WhatsApp errors, remove products.js, standardize phone`
+- **NOT YET PUSHED TO GITHUB** - Ready to push
+- Deployed site: https://shree-collection-opal.vercel.app (needs redeploy after push)
+
+=== VERIFIED WORKING (LOCAL) ===
+- ✅ Admin panel opens correctly
+- ✅ Database connection works
+- ✅ Products load from Supabase only (no hardcoded fallback)
+- ✅ Test product displays with correct price (999)
+- ✅ Price changes persist correctly in database
+
+=== KNOWN ISSUES FIXED ===
+1. ✅ Products showing old cached data - FIXED (removed products.js)
+2. ✅ Price updates not persisting - FIXED (browser cache + products.js issue)
+3. ✅ Price input changing on scroll - FIXED (changed to text input)
+4. ✅ WhatsApp button syntax error - FIXED (skip external links in smooth-scroll)
+5. ✅ Admin panel not loading - FIXED (await syntax error)
+6. ✅ Product ID null error when adding - FIXED (auto-generate IDs)
+
+=== NEXT STEPS ===
+1. **Push to GitHub**:
+   ```bash
+   cd "D:\Shree Website" && git push origin main
+   ```
+2. **Wait for Vercel auto-deploy** (1-2 minutes)
+3. **Test on deployed site** (https://shree-collection-opal.vercel.app):
+   - Verify only 1 test product shows
+   - Add a new product in admin panel (should get ID 2 automatically)
+   - Change a price (should persist correctly without scroll issues)
+   - Click WhatsApp floating button (should open chat without errors)
+4. **Add real products** via admin panel with:
+   - Product images: paste Unsplash URLs OR upload files (requires `product-images` bucket in Supabase Storage)
+   - All fields filled correctly
+
+=== SUPABASE SETUP STATUS ===
+- ✅ Database tables created (products, orders, inventory)
+- ✅ RLS policies configured
+- ✅ Connection working (credentials in HTML files)
+- ⚠️ Storage bucket `product-images`: Unknown status (check if created and public in Supabase dashboard)
 
 === IMPORTANT DECISIONS ===
-- Removed category feature completely (from all products, UI, filters, forms)
-- Switched admin orders from localStorage to Supabase getOrders()
-- Used snake_case column names (in_stock, original_price) to match Supabase schema
-- Added null checks and async/await throughout
-- Added console logging for debugging
-
-=== ERRORS/ISSUES ===
-1. Previous error: "permission denied for table orders" (fixed with RLS policies)
-2. Previous error: "Could not find 'inStock' column" (fixed to in_stock)
-3. Previous error: "duplicate key id=1" when inserting (SQL included all products instead of just missing ones)
-4. Previous issue: Product delete shows "success" but product remains (database table was empty; products missing)
-5. Current: Need to insert products 2 (Paper Plazo) and 3 (Cord Set) individually, then verify edit/delete
-6. DOM autocomplete warnings (non-critical, browser accessibility suggestions)
-7. Artifact attempts failed (API key session prevents artifact publication)
-
-=== EXACT NEXT STEPS ===
-1. In Supabase SQL Editor, run ONLY these two inserts:
-INSERT INTO products (id, name, price, original_price, description, colors, sizes, images, featured, in_stock) VALUES (2, 'Paper Plazo', 275, NULL, 'Light and breezy paper plazo ideal for summer and everyday comfort.', ARRAY['Standard'], ARRAY['Free Size'], ARRAY['https://images.unsplash.com/photo-1598522325074-042db73aa4e6?w=800&q=80', 'https://images.unsplash.com/photo-1591369822096-ffd140ec948f?w=800&q=80'], false, false);
-INSERT INTO products (id, name, price, original_price, description, colors, sizes, images, featured, in_stock) VALUES (3, 'Cord Set', 1250, 1600, 'Stylish coordinated set perfect for parties and special occasions.', ARRAY['Standard'], ARRAY['Free Size', 'Size 4'], ARRAY['https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=800&q=80', 'https://images.unsplash.com/photo-1585168339311-842b17c516cd?w=800&q=80'], true, true);
-2. Refresh admin panel
-3. Test delete product 2 (Paper Plazo) - verify it disappears after refresh
-4. Test edit product 2 - change price to 300, verify change persists
-5. Check browser console (F12) for any remaining errors
-6. If working, the core integration is complete
-7. If artifacts needed: Must use claude.ai login (not API key) to publish artifacts
+- **No fallback mechanism** - Site requires Supabase to function (no localStorage, no hardcoded products)
+- **products.js removed entirely** - All product data comes from database
+- **Phone standardized to 9841735450** - All WhatsApp/phone references use this number
+- **Auto ID generation** - New products get next available ID automatically (max existing ID + 1, or timestamp if empty)
+- **Price input as text** - Prevents browser scroll from changing values
 
 === FILES MODIFIED ===
-db.js, admin.js, cart.js, catalog.js, main.js, admin.html, catalog.html, index.html, product.html, .claude/settings.local.json, products.js, fix_supabase_schema.sql (new backup file)
+- admin.html (removed products.js script, fixed price input type, updated warning text)
+- catalog.html (removed products.js script)
+- index.html (removed products.js script)
+- product.html (removed products.js script)
+- contact.html (removed products.js script)
+- admin.js (fixed syntax error, auto ID generation, auto reload after save)
+- catalog.js (force bypass cache on page load)
+- db.js (added bypassCache parameter to getProducts)
+- main.js (fixed smooth-scroll to skip external links)
+- config.js (standardized phone to 9841735450)
+- cart.js (updated phone references)
+- products.js (DELETED)
+- shree_collection.db (DELETED)
+- fix_supabase_schema.sql (DELETED)
+- cache-debug.html (DELETED - had exposed credentials)
+- diagnostic.html (DELETED - had exposed credentials)
 
 === GIT STATUS ===
 Branch: main
-Latest commit: a52e121 (fix: remove id from update data, fix price parsing with commas)
-Status: All fixes committed and pushed
+Latest commit: 130bc6c (Fix: admin syntax, price input, WhatsApp errors, remove products.js, standardize phone)
+Status: Changes committed locally, ready to push
+Untracked files: SESSION_HANDOFF.md (this file)
+
+=== CONTEXT USAGE ===
+Token usage: ~114,000 / 200,000 (57% used, 43% remaining)
