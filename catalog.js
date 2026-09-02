@@ -6,8 +6,10 @@ let allProducts = [];
 let filteredProducts = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Load products from database
-    allProducts = await getProducts();
+    // Load products from database (bypass cache on page load)
+    console.log('🔄 Catalog: Loading products from database...');
+    allProducts = await getProducts(true); // Force fresh data
+    console.log(`📦 Catalog: Loaded ${allProducts.length} products`);
 
     // Initialize search
     const searchInput = document.getElementById('searchInput');

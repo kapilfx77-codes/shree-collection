@@ -51,18 +51,20 @@ let productsCache = null;
 let productsCacheTTL = 0;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-async function getProducts() {
+async function getProducts(bypassCache = false) {
     if (!isSupabaseReady()) {
         showSupabaseError();
         return [];
     }
 
     const now = Date.now();
-    if (productsCache && now < productsCacheTTL) {
+    if (!bypassCache && productsCache && now < productsCacheTTL) {
+        console.log('📦 Using cached products');
         return productsCache;
     }
 
     try {
+        console.log('🔄 Fetching fresh products from Supabase');
         const { data, error } = await supabaseClient
             .from('products')
             .select('*')
@@ -72,6 +74,7 @@ async function getProducts() {
 
         productsCache = data || [];
         productsCacheTTL = now + CACHE_DURATION;
+        console.log(`✅ Fetched ${productsCache.length} products`);
         return productsCache;
     } catch (err) {
         console.error('❌ Error fetching products:', err);

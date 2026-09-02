@@ -12,7 +12,11 @@
       "PowerShell(python -c \"import sqlite3; conn = sqlite3.connect\\('D:/Shree Website/shree_collectioyoun.db'\\); cursor = conn.cursor\\(\\); cursor.execute\\('SELECT p.product_id, p.product_name, p.category, v.variant_id, v.color, v.size, v.price, v.stock_quantity FROM products p LEFT JOIN variants v ON p.product_id = v.product_id ORDER BY p.product_id, v.variant_id'\\); rows = cursor.fetchall\\(\\); [print\\(f'{row[0]} | {row[1]} | {row[2]} | Variant: {row[3]} | Color: {row[4]} | Size: {row[5]} | Price: {row[6]} | Stock: {row[7]}'\\) for row in rows]; conn.close\\(\\)\")",
       "PowerShell(python -c \"import sqlite3; conn = sqlite3.connect\\('D:/Shree Website/shree_collection.db'\\); cursor = conn.cursor\\(\\); cursor.execute\\('SELECT name FROM sqlite_master WHERE type=\\\\\"table\\\\\"'\\); tables = cursor.fetchall\\(\\); print\\('Tables:', tables\\); cursor.execute\\('PRAGMA table_info\\(products\\)'\\); columns = cursor.fetchall\\(\\); print\\('\\\\nProducts columns:', columns\\); cursor.execute\\('PRAGMA table_info\\(variants\\)'\\); columns = cursor.fetchall\\(\\); print\\('\\\\nVariants columns:', columns\\); conn.close\\(\\)\")",
       "Skill(claude-api)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Read(//Users/kapil/.claude-code/**)",
+      "Read(//Users/kapil/.claude/**)",
+      "Read(//Users/kapil/.config/claude-code/**)",
+      "Read(//Users/**)"
     ]
   }
 }

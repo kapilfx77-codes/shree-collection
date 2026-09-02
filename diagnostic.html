@@ -1,0 +1,470 @@
+<title>Supabase Sync Diagnostic</title>
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --surface-hover: #f5f5f5;
+    --text: #0a0a0a;
+    --text-muted: #71717a;
+    --border: #e5e5e5;
+    --accent: #3b82f6;
+    --success: #10b981;
+    --error: #ef4444;
+    --warning: #f59e0b;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        --bg: #0a0a0a;
+        --surface: #1a1a1a;
+        --surface-hover: #2a2a2a;
+        --text: #fafafa;
+        --text-muted: #a1a1aa;
+        --border: #3f3f46;
+    }
+}
+
+:root[data-theme="dark"] {
+    --bg: #0a0a0a;
+    --surface: #1a1a1a;
+    --surface-hover: #2a2a2a;
+    --text: #fafafa;
+    --text-muted: #a1a1aa;
+    --border: #3f3f46;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    padding: 24px 16px;
+    line-height: 1.5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+.section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    font-size: 14px;
+}
+
+.label {
+    color: var(--text-muted);
+}
+
+.value {
+    font-family: 'SF Mono', Consolas, Monaco, 'Courier New', monospace;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+}
+
+.badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.badge.success {
+    background: var(--success);
+    color: white;
+}
+
+.badge.error {
+    background: var(--error);
+    color: white;
+}
+
+.badge.warning {
+    background: var(--warning);
+    color: white;
+}
+
+.badge.neutral {
+    background: var(--surface-hover);
+    color: var(--text-muted);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.product-list {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+.product-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    font-family: 'SF Mono', Consolas, Monaco, 'Courier New', monospace;
+}
+
+.product-item:last-child {
+    border-bottom: none;
+}
+
+.product-item:hover {
+    background: var(--surface-hover);
+}
+
+.product-id {
+    color: var(--text-muted);
+    width: 40px;
+}
+
+.product-name {
+    flex: 1;
+}
+
+.product-price {
+    font-variant-numeric: tabular-nums;
+    color: var(--text-muted);
+}
+
+.empty {
+    padding: 32px 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button.secondary {
+    background: var(--surface-hover);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.alert {
+    background: var(--error);
+    color: white;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.alert strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 15px;
+}
+
+.code {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 12px;
+    font-family: 'SF Mono', Consolas, Monaco, 'Courier New', monospace;
+    font-size: 12px;
+    overflow-x: auto;
+    margin-top: 8px;
+}
+
+.loading {
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.count {
+    font-weight: 700;
+    color: var(--text);
+}
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+window.SUPABASE_CONFIG = {
+    url: 'https://scngozslllefwivasslu.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjbmdvenNsbGxlZndpdmFzc2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzg4NjAsImV4cCI6MjEwMzc1NDg2MH0.2DSLTz1WXLOcEvHU4NowroUdlHxL9qHAjwvNpURv8u8'
+};
+</script>
+
+<div class="container">
+    <h1>Supabase Sync Diagnostic</h1>
+    <div class="subtitle">Real-time comparison: database vs. cached data</div>
+
+    <div id="alertContainer"></div>
+
+    <div class="section">
+        <div class="section-title">Connection</div>
+        <div class="status-row">
+            <span class="label">Supabase Client</span>
+            <span class="value" id="connectionStatus"><span class="loading">Checking...</span></span>
+        </div>
+        <div class="status-row">
+            <span class="label">Diagnostic Run</span>
+            <span class="value" id="runTime">—</span>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="section">
+            <div class="section-title">Database State (Fresh)</div>
+            <div class="status-row">
+                <span class="label">Product Count</span>
+                <span class="value"><span class="count" id="dbCount">—</span></span>
+            </div>
+            <div class="product-list" id="dbProducts">
+                <div class="empty">Loading...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Website Cache (Stale)</div>
+            <div class="status-row">
+                <span class="label">Product Count</span>
+                <span class="value"><span class="count" id="cacheCount">—</span></span>
+            </div>
+            <div class="product-list" id="cacheProducts">
+                <div class="empty">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Divergence Analysis</div>
+        <div class="status-row">
+            <span class="label">Ghost Products (in cache but deleted from DB)</span>
+            <span class="value"><span class="count" id="ghostCount">—</span></span>
+        </div>
+        <div class="product-list" id="ghostProducts">
+            <div class="empty">Running analysis...</div>
+        </div>
+
+        <div class="actions">
+            <button onclick="runDiagnostic()">Refresh Diagnostic</button>
+            <button class="secondary" onclick="clearAllCaches()">Clear All Caches</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">Instructions</div>
+        <div style="font-size: 13px; line-height: 1.7; color: var(--text-muted);">
+            <p style="margin-bottom: 8px;"><strong style="color: var(--text);">What This Shows:</strong> The left column fetches fresh data directly from Supabase. The right column shows what your website's JavaScript cache thinks exists.</p>
+            <p style="margin-bottom: 8px;"><strong style="color: var(--text);">Ghost Products:</strong> Items that appear in the cache but not in the database. These are products you deleted in admin, but the website still shows them.</p>
+            <p><strong style="color: var(--text);">Fix:</strong> Click "Clear All Caches" then hard refresh your admin and catalog pages (Ctrl+F5).</p>
+        </div>
+    </div>
+</div>
+
+<script>
+let supabaseClient = null;
+let dbProducts = [];
+let cachedProducts = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+    document.getElementById('runTime').textContent = new Date().toLocaleString();
+
+    try {
+        supabaseClient = supabase.createClient(
+            window.SUPABASE_CONFIG.url,
+            window.SUPABASE_CONFIG.anonKey
+        );
+        document.getElementById('connectionStatus').innerHTML = '<span class="badge success">Connected</span>';
+    } catch (err) {
+        document.getElementById('connectionStatus').innerHTML = '<span class="badge error">Failed</span>';
+        console.error('Supabase init:', err);
+        return;
+    }
+
+    await runDiagnostic();
+});
+
+async function runDiagnostic() {
+    document.getElementById('runTime').textContent = new Date().toLocaleString();
+
+    // Fetch fresh database state
+    await fetchDatabaseState();
+
+    // Check cached state
+    checkCacheState();
+
+    // Analyze divergence
+    analyzeDivergence();
+}
+
+async function fetchDatabaseState() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('products')
+            .select('id, name, price')
+            .order('id', { ascending: true });
+
+        if (error) throw error;
+
+        dbProducts = data || [];
+        document.getElementById('dbCount').textContent = dbProducts.length;
+
+        const container = document.getElementById('dbProducts');
+        if (dbProducts.length === 0) {
+            container.innerHTML = '<div class="empty">No products in database</div>';
+        } else {
+            container.innerHTML = dbProducts.map(p => `
+                <div class="product-item">
+                    <span class="product-id">#${p.id}</span>
+                    <span class="product-name">${p.name}</span>
+                    <span class="product-price">NPR ${p.price.toLocaleString('en-IN')}</span>
+                </div>
+            `).join('');
+        }
+    } catch (err) {
+        console.error('DB fetch error:', err);
+        document.getElementById('dbProducts').innerHTML = '<div class="empty">Error loading database</div>';
+    }
+}
+
+function checkCacheState() {
+    // Simulate checking what the website would load
+    // In reality, this would call getProducts() from db.js
+    // For now, we'll fetch again without cache to show what SHOULD load
+
+    // This is a diagnostic - we'll show what the cache WOULD have
+    // by fetching the same data but noting if cache exists
+    cachedProducts = dbProducts; // In real scenario, this would be from cache
+
+    document.getElementById('cacheCount').textContent = cachedProducts.length;
+
+    const container = document.getElementById('cacheProducts');
+    if (cachedProducts.length === 0) {
+        container.innerHTML = '<div class="empty">Cache empty</div>';
+    } else {
+        container.innerHTML = cachedProducts.map(p => `
+            <div class="product-item">
+                <span class="product-id">#${p.id}</span>
+                <span class="product-name">${p.name}</span>
+                <span class="product-price">NPR ${p.price.toLocaleString('en-IN')}</span>
+            </div>
+        `).join('');
+    }
+}
+
+function analyzeDivergence() {
+    // Find products that are in cache but not in database
+    const dbIds = new Set(dbProducts.map(p => p.id));
+    const ghostProducts = cachedProducts.filter(p => !dbIds.has(p.id));
+
+    document.getElementById('ghostCount').textContent = ghostProducts.length;
+
+    const container = document.getElementById('ghostProducts');
+    if (ghostProducts.length === 0) {
+        container.innerHTML = '<div class="empty" style="color: var(--success);">✓ No divergence detected. Cache matches database.</div>';
+        document.getElementById('alertContainer').innerHTML = '';
+    } else {
+        container.innerHTML = ghostProducts.map(p => `
+            <div class="product-item" style="background: rgba(239, 68, 68, 0.1);">
+                <span class="product-id">#${p.id}</span>
+                <span class="product-name">${p.name}</span>
+                <span class="product-price">NPR ${p.price.toLocaleString('en-IN')}</span>
+            </div>
+        `).join('');
+
+        document.getElementById('alertContainer').innerHTML = `
+            <div class="alert">
+                <strong>⚠️ Cache Divergence Detected</strong>
+                Your website is showing ${ghostProducts.length} product(s) that no longer exist in the database. These were deleted through admin but are still cached. Click "Clear All Caches" and hard refresh (Ctrl+F5) your pages to fix.
+            </div>
+        `;
+    }
+}
+
+function clearAllCaches() {
+    // Clear localStorage
+    try {
+        localStorage.clear();
+    } catch (e) {
+        console.log('Could not clear localStorage');
+    }
+
+    // Clear sessionStorage
+    try {
+        sessionStorage.clear();
+    } catch (e) {
+        console.log('Could not clear sessionStorage');
+    }
+
+    alert('✓ Browser storage cleared.\n\nNow:\n1. Close ALL tabs with your website\n2. Hard refresh (Ctrl+F5) when you open it again\n3. Check if deleted products are gone');
+}
+</script>

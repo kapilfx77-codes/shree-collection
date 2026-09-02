@@ -473,7 +473,7 @@
                 <p style="color: var(--text-muted); margin-bottom: 16px;">If products are not showing correctly, reset the catalog to reload from database.</p>
                 <div style="padding: 16px; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: var(--radius-sm); margin-bottom: 16px;">
                     <strong style="color: #92400E;">⚠️ Warning:</strong>
-                    <p style="color: #78350F; margin-top: 8px; font-size: 0.9rem;">This will clear all products in localStorage and reload the default catalog from products.js. Any products you added via admin panel will be removed.</p>
+                    <p style="color: #78350F; margin-top: 8px; font-size: 0.9rem;">This will clear the browser cache and reload products from the Supabase database. Any products deleted will re-appear after reload.</p>
                 </div>
                 <button onclick="resetProductCatalog()" class="btn-primary" style="background: #DC2626;">Reset Product Catalog</button>
             </div>
@@ -531,7 +531,6 @@
 
     <script src="config.js"></script>
     <script src="db.js"></script>
-    <script src="products.js"></script>
     <script src="cart.js"></script>
     <script src="main.js"></script>
     <script src="admin.js"></script>

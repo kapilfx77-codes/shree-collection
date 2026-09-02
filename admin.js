@@ -314,7 +314,10 @@ function handleProductSubmit(e) {
                 if (result) {
                     showToast('✓ Product updated successfully!');
                     resetProductForm();
-                    loadProductsList();
+                    // Force bypass cache when reloading after update
+                    setTimeout(() => {
+                        window.location.reload(true);
+                    }, 1000);
                 } else {
                     showToast('❌ Failed to update product');
                 }
@@ -324,7 +327,10 @@ function handleProductSubmit(e) {
                 if (result) {
                     showToast('✓ New product added successfully!');
                     resetProductForm();
-                    loadProductsList();
+                    // Force bypass cache when reloading after add
+                    setTimeout(() => {
+                        window.location.reload(true);
+                    }, 1000);
                 } else {
                     showToast('❌ Failed to add product');
                 }
