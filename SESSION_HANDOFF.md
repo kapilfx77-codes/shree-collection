@@ -51,6 +51,11 @@ The `outputDirectory: "."` is ESSENTIAL - without it, the site returns 404 becau
 - Twitter Card: summary_large_image
 - Theme color
 
+### Homepage Headings
+- H1: "Shree Collection — Ethnic Fashion for Every Celebration" (brand name in H1)
+- H2: "Featured Sarees, Kurtas & Lehengas" (descriptive of products)
+- Hero tag: "Women's Ethnic Wear from Butwal, Nepal" (location + category)
+
 ### Structured Data (index.html)
 - Organization JSON-LD (name, url, logo, address, contactPoint)
 - WebSite JSON-LD with SearchAction (searchAction target: catalog.html?q={q})
