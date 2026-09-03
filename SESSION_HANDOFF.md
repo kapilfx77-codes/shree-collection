@@ -69,6 +69,15 @@ The `outputDirectory: "."` is ESSENTIAL - without it, the site returns 404 becau
 - loading="lazy" attribute
 - Placeholder SVG for missing images
 
+### Product Pages (product.html?id=N)
+- Dynamic `<title>`: `{product.name} - Shree Collection`
+- Dynamic canonical URL with product ID
+- Dynamic OG/Twitter metadata (title, description, image)
+- H1: product name rendered in HTML
+- Product JSON-LD: name, description, image, brand, category, color, Offer with price and InStock
+- BreadcrumbList JSON-LD: Home > Catalog > Product (static in head)
+- Gallery thumbnail alt text: `{product.name} - view N`
+
 ## GOOGLE SEARCH CONSOLE
 - VERIFIED: public/googlec2abaddf7a5c210b.html exists
 - Accessible at: https://shree-collection-opal.vercel.app/googlec2abaddf7a5c210b.html

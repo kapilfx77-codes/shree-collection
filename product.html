@@ -9,6 +9,34 @@
     <!-- Every product shares this page, so the tags below are placeholders: setProductMeta() rewrites title, description, canonical, OG and Twitter values once the product loads. -->
     <link rel="canonical" id="metaCanonical" href="https://shree-collection-opal.vercel.app/product.html">
 
+    <!-- BreadcrumbList schema for all product pages -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://shree-collection-opal.vercel.app/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Catalog",
+          "item": "https://shree-collection-opal.vercel.app/catalog.html"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Product",
+          "item": "https://shree-collection-opal.vercel.app/product.html"
+        }
+      ]
+    }
+    </script>
+
     <!-- Open Graph -->
     <meta property="og:site_name" content="Shree Collection">
     <meta property="og:locale" content="en_NP">
@@ -448,6 +476,7 @@
          * but this page never reads it, so any availability value would be a guess.
          */
         function setProductSchema(product, url, image, desc) {
+            const colors = Array.isArray(product.colors) ? product.colors.filter(Boolean) : [];
             const schema = {
                 '@context': 'https://schema.org',
                 '@type': 'Product',
@@ -460,10 +489,12 @@
                     '@type': 'Offer',
                     url: url,
                     price: String(product.price),
-                    priceCurrency: 'NPR'
+                    priceCurrency: 'NPR',
+                    availability: 'https://schema.org/InStock'
                 }
             };
             if (product.category) schema.category = product.category;
+            if (colors.length > 0) schema.color = colors[0];
 
             let tag = document.getElementById('productSchema');
             if (!tag) {
@@ -531,7 +562,7 @@
                         <div class="gallery-thumbs">
                             ${images.map((img, idx) => `
                                 <button type="button" class="gallery-thumb ${idx === 0 ? 'active' : ''}" onclick="switchImage('${img}', this)" aria-label="Show image ${idx + 1} of ${images.length}">
-                                    <img src="${img}" alt="">
+                                    <img src="${img}" alt="${currentProduct.name} - view ${idx + 1}">
                                 </button>
                             `).join('')}
                         </div>
