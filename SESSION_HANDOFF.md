@@ -16,7 +16,7 @@ Last Updated: 2026-09-03
 
 ## PAGES/ROUTES
 - `/index.html` - Homepage (featured products, about section, Organization + WebSite JSON-LD)
-- `/catalog.html` - Product catalog (loads from Supabase, search, filters, sort)
+- `/catalog.html` - Product catalog (loads from Supabase, search, filters, sort, SEO: brand + location in H1)
 - `/product.html?id=N` - Product detail (query param, dynamic metadata)
 - `/contact.html` - Contact page
 - `/admin.html` - Admin panel (noindex, protected by password)
