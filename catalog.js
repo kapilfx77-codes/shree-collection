@@ -103,7 +103,7 @@ function renderCatalog() {
     if (filteredProducts.length === 0) {
         catalogGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 80px 20px; color: var(--text-muted);">
-                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 20px; opacity: 0.3;">
+                <svg aria-hidden="true" focusable="false" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 20px; opacity: 0.3;">
                     <circle cx="11" cy="11" r="8"></circle>
                     <path d="m21 21-4.35-4.35"></path>
                 </svg>

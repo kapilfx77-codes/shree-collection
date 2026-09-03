@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Admin panel and auth endpoint are not public content
+Disallow: /admin.html
+Disallow: /api/
+
+Sitemap: https://shree-collection-opal.vercel.app/sitemap.xml

@@ -93,7 +93,7 @@ function updateCartUI() {
         if (cart.length === 0) {
             cartItemsContainer.innerHTML = `
                 <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.5;">
+                    <svg aria-hidden="true" focusable="false" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.5;">
                         <circle cx="9" cy="21" r="1"></circle>
                         <circle cx="20" cy="21" r="1"></circle>
                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
@@ -177,7 +177,7 @@ function openCheckoutModal() {
         <div class="modal-content checkout-modal-content">
             <div class="modal-header">
                 <h2>Direct Checkout & Payment</h2>
-                <button class="close-btn" onclick="closeCheckoutModal()">&times;</button>
+                <button class="close-btn" type="button" aria-label="Close checkout" onclick="closeCheckoutModal()">&times;</button>
             </div>
 
             <div class="checkout-steps">
@@ -187,25 +187,25 @@ function openCheckoutModal() {
 
             <div class="checkout-body">
                 <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="grid-2col" style="gap: 16px;">
                         <div class="form-group">
-                            <label>Full Name *</label>
-                            <input type="text" id="custName" class="form-control" placeholder="e.g. Anjali Sharma" required>
+                            <label for="custName">Full Name *</label>
+                            <input type="text" id="custName" name="custName" autocomplete="name" class="form-control" placeholder="e.g. Anjali Sharma" required>
                         </div>
                         <div class="form-group">
-                            <label>Phone / WhatsApp *</label>
-                            <input type="tel" id="custPhone" class="form-control" placeholder="e.g. 9841735450" required>
+                            <label for="custPhone">Phone / WhatsApp *</label>
+                            <input type="tel" id="custPhone" name="custPhone" autocomplete="tel" class="form-control" placeholder="e.g. 9841735450" required>
                         </div>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="grid-2col" style="gap: 16px;">
                         <div class="form-group">
-                            <label>City / District in Nepal *</label>
-                            <input type="text" id="custCity" class="form-control" placeholder="e.g. Butwal, Rupandehi" required>
+                            <label for="custCity">City / District in Nepal *</label>
+                            <input type="text" id="custCity" name="custCity" autocomplete="address-level2" class="form-control" placeholder="e.g. Butwal, Rupandehi" required>
                         </div>
                         <div class="form-group">
-                            <label>Full Delivery Address *</label>
-                            <input type="text" id="custAddress" class="form-control" placeholder="Street, Ward No, Landmark" required>
+                            <label for="custAddress">Full Delivery Address *</label>
+                            <input type="text" id="custAddress" name="custAddress" autocomplete="street-address" class="form-control" placeholder="Street, Ward No, Landmark" required>
                         </div>
                     </div>
 
@@ -216,10 +216,10 @@ function openCheckoutModal() {
                         <img src="${qrCodePath}" alt="Payment QR Code" class="qr-image">
 
                         <div>
-                            <div class="copy-phone-box" onclick="copyShopPhone()">
+                            <button type="button" class="copy-phone-box" onclick="copyShopPhone()">
                                 <span>📱 Registered Phone: <strong>${SHOP_PHONE}</strong></span>
                                 <span style="font-size: 0.75rem; background: var(--bg-cream); padding: 2px 6px; border-radius: 4px;">Copy</span>
-                            </div>
+                            </button>
                         </div>
                         <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">Scan with eSewa or any Mobile Banking App</p>
                     </div>
@@ -231,7 +231,7 @@ function openCheckoutModal() {
 
                     <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
                         <button type="submit" class="checkout-btn" style="background: #25D366; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"/></svg>
+                            <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"/></svg>
                             Confirm & Send Order via WhatsApp
                         </button>
                     </div>

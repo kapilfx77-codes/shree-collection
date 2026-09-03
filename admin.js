@@ -86,8 +86,8 @@ function handleImageUpload(event) {
         const preview = document.createElement('div');
         preview.style.cssText = 'position: relative; width: 80px; height: 80px;';
         preview.innerHTML = `
-            <img src="${objectUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
-            <button type="button" onclick="removeUploadedImage(${index})" style="position: absolute; top: -6px; right: -6px; background: #DC2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1; padding: 0;">×</button>
+            <img src="${objectUrl}" alt="Selected product image ${index + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
+            <button type="button" aria-label="Remove selected image ${index + 1}" onclick="removeUploadedImage(${index})" style="position: absolute; top: -6px; right: -6px; background: #DC2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1; padding: 0;">×</button>
         `;
         previewContainer.appendChild(preview);
     });
@@ -105,8 +105,8 @@ function removeUploadedImage(index) {
         const preview = document.createElement('div');
         preview.style.cssText = 'position: relative; width: 80px; height: 80px;';
         preview.innerHTML = `
-            <img src="${objectUrl}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
-            <button type="button" onclick="removeUploadedImage(${idx})" style="position: absolute; top: -6px; right: -6px; background: #DC2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1; padding: 0;">×</button>
+            <img src="${objectUrl}" alt="Selected product image ${idx + 1}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid var(--border-color);">
+            <button type="button" aria-label="Remove selected image ${idx + 1}" onclick="removeUploadedImage(${idx})" style="position: absolute; top: -6px; right: -6px; background: #DC2626; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px; line-height: 1; padding: 0;">×</button>
         `;
         previewContainer.appendChild(preview);
     });

@@ -1081,6 +1081,10 @@ h1, h2, h3, h4, .font-serif {
     cursor: pointer;
     font-weight: 600;
     color: var(--primary);
+    /* It is a real <button> so it is keyboard-operable; buttons do not inherit
+       type styling, so restate what the surrounding text already had. */
+    font-family: inherit;
+    font-size: 0.85rem;
 }
 
 /* ==========================================================================
@@ -1221,6 +1225,23 @@ h1, h2, h3, h4, .font-serif {
     }
 }
 
+/* Two-column layout that collapses on mobile. Replaces hardcoded inline
+   `grid-template-columns: 1fr 1fr`, which no media query could override. */
+.grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+/* Reveal the quick-view button on touch devices, where :hover never fires and
+   the control was previously unreachable. */
+@media (hover: none) {
+    .product-quick-view-btn {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
 /* Responsive */
 @media (max-width: 992px) {
     .catalog-layout {
@@ -1235,16 +1256,161 @@ h1, h2, h3, h4, .font-serif {
 }
 
 @media (max-width: 768px) {
+    /* --- Mobile navigation ---
+       initMobileMenu() in main.js toggles .mobile-active on .nav-links and
+       .active on the button. Neither class had any styling, so the hamburger
+       was inert and the nav links were simply unreachable below 768px. */
     .nav-links {
+        display: none;
+    }
+    .nav-links.mobile-active {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: #FFFFFF;
+        border-bottom: 1px solid var(--border-color);
+        box-shadow: var(--shadow-md);
+        padding: 4px 20px 12px;
+    }
+    .nav-links.mobile-active a {
+        padding: 14px 2px;
+        font-size: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .nav-links.mobile-active a:last-child {
+        border-bottom: none;
+    }
+    /* The sliding underline reads as a stray line in a stacked list */
+    .nav-links.mobile-active a::after {
         display: none;
     }
     .mobile-menu-btn {
         display: flex;
     }
+    .mobile-menu-btn.active span:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+    }
+    .mobile-menu-btn.active span:nth-child(2) {
+        opacity: 0;
+    }
+    .mobile-menu-btn.active span:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
+    }
+
+    /* Navbar fits 375px: the desktop logo alone demanded ~250px of the row */
+    .nav-container {
+        padding: 14px 18px;
+    }
+    .logo-main {
+        font-size: 1.35rem;
+        letter-spacing: 1.5px;
+    }
+    .logo-sub {
+        letter-spacing: 2.5px;
+    }
+    .nav-actions {
+        gap: 12px;
+    }
+
+    /* Five non-wrapping flex children shredded into a tall narrow block */
+    .announcement-bar {
+        flex-wrap: wrap;
+        gap: 2px 12px;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        padding: 8px 14px;
+    }
+    /* Bullet separators are noise once the items wrap onto their own lines */
+    .announcement-bar span:nth-child(2),
+    .announcement-bar span:nth-child(4) {
+        display: none;
+    }
+
     .footer-content {
         grid-template-columns: 1fr;
     }
     .hero {
         min-height: 70vh;
+        /* background-attachment: fixed is janky or ignored on iOS Safari */
+        background-attachment: scroll;
+    }
+    .hero-title {
+        font-size: clamp(2rem, 8vw, 2.5rem);
+    }
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+    .section {
+        padding: 56px 0;
+    }
+    .section-title {
+        font-size: 1.85rem;
+    }
+    .section-subtitle {
+        font-size: 0.95rem;
+    }
+
+    .grid-2col {
+        grid-template-columns: 1fr;
+    }
+    /* minmax(320px, ...) overflowed every phone width */
+    .category-grid {
+        grid-template-columns: 1fr;
+    }
+    .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+        gap: 16px;
+    }
+    .catalog-toolbar {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    /* .cart-items scrolled inside an already-scrolling .modal-content */
+    .cart-items {
+        max-height: none;
+    }
+    .modal-content {
+        max-height: 92vh;
+    }
+
+    .floating-whatsapp {
+        bottom: 20px;
+        right: 20px;
+        width: 52px;
+        height: 52px;
+    }
+    /* The toast (z-index 2000) sat directly on top of the WhatsApp button */
+    .toast {
+        bottom: 84px;
+        left: 16px;
+        right: 16px;
+        transform: translateY(140px);
+        justify-content: center;
+        text-align: center;
+    }
+    .toast.show {
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 16px;
+    }
+    .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 12px;
+    }
+    .trust-grid {
+        grid-template-columns: 1fr;
+    }
+    .hero {
+        padding: 60px 18px;
     }
 }

@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Shree Collection</title>
+    <!-- Private tooling: keep out of search results and link graphs -->
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#7A1C2C">
+    <link rel="icon" href="assets/favicon.ico" sizes="32x32">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -283,7 +288,7 @@
     <div id="adminLoginModal" class="admin-login-overlay">
         <div class="admin-login-box">
             <div style="width: 50px; height: 50px; background: var(--bg-cream); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: var(--primary);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
@@ -308,7 +313,7 @@
                 <span class="logo-main">SHREE COLLECTION</span>
                 <span class="logo-sub">Admin Panel</span>
             </a>
-            <div class="nav-links">
+            <div class="nav-links" id="navLinks">
                 <a href="index.html">Home</a>
                 <a href="catalog.html">Catalog</a>
                 <a href="contact.html">Contact</a>
@@ -317,6 +322,12 @@
             <div class="nav-actions">
                 <button onclick="handleAdminLogout()" class="btn-logout">Logout</button>
             </div>
+            <!-- Without this the nav links are unreachable below 768px, where .nav-links is hidden -->
+            <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Toggle navigation menu" aria-controls="navLinks" aria-expanded="false">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
         </div>
     </nav>
 
@@ -519,7 +530,7 @@
                 </div>
                 <div class="footer-section">
                     <h4>Help & Support</h4>
-                    <p>Phone: <span data-config="primary-phone">9766269025</span></p>
+                    <p>Phone: <span data-config="primary-phone">9841735450</span></p>
                     <p>Location: <span data-config="location-short">Butwal, Nepal</span></p>
                 </div>
             </div>

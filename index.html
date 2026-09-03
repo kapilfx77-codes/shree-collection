@@ -5,10 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Shree Collection - Luxury Women's Ethnic Wear | Butwal, Nepal</title>
     <meta name="description" content="Discover premium women's ethnic wear in Nepal. Silk Sarees, Designer Kurtas, and Bridal Lehengas crafted for every celebration. Fast delivery across Nepal.">
+    <link rel="canonical" href="https://shree-collection-opal.vercel.app/">
+    <meta name="theme-color" content="#7A1C2C">
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="Shree Collection">
+    <meta property="og:locale" content="en_NP">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://shree-collection-opal.vercel.app/">
     <meta property="og:title" content="Shree Collection - Luxury Ethnic Wear Nepal">
     <meta property="og:description" content="Shop handcrafted Sarees, Kurtas, and Lehengas with direct QR payment & WhatsApp order support.">
-    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://shree-collection-opal.vercel.app/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Shree Collection - sarees, kurtas and lehengas from Butwal, Nepal">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Shree Collection - Luxury Ethnic Wear Nepal">
+    <meta name="twitter:description" content="Shop handcrafted Sarees, Kurtas, and Lehengas with direct QR payment & WhatsApp order support.">
+    <meta name="twitter:image" content="https://shree-collection-opal.vercel.app/assets/og-image.png">
+
+    <!-- Icons -->
+    <link rel="icon" href="assets/favicon.ico" sizes="32x32">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <link rel="manifest" href="site.webmanifest">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,6 +44,37 @@
             anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjbmdvenNsbGxlZndpdmFzc2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzg4NjAsImV4cCI6MjEwMzc1NDg2MH0.2DSLTz1WXLOcEvHU4NowroUdlHxL9qHAjwvNpURv8u8'
         };
     </script>
+
+    <!--
+      Organization schema. Deliberately minimal: it asserts only what this repo
+      already knows to be true. Upgrading to LocalBusiness/Store (which unlocks
+      Google's local rich results) requires a real street address, opening hours
+      and geo coordinates - see the [PLACEHOLDER] notes in privacy.html.
+    -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Shree Collection",
+      "url": "https://shree-collection-opal.vercel.app/",
+      "logo": "https://shree-collection-opal.vercel.app/assets/icon-512.png",
+      "image": "https://shree-collection-opal.vercel.app/assets/og-image.png",
+      "description": "Premium women's ethnic wear - sarees, kurtas and lehengas - from Butwal, Nepal.",
+      "areaServed": "NP",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Butwal",
+        "addressRegion": "Lumbini Province",
+        "addressCountry": "NP"
+      },
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+977-9841735450",
+        "contactType": "customer service",
+        "availableLanguage": ["en", "ne"]
+      }
+    }
+    </script>
 </head>
 <body>
     <!-- Announcement Bar -->
@@ -30,7 +83,7 @@
         <span>•</span>
         <span>🚚 Delivery All Over Nepal</span>
         <span>•</span>
-        <span>💬 Direct WhatsApp & QR Payment: <span data-config="primary-phone">9766269025</span></span>
+        <span>💬 Direct WhatsApp & QR Payment: <span data-config="primary-phone">9841735450</span></span>
     </div>
 
     <!-- Navigation -->
@@ -40,15 +93,15 @@
                 <span class="logo-main" data-config="store-name-upper">SHREE COLLECTION</span>
                 <span class="logo-sub" data-config="location-short">Butwal, Nepal</span>
             </a>
-            <div class="nav-links">
+            <div class="nav-links" id="navLinks">
                 <a href="index.html" class="active">Home</a>
                 <a href="catalog.html">Catalog</a>
                 <a href="contact.html">Contact</a>
             </div>
             <div class="nav-actions">
-                <a href="admin.html" class="admin-badge-btn">Admin</a>
-                <a href="#" class="cart-icon" id="cartBtn" title="View Cart">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <a href="admin.html" class="admin-badge-btn" rel="nofollow">Admin</a>
+                <a href="#" class="cart-icon" id="cartBtn" title="View Cart" aria-label="View cart">
+                    <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="9" cy="21" r="1"></circle>
                         <circle cx="20" cy="21" r="1"></circle>
                         <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
@@ -56,7 +109,7 @@
                     <span class="cart-count" id="cartCount">0</span>
                 </a>
             </div>
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Toggle navigation menu" aria-controls="navLinks" aria-expanded="false">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -76,7 +129,7 @@
             <div class="hero-buttons">
                 <a href="catalog.html" class="cta-button">
                     Explore Catalog
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
                 <a href="#" class="cta-button-outline" data-config="whatsapp-link" data-wa-message="Namaste Shree Collection! I would like to see your latest arrivals." target="_blank">
                     Order via WhatsApp
@@ -90,7 +143,7 @@
         <div class="trust-grid">
             <div class="trust-item">
                 <div class="trust-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </div>
                 <div class="trust-text">
                     <h4>Nepal-wide Delivery</h4>
@@ -100,7 +153,7 @@
 
             <div class="trust-item">
                 <div class="trust-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 </div>
                 <div class="trust-text">
                     <h4>100% Quality Fabric</h4>
@@ -110,7 +163,7 @@
 
             <div class="trust-item">
                 <div class="trust-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                 </div>
                 <div class="trust-text">
                     <h4>Direct QR Payment</h4>
@@ -120,7 +173,7 @@
 
             <div class="trust-item">
                 <div class="trust-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                    <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
                 </div>
                 <div class="trust-text">
                     <h4>Instant WhatsApp Care</h4>
@@ -144,7 +197,7 @@
             <div style="text-align: center; margin-top: 50px;">
                 <a href="catalog.html" class="cta-button">
                     View Entire Catalog
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                 </a>
             </div>
         </div>
@@ -153,7 +206,7 @@
     <!-- About Boutique Story -->
     <section class="section" style="background: linear-gradient(135deg, #FAF7F2 0%, #F3ECE1 100%);">
         <div class="container">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 50px; align-items: center;">
+            <div class="grid-2col" style="gap: 50px; align-items: center;">
                 <div>
                     <span class="section-tag">About Shree Collection</span>
                     <h2 class="section-title" style="margin-bottom: 20px;">Rooted in Butwal, Celebrating Heritage Across Nepal</h2>
@@ -165,7 +218,6 @@
                     </p>
                     <div style="display: flex; gap: 16px;">
                         <a href="contact.html" class="cta-button">Contact Our Team</a>
-                        <a href="#" class="cta-button-outline" data-config="whatsapp-link" data-wa-phone="9779841735450" style="color: var(--primary); border-color: var(--primary);" target="_blank">Chat with Us</a>
                         <a href="#" class="cta-button-outline" data-config="whatsapp-link" data-wa-phone="9779841735450" style="color: var(--primary); border-color: var(--primary);" target="_blank">Chat with Us</a>
                     </div>
                 </div>
@@ -192,11 +244,11 @@
                     <a href="index.html">Home</a>
                     <a href="catalog.html">Catalog</a>
                     <a href="contact.html">Contact Us</a>
-                    <a href="admin.html">Admin Panel</a>
+                    <a href="admin.html" rel="nofollow">Admin Panel</a>
                 </div>
                 <div class="footer-section">
                     <h4>Contact & Orders</h4>
-                    <p>Phone/WhatsApp: <strong data-config="primary-phone">9766269025</strong></p>
+                    <p>Phone/WhatsApp: <strong data-config="primary-phone">9841735450</strong></p>
                     <p>Delivery: All over Nepal</p>
                     <p>Location: <span data-config="location-medium">Butwal, Rupandehi</span>, Nepal</p>
                 </div>
@@ -216,7 +268,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h2>Your Shopping Cart</h2>
-                <button class="close-btn" id="closeCartBtn">&times;</button>
+                <button class="close-btn" id="closeCartBtn" type="button" aria-label="Close cart">&times;</button>
             </div>
             <div class="cart-items" id="cartItems"></div>
             <div class="cart-total-box">
@@ -227,8 +279,8 @@
     </div>
 
     <!-- Floating WhatsApp -->
-    <a href="#" class="floating-whatsapp" data-config="whatsapp-float" target="_blank" title="Chat with us on WhatsApp">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+    <a href="#" class="floating-whatsapp" data-config="whatsapp-float" target="_blank" title="Chat with us on WhatsApp" aria-label="Chat with us on WhatsApp">
+        <svg aria-hidden="true" focusable="false" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"/>
         </svg>
     </a>
