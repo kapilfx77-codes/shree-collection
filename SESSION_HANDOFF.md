@@ -15,9 +15,9 @@ Last Updated: 2026-09-03
 - **Public**: public/googlec2abaddf7a5c210b.html (Google Search Console verification)
 
 ## PAGES/ROUTES
-- `/index.html` - Homepage (featured products, about section)
-- `/catalog.html` - Product catalog (loads from Supabase)
-- `/product.html?id=N` - Product detail (query param, dynamic)
+- `/index.html` - Homepage (featured products, about section, Organization + WebSite JSON-LD)
+- `/catalog.html` - Product catalog (loads from Supabase, search, filters, sort)
+- `/product.html?id=N` - Product detail (query param, dynamic metadata)
 - `/contact.html` - Contact page
 - `/admin.html` - Admin panel (noindex, protected by password)
 - `/api/login` - POST endpoint for admin auth (serverless function)
@@ -27,9 +27,10 @@ Last Updated: 2026-09-03
 - Tables: products, orders, inventory
 - RLS policies configured
 - Storage: product-images bucket (public)
-- No anonymous write access (security)
+- Products loaded via getProducts() from db.js
+- Featured products via getFeaturedProducts() - checks `featured` boolean field
 
-## VERCEL CONFIGURATION (CRITICAL)
+## VERCEL CONFIGURATION (CRITICAL - FIXED 404)
 File: vercel.json
 ```json
 {
@@ -43,12 +44,41 @@ File: vercel.json
 ```
 The `outputDirectory: "."` is ESSENTIAL - without it, the site returns 404 because Vercel detects the api/ folder and expects a build output directory.
 
+## SEO IMPLEMENTATION
+### Meta Tags (all pages)
+- Title, meta description, canonical URL
+- Open Graph: og:title, og:description, og:image, og:url, og:type, og:locale
+- Twitter Card: summary_large_image
+- Theme color
+
+### Structured Data (index.html)
+- Organization JSON-LD (name, url, logo, address, contactPoint)
+- WebSite JSON-LD with SearchAction (searchAction target: catalog.html?q={q})
+
+### Technical SEO Files
+- sitemap.xml: Valid, references homepage, catalog, contact (no broken URLs)
+- robots.txt: Valid, allows crawlers, disallows /admin.html and /api/
+
+### Product Images
+- Alt text: `${product.name}` (from createProductCard in main.js)
+- loading="lazy" attribute
+- Placeholder SVG for missing images
+
+## GOOGLE SEARCH CONSOLE
+- VERIFIED: public/googlec2abaddf7a5c210b.html exists
+- Accessible at: https://shree-collection-opal.vercel.app/googlec2abaddf7a5c210b.html
+- Sitemap URL to submit: https://shree-collection-opal.vercel.app/sitemap.xml
+
 ## PRODUCTS/CATALOG BEHAVIOR
 - Products load ONLY from Supabase (no hardcoded fallback)
-- catalog.js fetches from Supabase with cache bypass
+- catalog.js fetches from Supabase with cache bypass on page load
 - Product detail page uses query parameter (?id=N)
-- Featured products section on homepage loads from Supabase
+- Featured products section on homepage loads from Supabase (featured=true filter)
 - Product images: Unsplash URLs OR Supabase Storage uploads
+- Search uses `searchInput` element, filters by name, description, colors
+- Price filter: range slider 0-40000 NPR
+- Size filter: checkboxes for S, M, L, XL, Free Size
+- Sort options: Default, Price Low-High, Price High-Low, Name A-Z
 
 ## PAYMENT/WHATSAPP FUNCTIONALITY
 - WhatsApp: 9841735450 (standardized)
@@ -56,45 +86,26 @@ The `outputDirectory: "."` is ESSENTIAL - without it, the site returns 404 becau
 - Cart modal with checkout button
 - WhatsApp floating button on all pages
 
-## SEO IMPLEMENTATION
-- canonical URL: https://shree-collection-opal.vercel.app/
-- Open Graph: og:title, og:description, og:image, og:url
-- Twitter Card: summary_large_image
-- Organization JSON-LD schema
-- sitemap.xml (static, references main pages)
-- robots.txt (allows all, disallows /admin.html and /api/)
-- Meta descriptions on all pages
-- Semantic HTML structure
+## DESIGN/MOBILE
+- CSS variables for consistent theming
+- Mobile-first responsive breakpoints: 992px, 768px, 480px
+- Hamburger menu for mobile navigation
+- Product grid adapts to screen size
+- Lazy loading images
+- Touch-friendly buttons and targets
 
-## GOOGLE SEARCH CONSOLE
-- VERIFIED: public/googlec2abaddf7a5c210b.html exists
-- Accessible at: https://shree-collection-opal.vercel.app/googlec2abaddf7a5c210b.html
-- Sitemap URL to submit: https://shree-collection-opal.vercel.app/sitemap.xml
-
-## TECHNICAL SEO STATUS
-- sitemap.xml: VALID, references homepage, catalog, contact
-- sitemap.xml also references privacy.html and terms.html (files may not exist - check)
-- robots.txt: VALID, allows crawlers, disallows admin and api
-- canonical URLs: Set correctly
-- noindex/nofollow: Admin panel noindex (correct)
-
-## COMPLETED WORK (from previous sessions)
-1. Removed hardcoded products.js - Supabase only
-2. Fixed price input (text type prevents scroll changes)
-3. Fixed WhatsApp floating button smooth-scroll error
-4. Standardized phone to 9841735450
-5. Fixed admin.js syntax error (await outside async)
-6. Fixed product ID auto-generation
-7. Fixed vercel.json outputDirectory (CRITICAL - fixed 404)
-8. Added Google Search Console verification file
-9. Created sitemap.xml and robots.txt
+## COMPLETED WORK
+1. Fixed 404 deployment issue (vercel.json outputDirectory)
+2. Fixed sitemap.xml (removed non-existent privacy.html and terms.html)
+3. Added WebSite JSON-LD schema with SearchAction
+4. Google Search Console verification file in place
+5. Updated session handoff
 
 ## KNOWN ISSUES/LIMITATIONS
-- sitemap.xml references privacy.html and terms.html (need to verify these exist)
-- Product pages use query parameters (?id=N) - may not be ideal for SEO
-- No structured data for individual products yet
+- Product pages use query parameters (?id=N) - not ideal for deep SEO indexing
+- No Product structured data on product.html yet
 - No breadcrumb structured data yet
-- Heritage/about section has placeholder image
+- Heritage/about section has placeholder image upload feature
 
 ## WHAT NOT TO REDO
 - Do NOT remove products.js again (already done)
@@ -104,16 +115,16 @@ The `outputDirectory: "."` is ESSENTIAL - without it, the site returns 404 becau
 - Do NOT rebuild the website from scratch
 - Do NOT change the Vercel configuration outputDirectory
 - Do NOT delete public/googlec2abaddf7a5c210b.html
+- Do NOT add privacy.html or terms.html to sitemap if they don't exist
 
 ## NEXT TASKS (recommended)
-1. Verify sitemap.xml pages (privacy.html, terms.html) actually exist
-2. Add WebSite and SearchAction JSON-LD schema
-3. Add Product structured data to product detail pages
-4. Improve product images alt text
-5. Verify mobile responsiveness on all pages
-6. Check accessibility on all pages
+1. Add Product structured data to product detail pages
+2. Verify mobile responsiveness on all pages
+3. Check accessibility on all pages
+4. Consider adding breadcrumb structured data
+5. Add real products to the database
 
 ## GIT STATUS
 Branch: main
-Latest commit: 0439973 (Fix vercel.json: set outputDirectory to project root)
-GitHub: up to date
+Latest commit: 0e622dc (SEO improvements: fix sitemap, add WebSite schema, update handoff)
+GitHub: up to date with origin/main
