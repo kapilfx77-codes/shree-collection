@@ -75,6 +75,25 @@
       }
     }
     </script>
+
+    <!-- WebSite Schema with SearchAction for Sitelinks Search Box -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Shree Collection",
+      "url": "https://shree-collection-opal.vercel.app/",
+      "description": "Premium women's ethnic wear - sarees, kurtas and lehengas - from Butwal, Nepal with delivery across Nepal.",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://shree-collection-opal.vercel.app/catalog.html?q={q}"
+        },
+        "query-input": "required name=q"
+      }
+    }
+    </script>
 </head>
 <body>
     <!-- Announcement Bar -->
