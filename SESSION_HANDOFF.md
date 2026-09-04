@@ -142,5 +142,21 @@ Icons are now clearly visible, properly aligned, and consistent across the site.
 - Admin title is clearly readable against brown gradient background
 - WhatsApp icons visible and consistent across pages
 - Cart drawer has clear Proceed to Checkout + secondary WhatsApp order
+
+### ADDITIONAL FIX - 2026-09-04 (Catalog Cart Bug)
+**Root cause:** `catalog.html` was still using the legacy `cartModal` markup while `cart.js` was designed to work with `cartDrawer` + `cartOverlay`. When clicking the cart icon on catalog page, the JavaScript tried to toggle non-existent drawer/overlay elements.
+**Fix:** Replaced the legacy cart modal in `catalog.html` with the same cart drawer/overlay markup used on `index.html` and `product.html`. The cart now opens correctly from all pages.
+
+### FILES MODIFIED (Catalog Fix)
+- `catalog.html` — Replaced legacy cart modal with cart drawer/overlay markup
+
+### TESTING VERIFIED (Catalog Fix)
+- Cart opens from Homepage ✅
+- Cart opens from Catalog ✅
+- Cart opens from Product detail page ✅
+- Proceed to Checkout visible and functional ✅
+- Order via WhatsApp works ✅
+- Cart state persists across navigation ✅
+- Empty cart shows correct empty state ✅
 - Cart contents preserved when navigating to checkout
 - Empty cart shows warning toast and does not proceed
