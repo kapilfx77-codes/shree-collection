@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Details - Shree Collection</title>
     <meta name="description" id="metaDescription" content="View product details, fabric specifications, color variants, and order directly on WhatsApp with Shree Collection.">
-    <meta name="theme-color" content="#7A1C2C">
+    <meta name="theme-color" content="#2D2320">
     <!-- Every product shares this page, so the tags below are placeholders: setProductMeta() rewrites title, description, canonical, OG and Twitter values once the product loads. -->
     <link rel="canonical" id="metaCanonical" href="https://shree-collection-opal.vercel.app/product.html">
 
@@ -517,7 +517,7 @@
                     <div style="text-align: center; padding: 100px 20px;">
                         <h2>Error Loading Product</h2>
                         <p style="color: var(--text-muted); margin: 12px 0 24px;">Failed to load product: ${error.message}</p>
-                        <a href="catalog.html" class="cta-button">Back to Catalog</a>
+                        <a href="catalog.html" class="btn btn-primary">Back to Catalog</a>
                     </div>
                 `;
                 return;
@@ -528,7 +528,7 @@
                     <div style="text-align: center; padding: 100px 20px;">
                         <h2>Product Not Found</h2>
                         <p style="color: var(--text-muted); margin: 12px 0 24px;">The product you are looking for does not exist or has been moved.</p>
-                        <a href="catalog.html" class="cta-button">Back to Catalog</a>
+                        <a href="catalog.html" class="btn btn-primary">Back to Catalog</a>
                     </div>
                 `;
                 return;
@@ -570,7 +570,7 @@
 
                     <!-- Meta & Purchase Actions -->
                     <div class="product-meta-section">
-                        <h1 style="font-size: 2.2rem; color: var(--text-dark); line-height: 1.2;">${currentProduct.name}</h1>
+                        <h1 class="product-detail-title">${currentProduct.name}</h1>
 
                         <div class="product-price-row">
                             <span class="product-price-large">NPR ${currentProduct.price.toLocaleString('en-IN')}</span>
@@ -608,6 +608,22 @@
                                         <span>${c}</span>
                                     </button>
                                 `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Quantity Selector -->
+                        <div class="option-group">
+                            <div class="option-title">
+                                <span>Quantity:</span>
+                            </div>
+                            <div class="quantity-control">
+                                <button type="button" class="qty-btn qty-decrease" onclick="adjustQuantity(-1)" aria-label="Decrease quantity">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </button>
+                                <input type="number" class="qty-input" id="productQuantity" value="1" min="1" max="10" onchange="updateQuantity(this.value)" aria-label="Quantity">
+                                <button type="button" class="qty-btn qty-increase" onclick="adjustQuantity(1)" aria-label="Increase quantity">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                </button>
                             </div>
                         </div>
 
@@ -702,7 +718,19 @@
 
         function addCurrentProductToCart() {
             if (!currentProduct) return;
-            addToCart(currentProduct.id, selectedSize, selectedColor);
+            const qty = parseInt(document.getElementById('productQuantity').value) || 1;
+            addToCart(currentProduct.id, selectedSize, selectedColor, qty);
+        }
+
+        function adjustQuantity(delta) {
+            const input = document.getElementById('productQuantity');
+            const newVal = Math.max(1, Math.min(10, parseInt(input.value) + delta));
+            input.value = newVal;
+        }
+
+        function updateQuantity(val) {
+            const input = document.getElementById('productQuantity');
+            input.value = Math.max(1, Math.min(10, parseInt(val) || 1));
         }
 
         function orderCurrentViaWhatsApp() {

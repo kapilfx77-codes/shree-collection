@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Confirmed - Shree Collection</title>
+    <meta name="description" content="Your order has been confirmed! Thank you for shopping with Shree Collection.">
+    <link rel="canonical" href="https://shree-collection-opal.vercel.app/checkout-success.html">
+    <meta name="theme-color" content="#2D2320">
+
+    <link rel="icon" href="assets/favicon.ico" sizes="32x32">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        window.SUPABASE_CONFIG = {
+            url: 'https://scngozslllefwivasslu.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjbmdvenNsbGxlZndpdmFzc2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzg4NjAsImV4cCI6MjEwMzc1NDg2MH0.2DSLTz1WXLOcEvHU4NowroUdlHxL9qHAjwvNpURv8u8'
+        };
+    </script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-main">SHREE COLLECTION</span>
+                <span class="logo-sub">Premium Ethnic Fashion</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Success Page -->
+    <main class="checkout-success-page">
+        <div class="checkout-success-container">
+            <div class="success-icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+
+            <h1>Order Confirmed!</h1>
+            <p id="successMessage">Thank you for your order. We'll process it shortly and get back to you.</p>
+
+            <div class="order-details-box" id="orderDetails">
+                <h4>Order Details</h4>
+                <div class="order-detail-row">
+                    <span>Order ID</span>
+                    <span id="orderId">---</span>
+                </div>
+                <div class="order-detail-row">
+                    <span>Date</span>
+                    <span id="orderDate">---</span>
+                </div>
+                <div class="order-detail-row">
+                    <span>Total Amount</span>
+                    <span id="orderTotal">---</span>
+                </div>
+                <div class="order-detail-row">
+                    <span>Payment Method</span>
+                    <span id="orderPayment">---</span>
+                </div>
+            </div>
+
+            <div class="success-actions">
+                <a href="catalog.html" class="btn btn-primary btn-lg">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    Continue Shopping
+                </a>
+                <a href="https://wa.me/9779841735450?text=Namaste%20Shree%20Collection!%20I%20just%20placed%20an%20order%20and%20would%20like%20to%20check%20on%20its%20status."
+                   class="btn btn-outline btn-lg" id="trackOrderBtn" target="_blank">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    Track Order on WhatsApp
+                </a>
+            </div>
+
+            <p style="margin-top: var(--space-xl); font-size: 0.875rem; color: var(--text-muted);">
+                We'll send you updates about your order via WhatsApp. Please keep your phone on!
+            </p>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get order ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderId = urlParams.get('order') || 'SHREE-' + Date.now().toString(36).toUpperCase();
+
+            // Get pending order details if available
+            const pendingOrder = JSON.parse(localStorage.getItem('shree_collection_pending_order') || 'null');
+
+            // Populate order details
+            document.getElementById('orderId').textContent = orderId;
+            document.getElementById('orderDate').textContent = new Date().toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            if (pendingOrder) {
+                document.getElementById('orderTotal').textContent = 'NPR ' + pendingOrder.total.toLocaleString('en-IN');
+                document.getElementById('orderPayment').textContent = pendingOrder.paymentMethod === 'esewa' ? 'eSewa (Paid)' : 'Cash on Delivery';
+            } else {
+                // Calculate from cart (if still available)
+                const cart = JSON.parse(localStorage.getItem('shree_collection_cart') || '[]');
+                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                document.getElementById('orderTotal').textContent = 'NPR ' + total.toLocaleString('en-IN');
+                document.getElementById('orderPayment').textContent = 'Pending Review';
+            }
+
+            // Update WhatsApp button with order ID
+            const whatsappBtn = document.getElementById('trackOrderBtn');
+            const whatsappBase = 'https://wa.me/9779841735450?text=';
+            const message = encodeURIComponent(`Namaste Shree Collection! I just placed an order (${orderId}) and would like to check on its status.`);
+            whatsappBtn.href = whatsappBase + message;
+
+            // Clear pending order after success
+            localStorage.removeItem('shree_collection_pending_order');
+        });
+    </script>
+</body>
+</html>

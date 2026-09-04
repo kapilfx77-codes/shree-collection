@@ -23,6 +23,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         priceRange.addEventListener('input', debounce(applyFilters, 300));
     }
 
+    // Initialize sort select
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', applyFilters);
+    }
+
     applyFilters();
 });
 
@@ -33,7 +39,7 @@ function applyFilters() {
     const sortMethod = document.getElementById('sortSelect')?.value || 'default';
 
     // Get selected sizes
-    const selectedSizes = Array.from(document.querySelectorAll('.filter-options input[type="checkbox"]:checked'))
+    const selectedSizes = Array.from(document.querySelectorAll('.filter-checkbox input[type="checkbox"]:checked'))
         .map(cb => cb.value);
 
     // Filter products
@@ -93,6 +99,7 @@ function applyFilters() {
 function renderCatalog() {
     const catalogGrid = document.getElementById('catalogGrid');
     const productCount = document.getElementById('productCount');
+    const emptyState = document.getElementById('catalogEmptyState');
 
     if (!catalogGrid) return;
 
@@ -101,21 +108,12 @@ function renderCatalog() {
     }
 
     if (filteredProducts.length === 0) {
-        catalogGrid.innerHTML = `
-            <div style="grid-column: 1/-1; text-align: center; padding: 80px 20px; color: var(--text-muted);">
-                <svg aria-hidden="true" focusable="false" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" style="margin: 0 auto 20px; opacity: 0.3;">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <path d="m21 21-4.35-4.35"></path>
-                </svg>
-                <h3 style="font-size: 1.3rem; margin-bottom: 8px; color: var(--text-dark);">No products found</h3>
-                <p style="font-size: 0.95rem;">Try adjusting your filters or search terms</p>
-                <button onclick="resetFilters()" style="margin-top: 20px; padding: 10px 24px; background: var(--primary); color: #FFF; border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                    Clear All Filters
-                </button>
-            </div>
-        `;
+        catalogGrid.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'block';
         return;
     }
+
+    if (emptyState) emptyState.style.display = 'none';
 
     catalogGrid.innerHTML = filteredProducts.map(product => createProductCard(product)).join('');
 
@@ -159,7 +157,7 @@ function resetFilters() {
     }
 
     // Reset size checkboxes
-    document.querySelectorAll('.filter-options input[type="checkbox"]').forEach(cb => {
+    document.querySelectorAll('.filter-checkbox input[type="checkbox"]').forEach(cb => {
         cb.checked = false;
     });
 

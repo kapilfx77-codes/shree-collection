@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Shree Collection</title>
+    <meta name="description" content="Complete your order at Shree Collection - secure checkout with Cash on Delivery or eSewa QR payment.">
+    <link rel="canonical" href="https://shree-collection-opal.vercel.app/checkout.html">
+    <meta name="theme-color" content="#2D2320">
+
+    <link rel="icon" href="assets/favicon.ico" sizes="32x32">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        window.SUPABASE_CONFIG = {
+            url: 'https://scngozslllefwivasslu.supabase.co',
+            anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNjbmdvenNsbGxlZndpdmFzc2x1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxNzg4NjAsImV4cCI6MjEwMzc1NDg2MH0.2DSLTz1WXLOcEvHU4NowroUdlHxL9qHAjwvNpURv8u8'
+        };
+    </script>
+</head>
+<body>
+    <!-- Navigation (simplified) -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-main">SHREE COLLECTION</span>
+                <span class="logo-sub">Premium Ethnic Fashion</span>
+            </a>
+            <div class="nav-actions">
+                <a href="catalog.html" class="btn btn-sm btn-outline">Continue Shopping</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Checkout Page -->
+    <main class="checkout-page">
+        <div class="checkout-container">
+            <div class="checkout-page-header">
+                <h1>Complete Your Order</h1>
+                <p>Fill in your details and choose your preferred payment method</p>
+            </div>
+
+            <!-- Pending Order Alert -->
+            <div id="pendingOrderAlert" class="pending-order-alert" style="display: none;">
+                <h4>You have a pending eSewa payment</h4>
+                <p>Please complete your payment or cancel this order to continue.</p>
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="continuePendingOrder()">Continue Payment</button>
+                    <button class="btn btn-outline" onclick="cancelPendingOrder()">Cancel & Start Fresh</button>
+                </div>
+            </div>
+
+            <div class="checkout-layout">
+                <!-- Main Checkout Form -->
+                <div class="checkout-main">
+                    <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
+                        <!-- Customer Information -->
+                        <div class="checkout-section">
+                            <div class="checkout-section-header">
+                                <span class="checkout-section-number">1</span>
+                                <h3>Customer Information</h3>
+                            </div>
+                            <div class="checkout-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="customerName">Full Name <span class="required">*</span></label>
+                                        <input type="text" id="customerName" name="customerName" class="form-input"
+                                            placeholder="e.g. Anjali Sharma" required autocomplete="name">
+                                        <span class="form-error">Please enter your name</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="customerPhone">Phone / WhatsApp <span class="required">*</span></label>
+                                        <input type="tel" id="customerPhone" name="customerPhone" class="form-input"
+                                            placeholder="e.g. 9841735450" required autocomplete="tel">
+                                        <span class="form-error">Please enter a valid 10-digit phone number</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Delivery Address -->
+                        <div class="checkout-section">
+                            <div class="checkout-section-header">
+                                <span class="checkout-section-number">2</span>
+                                <h3>Delivery Address</h3>
+                            </div>
+                            <div class="checkout-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="customerCity">City / District <span class="required">*</span></label>
+                                        <input type="text" id="customerCity" name="customerCity" class="form-input"
+                                            placeholder="e.g. Butwal, Rupandehi" required autocomplete="address-level2">
+                                        <span class="form-error">Please enter your city</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="customerAddress">Full Address <span class="required">*</span></label>
+                                        <input type="text" id="customerAddress" name="customerAddress" class="form-input"
+                                            placeholder="Street, Ward No, Landmark" required autocomplete="street-address">
+                                        <span class="form-error">Please enter your complete address</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div class="checkout-section">
+                            <div class="checkout-section-header">
+                                <span class="checkout-section-number">3</span>
+                                <h3>Payment Method</h3>
+                            </div>
+                            <div class="payment-methods">
+                                <label class="payment-option selected">
+                                    <input type="radio" name="paymentMethod" value="cod" checked>
+                                    <span class="payment-radio"></span>
+                                    <div class="payment-info">
+                                        <h4>Cash on Delivery (COD)</h4>
+                                        <p>Pay when you receive your order. Available for all locations in Nepal.</p>
+                                    </div>
+                                    <span class="payment-icon">💵</span>
+                                </label>
+                                <label class="payment-option">
+                                    <input type="radio" name="paymentMethod" value="esewa">
+                                    <span class="payment-radio"></span>
+                                    <div class="payment-info">
+                                        <h4>Pay with eSewa QR</h4>
+                                        <p>Scan QR code to pay instantly via eSewa or mobile banking.</p>
+                                    </div>
+                                    <span class="payment-icon">📱</span>
+                                </label>
+                            </div>
+
+                            <!-- eSewa Payment Details -->
+                            <div id="esewaPaymentSection" class="esewa-payment-section">
+                                <h4>Scan QR Code to Pay</h4>
+                                <div class="esewa-qr-container">
+                                    <img src="assets/qr-code.png" alt="eSewa QR Code" class="esewa-qr-image"
+                                        onerror="this.src='assets/placeholder-qr.png'">
+                                    <p class="esewa-amount">Pay: NPR <span id="esewaAmount">0</span></p>
+                                    <div class="esewa-instructions">
+                                        <p>1. Open eSewa or any mobile banking app</p>
+                                        <p>2. Scan the QR code above</p>
+                                        <p>3. Complete the payment</p>
+                                        <p>4. Return here and click "I Have Paid"</p>
+                                        <button type="button" class="copy-phone-btn" onclick="copyShopPhone()">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                            Copy Phone: <span id="esewaPhone">9841735450</span>
+                                        </button>
+                                        <p style="margin-top: 8px; font-size: 0.75rem;">Or send payment to the phone number above via eSewa</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Actions -->
+                        <div class="checkout-section">
+                            <div class="checkout-actions">
+                                <button type="submit" id="placeOrderBtn" class="checkout-submit-btn">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                    Place Order
+                                </button>
+                                <button type="button" id="whatsappOrderBtn" class="whatsapp-submit-btn" onclick="sendWhatsAppOrder()">
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                    Send Order via WhatsApp
+                                </button>
+                                <p class="checkout-security-note">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                    Your information is secure and will only be used to process your order
+                                </p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Order Summary Sidebar -->
+                <div class="order-summary">
+                    <div class="order-summary-header">
+                        <h3>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                            Order Summary
+                        </h3>
+                    </div>
+                    <div class="order-summary-items" id="orderSummaryItems">
+                        <!-- Cart items will be populated by JavaScript -->
+                    </div>
+                    <div class="order-summary-footer">
+                        <div class="summary-row">
+                            <span>Subtotal</span>
+                            <span id="summarySubtotal">NPR 0</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>Shipping</span>
+                            <span>Calculated at delivery</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span>Total</span>
+                            <span id="summaryTotal">NPR 0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="cartToast" class="cart-toast" role="alert" aria-live="polite"></div>
+
+    <!-- Scripts -->
+    <script src="config.js"></script>
+    <script src="db.js"></script>
+    <script src="cart.js"></script>
+    <script>
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check for empty cart
+            if (cart.length === 0) {
+                const pending = getPendingOrder();
+                if (!pending) {
+                    window.location.href = 'catalog.html';
+                    return;
+                }
+            }
+
+            // Check for pending order
+            checkPendingOrder();
+
+            // Populate order summary
+            populateOrderSummary();
+
+            // Setup payment method toggle
+            setupPaymentMethods();
+
+            // Pre-fill form if returning customer
+            prefillForm();
+        });
+
+        // Check for pending order
+        function checkPendingOrder() {
+            const pending = getPendingOrder();
+            const alert = document.getElementById('pendingOrderAlert');
+
+            if (pending) {
+                alert.style.display = 'block';
+                document.getElementById('placeOrderBtn').disabled = true;
+            } else {
+                alert.style.display = 'none';
+            }
+        }
+
+        // Continue with pending order
+        function continuePendingOrder() {
+            const pending = getPendingOrder();
+            if (pending) {
+                // Show eSewa payment section
+                document.querySelector('input[name="paymentMethod"][value="esewa"]').checked = true;
+                toggleEsewaPayment(true);
+
+                // Fill form with pending order data
+                document.getElementById('customerName').value = pending.name || '';
+                document.getElementById('customerPhone').value = pending.phone || '';
+                document.getElementById('customerCity').value = pending.city || '';
+                document.getElementById('customerAddress').value = pending.address || '';
+
+                document.getElementById('pendingOrderAlert').style.display = 'none';
+                document.getElementById('placeOrderBtn').disabled = false;
+
+                showToast('Please complete your eSewa payment', 'info');
+            }
+        }
+
+        // Cancel pending order
+        function cancelPendingOrder() {
+            if (confirm('Are you sure you want to cancel your pending order?')) {
+                clearPendingOrder();
+                checkPendingOrder();
+                showToast('Pending order cancelled', 'info');
+            }
+        }
+
+        // Populate order summary from cart
+        function populateOrderSummary() {
+            const container = document.getElementById('orderSummaryItems');
+            const subtotalEl = document.getElementById('summarySubtotal');
+            const totalEl = document.getElementById('summaryTotal');
+
+            if (cart.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-muted);">No items in cart</p>';
+                subtotalEl.textContent = 'NPR 0';
+                totalEl.textContent = 'NPR 0';
+                return;
+            }
+
+            container.innerHTML = cart.map(item => `
+                <div class="summary-item">
+                    <div class="summary-item-image">
+                        <img src="${item.image}" alt="${item.name}" loading="lazy">
+                    </div>
+                    <div class="summary-item-info">
+                        <div class="summary-item-name">${item.name}</div>
+                        <div class="summary-item-variant">${item.size} / ${item.color}</div>
+                        <div class="summary-item-qty">Qty: ${item.quantity}</div>
+                    </div>
+                    <div class="summary-item-price">NPR ${(item.price * item.quantity).toLocaleString('en-IN')}</div>
+                </div>
+            `).join('');
+
+            const total = getCartTotal();
+            subtotalEl.textContent = 'NPR ' + total.toLocaleString('en-IN');
+            totalEl.textContent = 'NPR ' + total.toLocaleString('en-IN');
+
+            // Update eSewa amount
+            document.getElementById('esewaAmount').textContent = total.toLocaleString('en-IN');
+        }
+
+        // Setup payment method selection
+        function setupPaymentMethods() {
+            const options = document.querySelectorAll('.payment-option');
+            const esewaSection = document.getElementById('esewaPaymentSection');
+
+            options.forEach(option => {
+                option.addEventListener('click', () => {
+                    options.forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+
+                    const value = option.querySelector('input').value;
+                    toggleEsewaPayment(value === 'esewa');
+                });
+            });
+
+            // Also update eSewa phone from config
+            if (typeof STORE_CONFIG !== 'undefined' && STORE_CONFIG.esewa) {
+                document.getElementById('esewaPhone').textContent = STORE_CONFIG.esewa.accountNumber;
+            }
+        }
+
+        // Toggle eSewa payment section
+        function toggleEsewaPayment(show) {
+            const section = document.getElementById('esewaPaymentSection');
+            if (show) {
+                section.classList.add('active');
+            } else {
+                section.classList.remove('active');
+            }
+        }
+
+        // Pre-fill form from localStorage
+        function prefillForm() {
+            const savedName = localStorage.getItem('shree_checkout_name');
+            const savedPhone = localStorage.getItem('shree_checkout_phone');
+
+            if (savedName) document.getElementById('customerName').value = savedName;
+            if (savedPhone) document.getElementById('customerPhone').value = savedPhone;
+        }
+
+        // Validate form
+        function validateForm() {
+            const name = document.getElementById('customerName').value.trim();
+            const phone = document.getElementById('customerPhone').value.trim();
+            const city = document.getElementById('customerCity').value.trim();
+            const address = document.getElementById('customerAddress').value.trim();
+
+            let isValid = true;
+
+            // Name validation
+            if (!name) {
+                document.getElementById('customerName').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('customerName').classList.remove('error');
+            }
+
+            // Phone validation (10 digits)
+            const phoneRegex = /^[0-9]{10}$/;
+            if (!phoneRegex.test(phone)) {
+                document.getElementById('customerPhone').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('customerPhone').classList.remove('error');
+            }
+
+            // City validation
+            if (!city) {
+                document.getElementById('customerCity').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('customerCity').classList.remove('error');
+            }
+
+            // Address validation
+            if (!address) {
+                document.getElementById('customerAddress').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('customerAddress').classList.remove('error');
+            }
+
+            return isValid;
+        }
+
+        // Handle form submission
+        async function handleCheckoutSubmit(event) {
+            event.preventDefault();
+
+            if (!validateForm()) {
+                showToast('Please fill in all required fields correctly', 'error');
+                return;
+            }
+
+            if (cart.length === 0 && !getPendingOrder()) {
+                showToast('Your cart is empty', 'error');
+                return;
+            }
+
+            const orderData = {
+                name: document.getElementById('customerName').value.trim(),
+                phone: document.getElementById('customerPhone').value.trim(),
+                city: document.getElementById('customerCity').value.trim(),
+                address: document.getElementById('customerAddress').value.trim(),
+                paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value
+            };
+
+            // Save for returning customer
+            localStorage.setItem('shree_checkout_name', orderData.name);
+            localStorage.setItem('shree_checkout_phone', orderData.phone);
+
+            const paymentMethod = orderData.paymentMethod;
+
+            if (paymentMethod === 'esewa') {
+                // For eSewa, save pending order and wait for payment confirmation
+                await submitOrder(orderData, 'esewa');
+                showToast('Order saved! Please complete your eSewa payment.', 'info');
+
+                // Change button to "I Have Paid"
+                const btn = document.getElementById('placeOrderBtn');
+                btn.textContent = 'I Have Paid - Confirm Payment';
+                btn.onclick = async () => {
+                    btn.disabled = true;
+                    btn.textContent = 'Confirming...';
+
+                    const result = await confirmEsewaPayment();
+                    if (result) {
+                        // Redirect to success page
+                        window.location.href = `checkout-success.html?order=${result.orderId}`;
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = 'I Have Paid - Confirm Payment';
+                        btn.onclick = handleCheckoutSubmit;
+                    }
+                };
+            } else {
+                // COD - submit directly
+                const btn = document.getElementById('placeOrderBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spinning"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Processing...';
+
+                const result = await submitOrder(orderData, 'cod');
+                if (result) {
+                    // Clear cart and redirect to success
+                    clearCart();
+                    window.location.href = `checkout-success.html?order=${result.orderId}`;
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Place Order';
+                }
+            }
+        }
+
+        // Send order via WhatsApp
+        function sendWhatsAppOrder() {
+            if (!validateForm()) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            if (cart.length === 0) {
+                showToast('Your cart is empty', 'error');
+                return;
+            }
+
+            const orderData = {
+                name: document.getElementById('customerName').value.trim(),
+                phone: document.getElementById('customerPhone').value.trim(),
+                city: document.getElementById('customerCity').value.trim(),
+                address: document.getElementById('customerAddress').value.trim(),
+                paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value
+            };
+
+            sendOrderViaWhatsApp(orderData);
+            showToast('Opening WhatsApp...', 'success');
+        }
+
+        // Copy shop phone for manual payment
+        function copyShopPhone() {
+            const phone = document.getElementById('esewaPhone').textContent;
+            copyToClipboard(phone);
+        }
+
+        // Toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('cartToast');
+            const icons = {
+                success: '✓',
+                error: '✗',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+
+            toast.className = `cart-toast cart-toast-${type}`;
+            toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.success}</span><span class="toast-message">${message}</span>`;
+            toast.classList.add('show');
+
+            clearTimeout(toast.hideTimeout);
+            toast.hideTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Spinning animation style
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+            .spinning {
+                animation: spin 1s linear infinite;
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

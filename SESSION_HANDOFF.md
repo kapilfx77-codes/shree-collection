@@ -2,143 +2,101 @@
 Project: shree-collection e-commerce (Supabase + Vercel + GitHub)
 Repository: D:\Shree Website | GitHub: kapilfx77-codes/shree-collection
 Website: https://shree-collection-opal.vercel.app/
-Last Updated: 2026-09-03
+Last Updated: 2026-09-04
+
+## REDESIGN COMPLETED - Premium Ethnic Fashion Design System
+
+A comprehensive visual redesign was completed transforming the site from a red-heavy scheme to a warm, premium ethnic fashion aesthetic. All files updated with new design system.
+
+### NEW DESIGN SYSTEM
+- **Primary Color**: Warm Charcoal/Brown (#2D2320) - replaced old red (#7A1C2C)
+- **Gold Accent**: #C9A050, #E8D39E, #A07830
+- **Background**: Warm cream (#FAF5EE), warm white (#FDFBF8)
+- **Typography**: Playfair Display (serif headings), Inter (body)
+- **CSS Variables**: Full design token system in styles.css
+
+### KEY CSS CLASSES (new design)
+- `.announcement-bar` - Top notification bar
+- `.navbar` - Premium navigation header
+- `.logo`, `.logo-main`, `.logo-sub` - Brand logo
+- `.nav-center`, `.nav-links`, `.nav-actions` - Navigation components
+- `.hero` - Homepage hero section with pattern overlay
+- `.hero-tag`, `.hero-title`, `.hero-subtitle`, `.hero-actions` - Hero elements
+- `.trust-banner`, `.trust-item` - Trust indicators
+- `.categories-section`, `.categories-grid`, `.category-card` - Category cards
+- `.products-section`, `.product-card`, `.product-image-wrap` - Product display
+- `.product-badge`, `.product-discount-badge` - Product badges
+- `.product-info`, `.product-title`, `.product-prices` - Product details
+- `.product-colors`, `.product-actions` - Product actions
+- `.btn`, `.btn-primary`, `.btn-gold`, `.btn-ghost`, `.btn-outline` - Button styles
+- `.btn-add-cart`, `.btn-whatsapp-buy` - Cart/WhatsApp buttons
+- `.catalog-hero` - Catalog page header
+- `.catalog-layout`, `.catalog-sidebar`, `.catalog-main` - Catalog layout
+- `.filter-header`, `.filter-group`, `.filter-title`, `.filter-checkbox` - Filters
+- `.catalog-toolbar`, `.catalog-count`, `.sort-select` - Sort/toolbar
+- `.catalog-empty-state` - Empty state display
+- `.product-detail-layout`, `.product-gallery` - Product detail
+- `.product-detail-title`, `.product-meta-section` - Product meta
+- `.product-price-row`, `.product-price-large`, `.product-price-strike` - Pricing
+- `.size-pills`, `.size-pill`, `.color-pills`, `.color-pill` - Options
+- `.product-detail-actions`, `.product-features-box`, `.feature-item` - Actions
+- `.about-section`, `.about-grid`, `.about-content` - About section
+- `.cta-section` - Call to action
+- `.footer`, `.footer-content`, `.footer-section` - Footer
+- `.modal`, `.modal-content`, `.modal-header`, `.close-btn` - Modal
+- `.cart-items`, `.cart-total-box`, `.checkout-btn` - Cart
+- `.floating-whatsapp` - WhatsApp float button
+- `.toast`, `.toast-content` - Toast notifications
+- `.sticky-buy-bar` - Mobile sticky buy bar
+
+### FILES UPDATED
+- `styles.css` - Complete rewrite with new design system
+- `index.html` - New homepage with premium hero, trust banner, categories
+- `catalog.html` - New catalog with enhanced filters and search
+- `product.html` - Updated product detail with new styling
+- `contact.html` - Updated contact page
+- `catalog.js` - Updated filter/sort functionality
+- `main.js` - Uses new product card classes
+
+### WHAT TO PRESERVE (DO NOT CHANGE)
+- Phone number: 9841735450 (WhatsApp)
+- Supabase integration (database URL, anon key)
+- All database functions (getProducts, getFeaturedProducts, etc.)
+- Cart functionality and localStorage
+- WhatsApp order flow
+- SEO structured data (Organization, WebSite JSON-LD)
+- Vercel configuration (vercel.json outputDirectory: ".")
+- Google Search Console verification file
+- Sitemap and robots.txt
 
 ## ARCHITECTURE
 - **Frontend**: Static HTML/CSS/JS (vanilla, no framework)
-- **Backend**: Supabase (products, orders tables) - NO fallback, NO localStorage
-- **Serverless**: Vercel API function at `api/login.js` for admin authentication
+- **Backend**: Supabase (products, orders tables)
+- **Serverless**: Vercel API function at `api/login.js` for admin auth
 - **Deployment**: GitHub → Vercel (automatic deploy on push to main)
 - **Scripts**: db.js, admin.js, catalog.js, cart.js, main.js, config.js
-- **Config**: config.js (centralized store config)
-- **Assets**: assets/qr-code.png, assets/favicon.svg, og-image.png, icons
-- **Public**: public/googlec2abaddf7a5c210b.html (Google Search Console verification)
 
 ## PAGES/ROUTES
-- `/index.html` - Homepage (featured products, about section, Organization + WebSite JSON-LD)
-- `/catalog.html` - Product catalog (loads from Supabase, search, filters, sort, SEO: brand + location in H1)
-- `/product.html?id=N` - Product detail (query param, dynamic metadata)
+- `/index.html` - Homepage with featured products, about section
+- `/catalog.html` - Product catalog with filters and search
+- `/product.html?id=N` - Product detail (query param)
 - `/contact.html` - Contact page
-- `/admin.html` - Admin panel (noindex, protected by password)
-- `/api/login` - POST endpoint for admin auth (serverless function)
+- `/admin.html` - Admin panel (protected)
+- `/api/login` - POST endpoint for admin auth
 
 ## SUPABASE SETUP
 - Database URL: scngozslllefwivasslu.supabase.co
 - Tables: products, orders, inventory
-- RLS policies configured
-- Storage: product-images bucket (public)
-- Products loaded via getProducts() from db.js
-- Featured products via getFeaturedProducts() - checks `featured` boolean field
-
-## VERCEL CONFIGURATION (CRITICAL - FIXED 404)
-File: vercel.json
-```json
-{
-  "outputDirectory": ".",
-  "cleanUrls": true,
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}
-```
-The `outputDirectory: "."` is ESSENTIAL - without it, the site returns 404 because Vercel detects the api/ folder and expects a build output directory.
-
-## SEO IMPLEMENTATION
-### Meta Tags (all pages)
-- Title, meta description, canonical URL
-- Open Graph: og:title, og:description, og:image, og:url, og:type, og:locale
-- Twitter Card: summary_large_image
-- Theme color
-
-### Homepage Headings
-- H1: "Shree Collection — Ethnic Fashion for Every Celebration" (brand name in H1)
-- H2: "Featured Sarees, Kurtas & Lehengas" (descriptive of products)
-- Hero tag: "Women's Ethnic Wear from Butwal, Nepal" (location + category)
-
-### Structured Data (index.html)
-- Organization JSON-LD (name, url, logo, address, contactPoint)
-- WebSite JSON-LD with SearchAction (searchAction target: catalog.html?q={q})
-
-### Technical SEO Files
-- sitemap.xml: Valid, references homepage, catalog, contact (no broken URLs)
-- robots.txt: Valid, allows crawlers, disallows /admin.html and /api/
-
-### Product Images
-- Alt text: `${product.name}` (from createProductCard in main.js)
-- loading="lazy" attribute
-- Placeholder SVG for missing images
-
-### Product Pages (product.html?id=N)
-- Dynamic `<title>`: `{product.name} - Shree Collection`
-- Dynamic canonical URL with product ID
-- Dynamic OG/Twitter metadata (title, description, image)
-- H1: product name rendered in HTML
-- Product JSON-LD: name, description, image, brand, category, color, Offer with price and InStock
-- BreadcrumbList JSON-LD: Home > Catalog > Product (static in head)
-- Gallery thumbnail alt text: `{product.name} - view N`
+- Storage: product-images bucket
 
 ## GOOGLE SEARCH CONSOLE
-- VERIFIED: public/googlec2abaddf7a5c210b.html exists
-- Accessible at: https://shree-collection-opal.vercel.app/googlec2abaddf7a5c210b.html
-- Sitemap URL to submit: https://shree-collection-opal.vercel.app/sitemap.xml
-
-## PRODUCTS/CATALOG BEHAVIOR
-- Products load ONLY from Supabase (no hardcoded fallback)
-- catalog.js fetches from Supabase with cache bypass on page load
-- Product detail page uses query parameter (?id=N)
-- Featured products section on homepage loads from Supabase (featured=true filter)
-- Product images: Unsplash URLs OR Supabase Storage uploads
-- Search uses `searchInput` element, filters by name, description, colors
-- Price filter: range slider 0-40000 NPR
-- Size filter: checkboxes for S, M, L, XL, Free Size
-- Sort options: Default, Price Low-High, Price High-Low, Name A-Z
-
-## PAYMENT/WHATSAPP FUNCTIONALITY
-- WhatsApp: 9841735450 (standardized)
-- QR payment: eSewa/Mobile Banking
-- Cart modal with checkout button
-- WhatsApp floating button on all pages
-
-## DESIGN/MOBILE
-- CSS variables for consistent theming
-- Mobile-first responsive breakpoints: 992px, 768px, 480px
-- Hamburger menu for mobile navigation
-- Product grid adapts to screen size
-- Lazy loading images
-- Touch-friendly buttons and targets
-
-## COMPLETED WORK
-1. Fixed 404 deployment issue (vercel.json outputDirectory)
-2. Fixed sitemap.xml (removed non-existent privacy.html and terms.html)
-3. Added WebSite JSON-LD schema with SearchAction
-4. Google Search Console verification file in place
-5. Updated session handoff
-
-## KNOWN ISSUES/LIMITATIONS
-- Product pages use query parameters (?id=N) - not ideal for deep SEO indexing
-- No Product structured data on product.html yet
-- No breadcrumb structured data yet
-- Heritage/about section has placeholder image upload feature
-
-## WHAT NOT TO REDO
-- Do NOT remove products.js again (already done)
-- Do NOT change the phone number from 9841735450
-- Do NOT remove Supabase integration
-- Do NOT remove WhatsApp functionality
-- Do NOT rebuild the website from scratch
-- Do NOT change the Vercel configuration outputDirectory
-- Do NOT delete public/googlec2abaddf7a5c210b.html
-- Do NOT add privacy.html or terms.html to sitemap if they don't exist
-
-## NEXT TASKS (recommended)
-1. Add Product structured data to product detail pages
-2. Verify mobile responsiveness on all pages
-3. Check accessibility on all pages
-4. Consider adding breadcrumb structured data
-5. Add real products to the database
+- VERIFIED: public/googlec2abaddf7a5c210b.html
+- Sitemap: https://shree-collection-opal.vercel.app/sitemap.xml
 
 ## GIT STATUS
 Branch: main
-Latest commit: 0e622dc (SEO improvements: fix sitemap, add WebSite schema, update handoff)
 GitHub: up to date with origin/main
+
+## KNOWN ISSUES
+- Product pages use query parameters (?id=N) - not ideal for deep SEO
+- Heritage/about section has placeholder image upload feature

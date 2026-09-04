@@ -265,6 +265,55 @@ async function createOrder(orderData) {
     }
 }
 
+async function getOrderById(orderId) {
+    if (!isSupabaseReady()) return null;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('orders')
+            .select('*')
+            .eq('order_id', orderId)
+            .single();
+
+        if (error) return null;
+        return data;
+    } catch (err) {
+        console.error('Error fetching order:', err);
+        return null;
+    }
+}
+
+async function updateOrderStatus(orderId, status) {
+    if (!isSupabaseReady()) {
+        showSupabaseError();
+        return false;
+    }
+
+    const validStatuses = ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+        console.error('Invalid status:', status);
+        return false;
+    }
+
+    try {
+        const { error } = await supabaseClient
+            .from('orders')
+            .update({
+                status: status,
+                updated_at: new Date().toISOString()
+            })
+            .eq('order_id', orderId);
+
+        if (error) throw error;
+        console.log('✓ Order status updated to:', status);
+        return true;
+    } catch (err) {
+        console.error('❌ Error updating order status:', err);
+        showSupabaseError();
+        return false;
+    }
+}
+
 // ==========================================================================
 // IMAGE UPLOAD - Supabase Storage only
 // ==========================================================================

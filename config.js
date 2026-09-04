@@ -32,6 +32,22 @@ const STORE_CONFIG = {
     // Business hours
     businessHours: '9 AM - 8 PM daily',
 
+    // eSewa Payment Configuration (personal account - manual verification)
+    // Replace with actual eSewa details when available
+    esewa: {
+        qrCodeImage: 'assets/qr-code.png',  // Path to eSewa QR code image
+        accountNumber: '9841735450',         // eSewa receiving account
+        accountName: 'Shree Collection',     // Display name
+        enabled: true
+    },
+
+    // Order settings
+    order: {
+        minPhoneDigits: 10,
+        maxPhoneDigits: 10,
+        prefix: 'SHREE-'  // Order ID prefix
+    },
+
     // WhatsApp message templates
     messages: {
         heroGreeting: 'Namaste Shree Collection! I would like to see your latest arrivals.',
@@ -39,6 +55,7 @@ const STORE_CONFIG = {
         contactInquiry: 'Namaste Shree Collection! I have a question about your products.',
         catalogInquiry: 'Hi Shree Collection! I have a query.',
         productInquiry: 'Hi! I want to buy: ',
+        orderMessage: 'Namaste Shree Collection! I would like to place an order.'
     },
 
     // Year for copyright

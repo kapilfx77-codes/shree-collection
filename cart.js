@@ -1,25 +1,33 @@
 // ==========================================================================
-// SHREE COLLECTION - SHOPPING CART & QR CHECKOUT SYSTEM
+// SHREE COLLECTION - SHOPPING CART & CHECKOUT SYSTEM
 // ==========================================================================
 
 const CART_STORAGE_KEY = 'shree_collection_cart';
+const PENDING_ORDER_KEY = 'shree_collection_pending_order';
+
 // Fallbacks if config.js is not loaded
 const SHOP_PHONE = (typeof STORE_CONFIG !== 'undefined') ? STORE_CONFIG.primaryPhone : '9841735450';
 const WHATSAPP_NUMBER = (typeof STORE_CONFIG !== 'undefined') ? STORE_CONFIG.whatsappNumber : '9779841735450';
+const ORDER_PREFIX = (typeof STORE_CONFIG !== 'undefined') ? STORE_CONFIG.order.prefix : 'SHREE-';
 
 let cart = JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || [];
+
+// ==========================================================================
+// CART CORE FUNCTIONS
+// ==========================================================================
 
 // Save cart to LocalStorage
 function saveCart() {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
     updateCartUI();
+    updateCartBadges();
 }
 
-// Add item to cart
-async function addToCart(productId, size = null, color = null) {
+// Add item to cart with optional quantity
+async function addToCart(productId, size = null, color = null, quantity = 1) {
     const product = await getProductById(productId);
     if (!product) {
-        showToast('❌ Product not found');
+        showToast('Product not found', 'error');
         return;
     }
 
@@ -31,38 +39,81 @@ async function addToCart(productId, size = null, color = null) {
     );
 
     if (existingIndex > -1) {
-        cart[existingIndex].quantity += 1;
+        cart[existingIndex].quantity += quantity;
     } else {
         cart.push({
             id: product.id,
             name: product.name,
             price: product.price,
-            image: product.images[0],
+            originalPrice: product.originalPrice || null,
+            image: product.images && product.images[0] ? product.images[0] : 'assets/placeholder.jpg',
             size: selectedSize,
             color: selectedColor,
-            quantity: 1
+            quantity: quantity,
+            maxStock: product.stock || 99
         });
     }
 
     saveCart();
-    showToast(`Added "${product.name}" to your cart!`);
+    showToast(`"${product.name}" added to cart!`);
+
+    // Open cart drawer automatically
+    openCartDrawer();
 }
 
-// Update quantity
+// Update quantity with bounds checking
 function updateQuantity(index, delta) {
     if (!cart[index]) return;
-    cart[index].quantity += delta;
-    if (cart[index].quantity <= 0) {
-        cart.splice(index, 1);
+
+    const newQty = cart[index].quantity + delta;
+    const maxStock = cart[index].maxStock || 99;
+
+    if (newQty <= 0) {
+        removeFromCart(index);
+    } else if (newQty > maxStock) {
+        showToast(`Only ${maxStock} available in stock`, 'warning');
+        cart[index].quantity = maxStock;
+        saveCart();
+    } else {
+        cart[index].quantity = newQty;
+        saveCart();
+    }
+}
+
+// Set specific quantity
+function setQuantity(index, qty) {
+    if (!cart[index]) return;
+
+    if (qty <= 0) {
+        removeFromCart(index);
+        return;
+    }
+
+    const maxStock = cart[index].maxStock || 99;
+    const newQty = Math.min(qty, maxStock);
+
+    cart[index].quantity = newQty;
+    if (qty > maxStock) {
+        showToast(`Only ${maxStock} available in stock`, 'warning');
     }
     saveCart();
 }
 
 // Remove from cart
 function removeFromCart(index) {
+    const item = cart[index];
     cart.splice(index, 1);
     saveCart();
-    showToast("Item removed from cart");
+    if (item) {
+        showToast(`"${item.name}" removed`);
+    }
+}
+
+// Clear entire cart
+function clearCart() {
+    cart = [];
+    saveCart();
+    showToast('Cart cleared');
 }
 
 // Calculate totals
@@ -74,291 +125,476 @@ function getCartCount() {
     return cart.reduce((count, item) => count + item.quantity, 0);
 }
 
-// Update Cart Count & Drawer UI
-function updateCartUI() {
-    const countBadges = document.querySelectorAll('.cart-count, #cartCount');
+function getCartSubtotal() {
+    return cart.reduce((total, item) => {
+        const origPrice = item.originalPrice || item.price;
+        return total + (origPrice * item.quantity);
+    }, 0);
+}
+
+// ==========================================================================
+// UI UPDATE FUNCTIONS
+// ==========================================================================
+
+// Update cart count badges
+function updateCartBadges() {
+    const countBadges = document.querySelectorAll('.cart-count, #cartCount, [data-cart-count]');
     const totalCount = getCartCount();
-    countBadges.forEach(b => {
-        b.textContent = totalCount;
-        b.style.display = totalCount > 0 ? 'flex' : 'none';
+
+    countBadges.forEach(badge => {
+        badge.textContent = totalCount;
+        badge.style.display = totalCount > 0 ? 'flex' : 'none';
+        badge.classList.toggle('has-items', totalCount > 0);
     });
+}
+
+// Update cart drawer UI
+function updateCartUI() {
+    updateCartBadges();
 
     const cartTotalEl = document.getElementById('cartTotal');
     if (cartTotalEl) {
-        cartTotalEl.textContent = getCartTotal().toLocaleString('en-IN');
+        cartTotalEl.textContent = 'NPR ' + getCartTotal().toLocaleString('en-IN');
+    }
+
+    const cartSubtotalEl = document.getElementById('cartSubtotal');
+    if (cartSubtotalEl) {
+        const subtotal = getCartSubtotal();
+        const total = getCartTotal();
+        cartSubtotalEl.innerHTML = subtotal > total
+            ? `<span class="original-price">NPR ${subtotal.toLocaleString('en-IN')}</span>`
+            : '';
     }
 
     const cartItemsContainer = document.getElementById('cartItems');
+    const cartEmptyState = document.getElementById('cartEmptyState');
+    const cartHasItems = document.getElementById('cartHasItems');
+
     if (cartItemsContainer) {
         if (cart.length === 0) {
-            cartItemsContainer.innerHTML = `
-                <div style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
-                    <svg aria-hidden="true" focusable="false" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.5;">
-                        <circle cx="9" cy="21" r="1"></circle>
-                        <circle cx="20" cy="21" r="1"></circle>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-                    </svg>
-                    <p style="font-size: 1.05rem; font-weight: 500;">Your cart is currently empty</p>
-                    <p style="font-size: 0.85rem; margin-top: 4px;">Explore our catalog for the latest ethnic wear</p>
-                </div>
-            `;
+            if (cartEmptyState) cartEmptyState.style.display = 'flex';
+            if (cartHasItems) cartHasItems.style.display = 'none';
+            cartItemsContainer.innerHTML = '';
         } else {
-            cartItemsContainer.innerHTML = cart.map((item, index) => `
-                <div class="cart-item">
-                    <img src="${item.image}" alt="${item.name}">
-                    <div class="cart-item-info">
-                        <div class="cart-item-title">${item.name}</div>
-                        <div class="cart-item-meta">Size: <strong>${item.size}</strong> | Color: <strong>${item.color}</strong></div>
-                        <div class="cart-item-price">NPR ${(item.price * item.quantity).toLocaleString('en-IN')}</div>
-                        <div class="cart-qty-control">
-                            <button class="cart-qty-btn" onclick="updateQuantity(${index}, -1)">-</button>
-                            <span style="font-size: 0.9rem; font-weight: 600; min-width: 20px; text-align: center;">${item.quantity}</span>
-                            <button class="cart-qty-btn" onclick="updateQuantity(${index}, 1)">+</button>
-                            <button onclick="removeFromCart(${index})" style="background: none; border: none; color: #DC2626; font-size: 0.8rem; margin-left: 12px; cursor: pointer; text-decoration: underline;">Remove</button>
+            if (cartEmptyState) cartEmptyState.style.display = 'none';
+            if (cartHasItems) cartHasItems.style.display = 'block';
+
+            cartItemsContainer.innerHTML = cart.map((item, index) => {
+                const itemTotal = item.price * item.quantity;
+                const hasDiscount = item.originalPrice && item.originalPrice > item.price;
+
+                return `
+                    <div class="cart-item" data-index="${index}">
+                        <a href="product.html?id=${item.id}" class="cart-item-image">
+                            <img src="${item.image}" alt="${item.name}" loading="lazy">
+                        </a>
+                        <div class="cart-item-details">
+                            <a href="product.html?id=${item.id}" class="cart-item-name">${item.name}</a>
+                            <div class="cart-item-meta">
+                                <span class="cart-item-variant">Size: <strong>${item.size}</strong></span>
+                                <span class="cart-item-variant">Color: <strong>${item.color}</strong></span>
+                            </div>
+                            <div class="cart-item-price-row">
+                                <span class="cart-item-price">NPR ${itemTotal.toLocaleString('en-IN')}</span>
+                                ${hasDiscount ? `<span class="cart-item-original">NPR ${(item.originalPrice * item.quantity).toLocaleString('en-IN')}</span>` : ''}
+                            </div>
+                            <div class="cart-item-actions">
+                                <div class="quantity-control">
+                                    <button type="button" class="qty-btn qty-decrease" onclick="updateQuantity(${index}, -1)" aria-label="Decrease quantity">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    </button>
+                                    <input type="number" class="qty-input" value="${item.quantity}" min="1" max="${item.maxStock || 99}"
+                                        onchange="setQuantity(${index}, parseInt(this.value) || 1)" aria-label="Quantity">
+                                    <button type="button" class="qty-btn qty-increase" onclick="updateQuantity(${index}, 1)" aria-label="Increase quantity">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                    </button>
+                                </div>
+                                <button type="button" class="cart-item-remove" onclick="removeFromCart(${index})" aria-label="Remove item">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                    Remove
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
     }
-}
 
-// Toast notification helper
-function showToast(message) {
-    let toast = document.getElementById('appToast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'appToast';
-        toast.className = 'toast';
-        document.body.appendChild(toast);
+    // Update checkout button state
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    if (checkoutBtn) {
+        checkoutBtn.disabled = cart.length === 0;
     }
-    toast.innerHTML = `<span>✨</span> <span>${message}</span>`;
-    toast.classList.add('show');
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3200);
 }
 
-// Direct WhatsApp order for single product
-async function orderViaWhatsApp(productId) {
-    const product = await getProductById(productId);
-    if (!product) {
-        showToast('❌ Product not found');
-        return;
+// ==========================================================================
+// CART DRAWER
+// ==========================================================================
+
+function openCartDrawer() {
+    const drawer = document.getElementById('cartDrawer');
+    const overlay = document.getElementById('cartOverlay');
+
+    if (drawer) {
+        drawer.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    if (overlay) {
+        overlay.classList.add('open');
+    }
+}
+
+function closeCartDrawer() {
+    const drawer = document.getElementById('cartDrawer');
+    const overlay = document.getElementById('cartOverlay');
+
+    if (drawer) {
+        drawer.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+    if (overlay) {
+        overlay.classList.remove('open');
+    }
+}
+
+// ==========================================================================
+// CHECKOUT FLOW
+// ==========================================================================
+
+// Generate unique order ID
+function generateOrderId() {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${ORDER_PREFIX}${timestamp}${random}`;
+}
+
+// Check for duplicate pending order
+function hasPendingOrder() {
+    return localStorage.getItem(PENDING_ORDER_KEY) !== null;
+}
+
+function getPendingOrder() {
+    try {
+        return JSON.parse(localStorage.getItem(PENDING_ORDER_KEY));
+    } catch {
+        return null;
+    }
+}
+
+function savePendingOrder(orderData) {
+    localStorage.setItem(PENDING_ORDER_KEY, JSON.stringify(orderData));
+}
+
+function clearPendingOrder() {
+    localStorage.removeItem(PENDING_ORDER_KEY);
+}
+
+// Validate stock before checkout
+async function validateCartStock() {
+    const stockErrors = [];
+
+    for (const item of cart) {
+        try {
+            const product = await getProductById(item.id);
+            if (product) {
+                const availableStock = product.stock || 99;
+                if (item.quantity > availableStock) {
+                    stockErrors.push({
+                        name: item.name,
+                        requested: item.quantity,
+                        available: availableStock
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn('Could not validate stock for item:', item.name);
+        }
     }
 
-    const message = encodeURIComponent(
-        `Namaste Shree Collection! 🙏\n\nI am interested in ordering:\n*Product:* ${product.name}\n*Price:* NPR ${product.price.toLocaleString('en-IN')}\n*Link:* ${window.location.origin}/product.html?id=${product.id}\n\nPlease let me know the availability and payment details.`
-    );
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
+    return stockErrors;
 }
 
-// QR Checkout & WhatsApp Complete Flow
-function openCheckoutModal() {
+// Proceed to checkout
+async function proceedToCheckout() {
     if (cart.length === 0) {
-        showToast("Your cart is empty! Please add products first.");
+        showToast('Your cart is empty', 'warning');
         return;
     }
 
-    let checkoutModal = document.getElementById('checkoutModal');
-    if (!checkoutModal) {
-        checkoutModal = document.createElement('div');
-        checkoutModal.id = 'checkoutModal';
-        checkoutModal.className = 'modal';
-        document.body.appendChild(checkoutModal);
+    // Check for pending order
+    if (hasPendingOrder()) {
+        const pending = getPendingOrder();
+        showToast('You have a pending order. Please complete or cancel it first.', 'warning');
+        // Redirect to checkout with pending order
+        window.location.href = 'checkout.html?pending=true';
+        return;
     }
 
+    // Validate stock
+    const stockErrors = await validateCartStock();
+    if (stockErrors.length > 0) {
+        const errorMsg = stockErrors.map(e =>
+            `${e.name}: only ${e.available} available`
+        ).join(', ');
+        showToast(`Stock issue: ${errorMsg}`, 'error');
+
+        // Update cart with corrected quantities
+        stockErrors.forEach(error => {
+            const item = cart.find(i => i.name === error.name);
+            if (item) {
+                item.quantity = error.available;
+                item.maxStock = error.available;
+            }
+        });
+        saveCart();
+        return;
+    }
+
+    // Redirect to checkout page
+    window.location.href = 'checkout.html';
+}
+
+// ==========================================================================
+// ORDER SUBMISSION
+// ==========================================================================
+
+// Submit order with specific payment method
+async function submitOrder(orderData, paymentMethod = 'cod') {
+    const orderId = generateOrderId();
     const totalAmount = getCartTotal();
 
-    // Use local QR code from assets folder
-    const qrCodePath = 'assets/qr-code.png';
+    const orderRecord = {
+        orderId,
+        date: new Date().toISOString(),
+        name: orderData.name,
+        phone: orderData.phone,
+        city: orderData.city,
+        address: orderData.address,
+        txn: orderData.txn || (paymentMethod === 'cod' ? 'Cash on Delivery' : 'Pending eSewa'),
+        items: cart.map(item => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            size: item.size,
+            color: item.color,
+            quantity: item.quantity
+        })),
+        total: totalAmount,
+        paymentMethod,
+        status: paymentMethod === 'cod' ? 'confirmed' : 'pending_payment'
+    };
 
-    checkoutModal.innerHTML = `
-        <div class="modal-content checkout-modal-content">
-            <div class="modal-header">
-                <h2>Direct Checkout & Payment</h2>
-                <button class="close-btn" type="button" aria-label="Close checkout" onclick="closeCheckoutModal()">&times;</button>
-            </div>
+    // Save pending order for eSewa flow
+    if (paymentMethod === 'esewa') {
+        savePendingOrder(orderRecord);
+    }
 
-            <div class="checkout-steps">
-                <div class="step-indicator active">1. Delivery Info</div>
-                <div class="step-indicator active">2. QR Pay / Verification</div>
-            </div>
+    // Try to save to database
+    if (typeof createOrder === 'function') {
+        try {
+            const success = await createOrder(orderRecord);
+            if (!success) {
+                showToast('Could not save order. Please try again.', 'error');
+                return null;
+            }
+        } catch (e) {
+            console.error('Order save error:', e);
+            showToast('Connection error. Please try again.', 'error');
+            return null;
+        }
+    }
 
-            <div class="checkout-body">
-                <form id="checkoutForm" onsubmit="handleCheckoutSubmit(event)">
-                    <div class="grid-2col" style="gap: 16px;">
-                        <div class="form-group">
-                            <label for="custName">Full Name *</label>
-                            <input type="text" id="custName" name="custName" autocomplete="name" class="form-control" placeholder="e.g. Anjali Sharma" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="custPhone">Phone / WhatsApp *</label>
-                            <input type="tel" id="custPhone" name="custPhone" autocomplete="tel" class="form-control" placeholder="e.g. 9841735450" required>
-                        </div>
-                    </div>
-
-                    <div class="grid-2col" style="gap: 16px;">
-                        <div class="form-group">
-                            <label for="custCity">City / District in Nepal *</label>
-                            <input type="text" id="custCity" name="custCity" autocomplete="address-level2" class="form-control" placeholder="e.g. Butwal, Rupandehi" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="custAddress">Full Delivery Address *</label>
-                            <input type="text" id="custAddress" name="custAddress" autocomplete="street-address" class="form-control" placeholder="Street, Ward No, Landmark" required>
-                        </div>
-                    </div>
-
-                    <div class="qr-box-container">
-                        <h3 style="color: var(--primary); font-size: 1.15rem; margin-bottom: 4px;">Scan & Pay via eSewa or Mobile Banking</h3>
-                        <p style="font-size: 0.85rem; color: var(--text-muted);">Total Payable: <strong style="color: var(--primary); font-size: 1.1rem;">NPR ${totalAmount.toLocaleString('en-IN')}</strong></p>
-
-                        <img src="${qrCodePath}" alt="Payment QR Code" class="qr-image">
-
-                        <div>
-                            <button type="button" class="copy-phone-box" onclick="copyShopPhone()">
-                                <span>📱 Registered Phone: <strong>${SHOP_PHONE}</strong></span>
-                                <span style="font-size: 0.75rem; background: var(--bg-cream); padding: 2px 6px; border-radius: 4px;">Copy</span>
-                            </button>
-                        </div>
-                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">Scan with eSewa or any Mobile Banking App</p>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Transaction ID / Remarks (Optional)</label>
-                        <input type="text" id="custTxn" class="form-control" placeholder="e.g. eSewa Ref ID: 12345678">
-                    </div>
-
-                    <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px;">
-                        <button type="submit" class="checkout-btn" style="background: #25D366; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"/></svg>
-                            Confirm & Send Order via WhatsApp
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    `;
-
-    checkoutModal.classList.add('active');
-    // close cart modal if open
-    const cartModal = document.getElementById('cartModal');
-    if (cartModal) cartModal.classList.remove('active');
+    return orderRecord;
 }
 
-function closeCheckoutModal() {
-    const checkoutModal = document.getElementById('checkoutModal');
-    if (checkoutModal) checkoutModal.classList.remove('active');
+// Complete eSewa payment (customer clicked "I have paid")
+async function confirmEsewaPayment() {
+    const pending = getPendingOrder();
+    if (!pending) {
+        showToast('No pending order found', 'error');
+        return false;
+    }
+
+    // Update order status
+    pending.status = 'paid';
+    pending.paidAt = new Date().toISOString();
+
+    if (typeof updateOrderStatus === 'function') {
+        await updateOrderStatus(pending.orderId, 'paid', 'esewa');
+    }
+
+    // Clear pending order and cart
+    clearPendingOrder();
+    clearCart();
+
+    return pending;
 }
 
-function copyShopPhone() {
-    navigator.clipboard.writeText(SHOP_PHONE);
-    showToast(`Copied ${SHOP_PHONE} to clipboard!`);
-}
+// ==========================================================================
+// WHATSAPP ORDER
+// ==========================================================================
 
-async function handleCheckoutSubmit(e) {
-    e.preventDefault();
-
-    const name = document.getElementById('custName').value.trim();
-    const phone = document.getElementById('custPhone').value.trim();
-    const city = document.getElementById('custCity').value.trim();
-    const address = document.getElementById('custAddress').value.trim();
-    const txn = document.getElementById('custTxn').value.trim() || 'Pending/QR Scan Transfer';
-
-    const orderId = 'SHREE-' + Math.floor(100000 + Math.random() * 900000);
+// Generate WhatsApp order message
+function generateWhatsAppOrder(orderData) {
     const totalAmount = getCartTotal();
+    const orderId = generateOrderId();
 
     let itemsListText = cart.map(item =>
-        `• ${item.name} (${item.size}, ${item.color}) x${item.quantity} = NPR ${(item.price * item.quantity).toLocaleString('en-IN')}`
+        `• ${item.name} (${item.size}, ${item.color}) ×${item.quantity} = NPR ${(item.price * item.quantity).toLocaleString('en-IN')}`
     ).join('\n');
 
-    const whatsappMessage =
-`🌸 *NEW ORDER - SHREE COLLECTION* 🌸
+    return `🌸 *NEW ORDER - SHREE COLLECTION* 🌸
 *Order ID:* ${orderId}
 
 *Customer Details:*
-• Name: ${name}
-• Phone: ${phone}
-• City/District: ${city}
-• Delivery Address: ${address}
+• Name: ${orderData.name}
+• Phone: ${orderData.phone}
+• City/District: ${orderData.city}
+• Delivery Address: ${orderData.address}
 
 *Order Items:*
 ${itemsListText}
 
 *Total Amount:* NPR ${totalAmount.toLocaleString('en-IN')}
-*Payment/Txn Ref:* ${txn}
+*Payment Method:* ${orderData.paymentMethod === 'esewa' ? 'eSewa (Paid)' : 'Cash on Delivery'}
 
 _Please confirm my order and share shipping updates!_ 🙏`;
-
-    // Save order to Supabase (primary source of truth)
-    const orderRecord = {
-        orderId,
-        date: new Date().toLocaleString(),
-        name,
-        phone,
-        city,
-        address,
-        txn,
-        items: [...cart],
-        total: totalAmount
-    };
-
-    // Call createOrder from db.js - must succeed before clearing cart
-    if (typeof createOrder === 'function') {
-        const success = await createOrder(orderRecord);
-        if (success) {
-            // Order saved successfully
-            cart = [];
-            saveCart();
-            closeCheckoutModal();
-            showToast('✓ Order saved! Opening WhatsApp...');
-            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(whatsappMessage)}`, '_blank');
-        } else {
-            // Order save failed - db.js already showed error
-            showToast('❌ Could not save order. Please try again.');
-        }
-    } else {
-        // createOrder not available
-        showToast('❌ Database not ready. Please refresh and try again.');
-    }
 }
 
-// Attach event listeners when DOM loads
+// Send order via WhatsApp
+function sendOrderViaWhatsApp(orderData) {
+    const message = generateWhatsAppOrder(orderData);
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, '_blank');
+}
+
+// Quick WhatsApp order for single product
+async function orderViaWhatsApp(productId) {
+    const product = await getProductById(productId);
+    if (!product) {
+        showToast('Product not found', 'error');
+        return;
+    }
+
+    const message = encodeURIComponent(
+        `Namaste Shree Collection! 🙏
+
+I am interested in ordering:
+*Product:* ${product.name}
+*Price:* NPR ${product.price.toLocaleString('en-IN')}
+*Link:* ${window.location.origin}/product.html?id=${product.id}
+
+Please let me know the availability and payment details.`
+    );
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${message}`, '_blank');
+}
+
+// ==========================================================================
+// TOAST NOTIFICATIONS
+// ==========================================================================
+
+function showToast(message, type = 'success') {
+    let toast = document.getElementById('cartToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'cartToast';
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toast);
+    }
+
+    const icons = {
+        success: '✓',
+        error: '✗',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+
+    toast.className = `cart-toast cart-toast-${type}`;
+    toast.innerHTML = `<span class="toast-icon">${icons[type] || icons.success}</span><span class="toast-message">${message}</span>`;
+    toast.classList.add('show');
+
+    clearTimeout(toast.hideTimeout);
+    toast.hideTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+// ==========================================================================
+// EVENT LISTENERS
+// ==========================================================================
+
 document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
 
+    // Cart button
     const cartBtn = document.getElementById('cartBtn');
-    const cartModal = document.getElementById('cartModal');
-    const closeCartBtn = document.getElementById('closeCartBtn');
-    const checkoutBtn = document.getElementById('checkoutBtn');
-
-    if (cartBtn && cartModal) {
+    if (cartBtn) {
         cartBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            cartModal.classList.add('active');
+            openCartDrawer();
         });
     }
 
-    if (closeCartBtn && cartModal) {
-        closeCartBtn.addEventListener('click', () => {
-            cartModal.classList.remove('active');
-        });
+    // Close drawer
+    const closeBtn = document.getElementById('closeCartDrawer');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeCartDrawer);
     }
 
+    // Overlay click
+    const overlay = document.getElementById('cartOverlay');
+    if (overlay) {
+        overlay.addEventListener('click', closeCartDrawer);
+    }
+
+    // Checkout button
+    const checkoutBtn = document.getElementById('checkoutBtn');
     if (checkoutBtn) {
-        checkoutBtn.addEventListener('click', () => {
-            openCheckoutModal();
-        });
+        checkoutBtn.addEventListener('click', proceedToCheckout);
     }
 
-    // Close on outside click
-    window.addEventListener('click', (e) => {
-        if (e.target === cartModal) {
-            cartModal.classList.remove('active');
-        }
-        const checkoutModal = document.getElementById('checkoutModal');
-        if (e.target === checkoutModal) {
-            checkoutModal.classList.remove('active');
+    // Escape key to close drawer
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeCartDrawer();
         }
     });
 });
+
+// ==========================================================================
+// HELPER: Copy text to clipboard
+// ==========================================================================
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard!');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showToast('Copied to clipboard!');
+    });
+}
+
+// Export for use in other scripts
+window.cartFunctions = {
+    addToCart,
+    updateQuantity,
+    setQuantity,
+    removeFromCart,
+    clearCart,
+    getCartTotal,
+    getCartCount,
+    submitOrder,
+    confirmEsewaPayment,
+    generateOrderId,
+    showToast
+};
