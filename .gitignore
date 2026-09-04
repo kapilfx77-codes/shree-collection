@@ -1,1 +1,11 @@
 .vercel
+.env*
+server.log
+node_modules/
+.DS_Store
+# Local dev artifacts (smoke-test screenshots, scratch inspect scripts, nested dump dirs)
+tools/tools/
+tools/*.png
+tools/inspect_*.py
+tools/dbg_*.py
+tools/dbg_*.png

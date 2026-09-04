@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel - Shree Collection</title>
+    <title>Admin Dashboard - Shree Collection</title>
     <!-- Private tooling: keep out of search results and link graphs -->
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#7A1C2C">
+    <meta name="theme-color" content="#2D2320">
     <link rel="icon" href="assets/favicon.ico" sizes="32x32">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Supabase (for cloud database) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -23,12 +23,561 @@
         };
     </script>
     <style>
-        /* Login Screen Overlay */
+        /* ----------------------------------------------------------------------
+           Admin shell — sidebar + top bar + main content
+           ---------------------------------------------------------------------- */
+        :root {
+            --sidebar-w: 248px;
+            --topbar-h: 64px;
+        }
+
+        body.admin-body {
+            background: var(--bg-subtle);
+            min-height: 100vh;
+        }
+
+        .admin-shell {
+            display: grid;
+            grid-template-columns: var(--sidebar-w) 1fr;
+            min-height: 100vh;
+        }
+
+        /* ---- Sidebar ---- */
+        .admin-sidebar {
+            background: linear-gradient(180deg, var(--primary-dark), var(--primary));
+            color: #F2EAE0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,0.04);
+        }
+        .admin-sidebar-brand {
+            padding: 22px 22px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .admin-sidebar-brand .brand-name {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            letter-spacing: 1.2px;
+            color: var(--gold-light);
+            font-weight: 600;
+        }
+        .admin-sidebar-brand .brand-sub {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2.2px;
+            color: rgba(242,234,224,0.55);
+            margin-top: 4px;
+        }
+        .admin-nav {
+            list-style: none;
+            padding: 14px 8px;
+            flex: 1;
+            overflow-y: auto;
+        }
+        .admin-nav li { display: block; }
+        .admin-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            color: rgba(242,234,224,0.78);
+            text-decoration: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.92rem;
+            font-weight: 500;
+            margin-bottom: 2px;
+            transition: var(--transition-fast);
+            cursor: pointer;
+        }
+        .admin-nav a:hover {
+            background: rgba(255,255,255,0.05);
+            color: #FFF;
+        }
+        .admin-nav a.active {
+            background: rgba(201,160,80,0.18);
+            color: var(--gold-light);
+            border-left: 3px solid var(--gold);
+            padding-left: 11px;
+        }
+        .admin-nav a .nav-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
+        .admin-nav-divider {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.6px;
+            color: rgba(242,234,224,0.4);
+            padding: 16px 14px 6px;
+            font-weight: 600;
+        }
+        .admin-sidebar-foot {
+            padding: 14px 18px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.75rem;
+            color: rgba(242,234,224,0.5);
+        }
+
+        /* ---- Top bar ---- */
+        .admin-main {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        /* On mobile, the topbar+content sit in a stacking context below the
+           sidebar drawer + backdrop (z-index 150/200), so the backdrop dims
+           them and the topbar's white panel doesn't poke through. */
+        @media (max-width: 960px) {
+            .admin-main { position: relative; z-index: 1; }
+        }
+        .admin-topbar {
+            background: #FFFFFF;
+            height: var(--topbar-h);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+        /* On mobile, force the topbar to a low z-index so the sidebar backdrop
+           (z-index 150) can dim it when the drawer is open. Without this, the
+           topbar's z-index:50 stays above the backdrop and the white panel
+           pokes through the overlay. */
+        @media (max-width: 960px) {
+            .admin-topbar { z-index: 1; }
+        }
+        .admin-topbar h1 {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+        .admin-topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .admin-user-chip {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 14px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            font-size: 0.85rem;
+            color: var(--text-medium);
+        }
+        .admin-user-chip .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--gold);
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-medium);
+            padding: 7px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition-fast);
+        }
+        .btn-icon:hover {
+            background: var(--bg-subtle);
+            color: var(--text-dark);
+            border-color: var(--text-muted);
+        }
+        .btn-icon.btn-danger {
+            color: #B91C1C;
+            border-color: rgba(185,28,28,0.3);
+        }
+        .btn-icon.btn-danger:hover {
+            background: #FEF2F2;
+            border-color: #B91C1C;
+        }
+
+        /* ---- Content area ---- */
+        .admin-content {
+            padding: 28px;
+            max-width: 1400px;
+            width: 100%;
+        }
+        .admin-page { display: none; }
+        .admin-page.active { display: block; }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: end;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .page-header h2 {
+            font-family: var(--font-serif);
+            font-size: 1.75rem;
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        /* ---- Stat cards ---- */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+        .stat-card {
+            background: #FFFFFF;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 22px;
+            box-shadow: var(--shadow-xs);
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gold), var(--gold-light));
+        }
+        .stat-card .stat-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.4px;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .stat-card .stat-value {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-top: 6px;
+            line-height: 1.1;
+        }
+        .stat-card .stat-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .stat-card .stat-meta.up { color: #047857; }
+        .stat-card .stat-meta.down { color: #B91C1C; }
+        .stat-card .stat-icon {
+            position: absolute;
+            top: 22px;
+            right: 22px;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(201,160,80,0.12);
+            color: var(--gold-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ---- Two-column layout ---- */
+        .two-col {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 18px;
+        }
+        .two-col.flip { grid-template-columns: 1fr 2fr; }
+
+        /* ---- Card ---- */
+        .card {
+            background: #FFFFFF;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 22px;
+            box-shadow: var(--shadow-xs);
+            margin-bottom: 18px;
+        }
+        .card-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+        .card-head h3 {
+            font-family: var(--font-serif);
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .card-head .subtle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* ---- Table ---- */
+        .data-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 0.9rem;
+        }
+        .data-table thead th {
+            text-align: left;
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-subtle);
+        }
+        .data-table thead th:first-child { border-top-left-radius: var(--radius-sm); }
+        .data-table thead th:last-child { border-top-right-radius: var(--radius-sm); }
+        .data-table tbody td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+            vertical-align: middle;
+        }
+        .data-table tbody tr:hover { background: var(--bg-subtle); }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .data-table .col-num { font-variant-numeric: tabular-nums; }
+
+        /* ---- Badge ---- */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: var(--radius-full);
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            background: var(--bg-subtle);
+            color: var(--text-medium);
+            border: 1px solid var(--border);
+        }
+        .badge.badge-gold   { background: rgba(201,160,80,0.15); color: var(--gold-dark); border-color: rgba(201,160,80,0.3); }
+        .badge.badge-blue   { background: rgba(74,111,165,0.12); color: var(--blue); border-color: rgba(74,111,165,0.25); }
+        .badge.badge-green  { background: rgba(16,185,129,0.12); color: #047857; border-color: rgba(16,185,129,0.25); }
+        .badge.badge-amber  { background: rgba(245,158,11,0.12); color: #B45309; border-color: rgba(245,158,11,0.25); }
+        .badge.badge-red    { background: rgba(220,38,38,0.12);  color: #B91C1C; border-color: rgba(220,38,38,0.25); }
+        .badge.badge-grey   { background: var(--bg-subtle); color: var(--text-muted); }
+
+        /* ---- Form controls ---- */
+        .form-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .form-field label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+        .form-field .hint { font-size: 0.78rem; color: var(--text-muted); }
+        .form-field input,
+        .form-field textarea,
+        .form-field select,
+        .form-input,
+        .form-select {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-family: inherit;
+            background: #FFFFFF;
+            color: var(--text-dark);
+            outline: none;
+            transition: var(--transition-fast);
+        }
+        .form-field input:focus,
+        .form-field textarea:focus,
+        .form-field select:focus,
+        .form-input:focus,
+        .form-select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(201,160,80,0.15);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+        .checkbox-row input { width: 16px; height: 16px; }
+
+        /* ---- Buttons ---- */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition-fast);
+            text-decoration: none;
+            font-family: inherit;
+        }
+        .btn-primary {
+            background: var(--primary);
+            color: #FFFFFF;
+            border-color: var(--primary);
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        .btn-primary:disabled { background: var(--text-muted); border-color: var(--text-muted); cursor: not-allowed; opacity: 0.7; }
+
+        .btn-gold {
+            background: var(--gold);
+            color: var(--primary-dark);
+            border-color: var(--gold);
+        }
+        .btn-gold:hover { background: var(--gold-dark); border-color: var(--gold-dark); }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-medium);
+            border-color: var(--border);
+        }
+        .btn-ghost:hover { background: var(--bg-subtle); color: var(--text-dark); }
+
+        .btn-danger {
+            background: #DC2626;
+            color: #FFFFFF;
+            border-color: #DC2626;
+        }
+        .btn-danger:hover { background: #B91C1C; border-color: #B91C1C; }
+
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+        /* ---- Search bar ---- */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .search-input {
+            flex: 1;
+            min-width: 240px;
+            max-width: 360px;
+            position: relative;
+        }
+        .search-input input {
+            width: 100%;
+            padding: 9px 14px 9px 38px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            background: #FFFFFF;
+        }
+        .search-input input:focus {
+            border-color: var(--gold);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(201,160,80,0.15);
+        }
+        .search-input .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+        .filter-pills {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .filter-pill {
+            padding: 7px 14px;
+            background: #FFFFFF;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-full);
+            font-size: 0.82rem;
+            cursor: pointer;
+            color: var(--text-medium);
+            transition: var(--transition-fast);
+        }
+        .filter-pill:hover { border-color: var(--text-muted); }
+        .filter-pill.active {
+            background: var(--primary);
+            color: #FFFFFF;
+            border-color: var(--primary);
+        }
+
+        /* ---- Empty/Loading/Error states ---- */
+        .state-block {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+        .state-block .state-icon {
+            font-size: 2.5rem;
+            margin-bottom: 12px;
+            opacity: 0.4;
+        }
+        .state-block .state-title {
+            font-family: var(--font-serif);
+            font-size: 1.15rem;
+            color: var(--text-medium);
+            margin-bottom: 6px;
+        }
+        .state-block .state-detail { font-size: 0.9rem; }
+        .state-block.error .state-icon { color: #B91C1C; }
+        .spinner {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            border: 3px solid var(--border);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---- Login overlay ---- */
         .admin-login-overlay {
-            position: fixed;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(28, 19, 21, 0.95), rgba(84, 14, 27, 0.95));
-            backdrop-filter: blur(12px);
+            position: fixed; inset: 0;
+            background: linear-gradient(135deg, rgba(28, 19, 21, 0.96), rgba(45,35,32,0.96));
             z-index: 9999;
             display: flex;
             align-items: center;
@@ -37,334 +586,317 @@
         }
         .admin-login-box {
             background: #FFFFFF;
-            padding: 40px;
+            padding: 44px 40px;
             border-radius: var(--radius-md);
             max-width: 420px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
-            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+        .admin-login-box .login-badge {
+            width: 56px; height: 56px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--primary-dark);
+            margin: 0 auto 18px;
         }
         .admin-login-box h2 {
-            color: var(--primary);
-            font-size: 1.8rem;
-            margin-bottom: 8px;
+            font-family: var(--font-serif);
+            color: var(--text-dark);
+            font-size: 1.6rem;
+            margin-bottom: 6px;
+            font-weight: 600;
         }
-        .admin-login-box p {
+        .admin-login-box .sub {
             color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 24px;
+            font-size: 0.88rem;
+            margin-bottom: 26px;
         }
         .admin-login-input {
             width: 100%;
-            padding: 14px;
-            border: 1px solid var(--border-color);
+            padding: 13px 16px;
+            border: 1px solid var(--border);
             border-radius: var(--radius-sm);
-            font-size: 1rem;
-            margin-bottom: 16px;
+            font-size: 0.95rem;
+            margin-bottom: 14px;
             text-align: center;
-            letter-spacing: 2px;
+            letter-spacing: 4px;
             outline: none;
+            font-family: inherit;
         }
         .admin-login-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(122, 28, 44, 0.15);
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px rgba(201,160,80,0.15);
         }
+        #loginErrorMsg {
+            color: #B91C1C;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .login-foot {
+            margin-top: 18px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .login-foot a { color: var(--gold-dark); text-decoration: none; }
+        .login-foot a:hover { text-decoration: underline; }
 
-        .admin-container {
-            max-width: 1100px;
-            margin: 40px auto;
-            padding: 0 24px;
+        /* ---- Modal ---- */
+        .modal-backdrop {
+            position: fixed; inset: 0;
+            background: rgba(28,19,21,0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
         }
-        .admin-header {
-            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-            color: #FFFFFF;
-            padding: 32px 40px;
+        .modal-backdrop.open { display: flex; }
+        .modal {
+            background: #FFFFFF;
             border-radius: var(--radius-md);
-            margin-bottom: 32px;
-            box-shadow: var(--shadow-md);
+            max-width: 720px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+        .modal-head {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 16px;
         }
-        .btn-logout {
-            background: rgba(255,255,255,0.15);
-            color: #FFF;
-            border: 1px solid rgba(255,255,255,0.3);
-            padding: 8px 18px;
-            border-radius: 20px;
-            font-size: 0.85rem;
+        .modal-head h3 {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            color: var(--text-dark);
             font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
         }
-        .btn-logout:hover {
-            background: #DC2626;
-            border-color: #DC2626;
-        }
-        .admin-tabs {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 32px;
-            border-bottom: 2px solid var(--border-color);
-            flex-wrap: wrap;
-        }
-        .admin-tab {
-            padding: 12px 24px;
+        .modal-head .close {
             background: none;
             border: none;
-            border-bottom: 3px solid transparent;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
+            font-size: 1.5rem;
             color: var(--text-muted);
-            transition: var(--transition);
-        }
-        .admin-tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-        .admin-panel {
-            display: none;
-        }
-        .admin-panel.active {
-            display: block;
-        }
-        .admin-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 28px;
-            margin-bottom: 24px;
-            box-shadow: var(--shadow-sm);
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 16px;
-        }
-        .form-field {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .form-field label {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text-dark);
-        }
-        .form-field input,
-        .form-field textarea,
-        .form-field select {
-            padding: 10px 14px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            font-size: 0.92rem;
-            font-family: inherit;
-            outline: none;
-            transition: var(--transition);
-        }
-        .form-field input:focus,
-        .form-field textarea:focus,
-        .form-field select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(122, 28, 44, 0.1);
-        }
-        .btn-primary {
-            background: var(--primary);
-            color: #FFFFFF;
-            border: none;
-            padding: 12px 28px;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.95rem;
             cursor: pointer;
-            transition: var(--transition);
+            padding: 0;
+            line-height: 1;
         }
-        .btn-primary:hover {
-            background: var(--primary-dark);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
+        .modal-body { padding: 24px; }
+        .modal-foot {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: end;
+            gap: 10px;
         }
-        .product-list {
+
+        /* ---- Image preview grid ---- */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .image-grid .img-cell {
+            position: relative;
+            aspect-ratio: 1/1;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            background: var(--bg-subtle);
+        }
+        .image-grid .img-cell img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .image-grid .img-cell .remove {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(220,38,38,0.95);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        /* ---- Mobile menu ---- */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            width: 36px;
+            height: 36px;
+            cursor: pointer;
+            color: var(--text-medium);
+            align-items: center;
+            justify-content: center;
+        }
+        @media (max-width: 960px) {
+            .admin-shell { grid-template-columns: 1fr; }
+            .admin-sidebar {
+                position: fixed;
+                left: 0; top: 0;
+                width: var(--sidebar-w);
+                z-index: 600;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            .admin-sidebar.open { transform: translateX(0); }
+            .mobile-menu-toggle { display: inline-flex; }
+            .two-col,
+            .two-col.flip { grid-template-columns: 1fr; }
+            .form-row,
+            .form-row-3 { grid-template-columns: 1fr; }
+            .admin-content { padding: 18px; }
+        }
+
+        /* Topbar compaction on small viewports so controls don't wrap/clip.
+           - Hide "View Store" link text (icon remains)
+           - Hide "Admin" chip text (avatar remains)
+           - Hide "Sign Out" text (icon remains)
+           - Shrink gaps + padding; let the page title shrink; force-shrink
+             the actions cluster so icons never push the title off-screen.
+        */
+        @media (max-width: 640px) {
+            .admin-topbar {
+                padding: 0 14px;
+                gap: 8px;
+            }
+            .admin-topbar h1 {
+                font-size: 18px;
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .admin-topbar > div:first-child {
+                min-width: 0;
+                flex: 1 1 auto;
+            }
+            .admin-topbar-actions { gap: 6px; flex-shrink: 0; }
+            .admin-topbar-actions .btn-icon { padding: 7px 8px; }
+            .admin-topbar-actions .btn-icon span,
+            .admin-user-chip span { display: none; }
+            .admin-user-chip { padding: 4px; }
+        }
+
+        /* Sidebar backdrop — dims the page when mobile drawer is open.
+           Sits above .admin-main (topbar/content) but below the sidebar itself. */
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(28,19,21,0.45);
+            z-index: 500;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+        .sidebar-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ---- Toast container ---- */
+        .toast-container {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            z-index: 2000;
             display: flex;
             flex-direction: column;
-            gap: 16px;
-        }
-        .product-list-item {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            padding: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            background: var(--bg-card);
-            transition: var(--transition);
-        }
-        .product-list-item:hover {
-            box-shadow: var(--shadow-sm);
-        }
-        .product-list-img {
-            width: 80px;
-            height: 100px;
-            object-fit: cover;
-            border-radius: var(--radius-sm);
-        }
-        .product-list-info {
-            flex: 1;
-        }
-        .product-list-actions {
-            display: flex;
             gap: 8px;
         }
-        .btn-edit {
-            background: var(--gold);
-            color: var(--text-dark);
-            border: none;
-            padding: 8px 16px;
+        .toast {
+            background: var(--primary-dark);
+            color: #FFFFFF;
+            padding: 12px 18px;
             border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
+            font-size: 0.88rem;
+            box-shadow: var(--shadow-md);
+            min-width: 240px;
+            max-width: 360px;
+            border-left: 4px solid var(--gold);
         }
-        .btn-delete {
-            background: #DC2626;
-            color: #FFF;
-            border: none;
-            padding: 8px 16px;
-            border-radius: var(--radius-sm);
-            font-weight: 600;
-            font-size: 0.85rem;
-            cursor: pointer;
-        }
-        .qr-upload-box {
-            border: 2px dashed var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 32px;
-            text-align: center;
-            background: var(--bg-cream);
-        }
-        .order-item {
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            padding: 16px;
-            margin-bottom: 12px;
-            background: var(--bg-card);
-        }
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
-        .storage-meter {
-            background: #FFFFFF;
-            padding: 12px 16px;
-            border-radius: var(--radius-sm);
-            font-size: 0.85rem;
+        .toast.toast-error { border-left-color: #DC2626; }
+        .toast.toast-success { border-left-color: #10B981; }
+
+        /* ---- Order detail rows ---- */
+        .kv-list { display: grid; grid-template-columns: 140px 1fr; gap: 8px 14px; }
+        .kv-list dt { color: var(--text-muted); font-size: 0.82rem; }
+        .kv-list dd { color: var(--text-dark); font-size: 0.9rem; margin: 0; }
+
+        .item-line {
             display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-dark);
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed var(--border);
+            font-size: 0.9rem;
         }
-        .storage-meter-bar {
-            flex: 1;
-            height: 8px;
-            background: #E5E7EB;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .storage-meter-fill {
-            height: 100%;
-            background: #10B981;
-            transition: width 0.3s ease;
-        }
+        .item-line:last-child { border-bottom: none; }
+        .item-line .item-meta { color: var(--text-muted); font-size: 0.8rem; }
     </style>
 </head>
-<body>
+<body class="admin-body">
     <!-- Password Authentication Modal -->
     <div id="adminLoginModal" class="admin-login-overlay">
         <div class="admin-login-box">
-            <div style="width: 50px; height: 50px; background: var(--bg-cream); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: var(--primary);">
-                <svg aria-hidden="true" focusable="false" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div class="login-badge">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
             </div>
-            <h2>Admin Login</h2>
-            <p>Enter the store password to manage Shree Collection</p>
-            <form onsubmit="handleAdminLogin(event)">
-                <input type="password" id="adminPasswordInput" class="admin-login-input" placeholder="Enter Password" required autofocus>
-                <div id="loginErrorMsg" style="color: #DC2626; font-size: 0.85rem; margin-bottom: 12px; display: none;">Incorrect password. Please try again.</div>
-                <button type="submit" class="btn-primary" style="width: 100%; padding: 14px;">Unlock Dashboard</button>
+            <h2>Shree Admin</h2>
+            <p class="sub">Store Management Dashboard</p>
+            <form id="adminLoginForm">
+                <input type="password" id="adminPasswordInput" class="admin-login-input" placeholder="Password" required autocomplete="current-password">
+                <div id="loginErrorMsg">Incorrect password. Please try again.</div>
+                <button type="submit" class="btn btn-gold" style="width: 100%; padding: 12px;">Unlock Dashboard</button>
             </form>
-            <p style="margin-top: 16px; font-size: 0.8rem; color: var(--text-muted);">
-                <a href="index.html" style="color: var(--primary); text-decoration: none;">← Return to Storefront</a>
+            <p class="login-foot">
+                <a href="index.html">← Return to Storefront</a>
             </p>
         </div>
     </div>
 
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="index.html" class="logo">
-                <span class="logo-main">SHREE COLLECTION</span>
-                <span class="logo-sub">Admin Panel</span>
-            </a>
-            <div class="nav-links" id="navLinks">
-                <a href="index.html">Home</a>
-                <a href="catalog.html">Catalog</a>
-                <a href="contact.html">Contact</a>
-                <a href="admin.html" class="active">Admin</a>
-            </div>
-            <div class="nav-actions">
-                <button onclick="handleAdminLogout()" class="btn-logout">Logout</button>
-            </div>
-            <!-- Without this the nav links are unreachable below 768px, where .nav-links is hidden -->
-            <button class="mobile-menu-btn" id="mobileMenuBtn" type="button" aria-label="Toggle navigation menu" aria-controls="navLinks" aria-expanded="false">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        </div>
-    </nav>
+    <!-- Toast container -->
+    <div class="toast-container" id="toastContainer"></div>
 
-    <div class="admin-container" id="adminDashboardContent" style="display: none;">
-        <div class="admin-header">
-            <div>
-                <h1 style="font-size: 1.8rem; margin-bottom: 4px; color: var(--gold-light); font-weight: 600;">Store Management Dashboard</h1>
-                <p style="opacity: 0.95; font-size: 0.95rem;">Manage your products, view customer orders, and update QR payment</p>
+    <!-- Order detail modal -->
+    <div class="modal-backdrop" id="orderModal">
+        <div class="modal">
+            <div class="modal-head">
+                <h3 id="orderModalTitle">Order Details</h3>
+                <button class="close" onclick="closeOrderModal()">&times;</button>
             </div>
-            <div>
-                <button onclick="handleAdminLogout()" class="btn-logout">Logout</button>
+            <div class="modal-body" id="orderModalBody"></div>
+            <div class="modal-foot" id="orderModalFoot"></div>
+        </div>
+    </div>
+
+    <!-- Product editor modal -->
+    <div class="modal-backdrop" id="productModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-head">
+                <h3 id="productModalTitle">Add Product</h3>
+                <button class="close" onclick="closeProductModal()">&times;</button>
             </div>
-        </div>
-
-        <!-- Storage Meter -->
-        <div class="storage-meter" id="storageUsageMeter">
-            <span>💾 Browser Storage:</span>
-            <div class="storage-meter-bar">
-                <div class="storage-meter-fill" id="storageProgressBar" style="width: 0%;"></div>
-            </div>
-            <span id="storageUsageText" style="min-width: 100px; text-align: right; font-size: 0.8rem;">0 MB / 5.0 MB (0%)</span>
-        </div>
-
-        <!-- Admin Tabs -->
-        <div class="admin-tabs">
-            <button class="admin-tab active" onclick="switchTab('products', event)">Manage Products</button>
-            <button class="admin-tab" onclick="switchTab('orders', event)">View Orders</button>
-            <button class="admin-tab" onclick="switchTab('qr', event)">QR Code Settings</button>
-            <button class="admin-tab" onclick="switchTab('heritage', event)">Heritage Image</button>
-            <button class="admin-tab" onclick="switchTab('security', event)">Password / Security</button>
-        </div>
-
-        <!-- Products Panel -->
-        <div id="productsPanel" class="admin-panel active">
-            <div class="admin-card">
-                <h2 style="font-size: 1.4rem; margin-bottom: 20px; color: var(--primary);">Add / Edit Product</h2>
-                <form id="productForm">
+            <div class="modal-body">
+                <form id="productForm" onsubmit="handleProductSubmit(event)">
                     <input type="hidden" id="productId">
 
                     <div class="form-row">
@@ -374,176 +906,295 @@
                         </div>
                         <div class="form-field">
                             <label>Price (NPR) *</label>
-                            <input type="text" id="productPrice" inputmode="numeric" pattern="[0-9]*" placeholder="Enter price in NPR" required>
+                            <input type="number" id="productPrice" min="0" step="1" required>
                         </div>
                     </div>
 
-                    <div class="form-field" style="margin-bottom: 16px;">
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Original Price (NPR)</label>
+                            <input type="number" id="productOriginalPrice" min="0" step="1" placeholder="Optional — for showing discounts">
+                        </div>
+                        <div class="form-field">
+                            <label>Featured</label>
+                            <label class="checkbox-row" style="padding-top: 11px;">
+                                <input type="checkbox" id="productFeatured">
+                                <span>Show on homepage</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-field">
                         <label>Description *</label>
                         <textarea id="productDescription" rows="3" required></textarea>
                     </div>
 
-                    <div class="form-field" style="margin-bottom: 16px;">
-                        <label>Available Sizes (comma-separated) *</label>
-                        <input type="text" id="productSizes" placeholder="e.g., S, M, L, XL" required>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label>Sizes (comma-separated) *</label>
+                            <input type="text" id="productSizes" placeholder="S, M, L, XL" required>
+                        </div>
+                        <div class="form-field">
+                            <label>Colors (comma-separated) *</label>
+                            <input type="text" id="productColors" placeholder="Red, Blue, Green" required>
+                        </div>
                     </div>
 
-                    <div class="form-field" style="margin-bottom: 16px;">
-                        <label>Available Colors (comma-separated) *</label>
-                        <input type="text" id="productColors" placeholder="e.g., Red, Blue, Green" required>
+                    <div class="form-field">
+                        <label>Product Images</label>
+                        <input type="file" id="productImageUpload" accept="image/*" multiple>
+                        <span class="hint">Upload up to 5MB per image. Images are stored in Supabase Storage.</span>
+                        <div id="uploadedImagesPreviews" class="image-grid"></div>
+                        <input type="text" id="productImageUrls" class="form-input" placeholder="Or paste image URLs (comma-separated)" style="margin-top: 10px;">
                     </div>
 
-                    <div class="form-field" style="margin-bottom: 16px;">
-                        <label>Product Images *</label>
-                        <input type="file" id="productImageUpload" accept="image/*" multiple style="margin-bottom: 8px;" onchange="handleImageUpload(event)">
-                        <small style="color: var(--text-muted); font-size: 0.8rem; display: block; margin-bottom: 8px;">Upload images from your device (you can select multiple, max 5MB each). Images are stored in Supabase Storage.</small>
-
-                        <div id="uploadedImagesPreviews" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;"></div>
-
-                        <input type="text" id="productImages" placeholder="Or paste image URLs separated by commas" style="margin-top: 8px;">
-                        <small style="color: var(--text-muted); font-size: 0.8rem;">Alternative: Paste image URLs from web</small>
-                    </div>
-
-                    <div class="form-field" style="margin-bottom: 20px;">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                            <input type="checkbox" id="productFeatured" style="width: auto;">
-                            <span>Mark as Featured Product</span>
+                    <div class="form-field" id="productInStockField" style="display: none;">
+                        <label class="checkbox-row">
+                            <input type="checkbox" id="productInStock">
+                            <span>In Stock</span>
                         </label>
                     </div>
 
-                    <div style="display: flex; gap: 12px;">
-                        <button type="submit" class="btn-primary">Save Product</button>
-                        <button type="button" class="btn-primary" style="background: var(--text-muted);" onclick="resetProductForm()">Clear Form</button>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button type="button" class="btn btn-ghost" onclick="closeProductModal()">Cancel</button>
+                        <button type="submit" class="btn btn-gold" id="productSaveBtn">Save Product</button>
                     </div>
                 </form>
-            </div>
-
-            <div class="admin-card">
-                <h2 style="font-size: 1.4rem; margin-bottom: 20px; color: var(--primary);">Current Products</h2>
-                <div id="productsList" class="product-list"></div>
-            </div>
-        </div>
-
-        <!-- Orders Panel -->
-        <div id="ordersPanel" class="admin-panel">
-            <div class="admin-card">
-                <h2 style="font-size: 1.4rem; margin-bottom: 20px; color: var(--primary);">Order History</h2>
-                <div id="ordersList"></div>
-            </div>
-        </div>
-
-        <!-- QR Settings Panel -->
-        <div id="qrPanel" class="admin-panel">
-            <div class="admin-card">
-                <h2 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--primary);">Payment QR Code (Assets Folder)</h2>
-                <p style="color: var(--text-muted); margin-bottom: 24px;">The checkout QR code is loaded directly from the local <strong style="color: var(--primary);">assets/qr-code.png</strong> file in your project folder.</p>
-
-                <div class="qr-upload-box">
-                    <div style="margin-bottom: 16px;">
-                        <img id="currentQR" src="assets/qr-code.png" alt="Current QR Code" style="max-width: 220px; border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); padding: 8px; background: #fff;">
-                    </div>
-                    <p style="font-size: 0.95rem; font-weight: 600; color: var(--text-dark); margin-bottom: 8px;">Current File: <code>assets/qr-code.png</code></p>
-                    <small style="color: var(--text-muted); font-size: 0.85rem; display: block; max-width: 500px; margin: 0 auto 16px;">
-                        To update the QR code: Simply copy your screenshot image, rename it to <strong>qr-code.png</strong>, and place/replace it inside the <strong>assets/</strong> folder!
-                    </small>
-                </div>
-
-                <div style="margin-top: 24px; padding: 20px; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: var(--radius-sm);">
-                    <strong style="color: #92400E; font-size: 1.05rem;">📁 Easy Step-by-Step Instructions:</strong>
-                    <ol style="margin: 10px 0 0 20px; color: #78350F; font-size: 0.95rem; line-height: 1.8;">
-                        <li>Take a screenshot of your eSewa, Fonepay, or Banking QR code.</li>
-                        <li>Rename that image file to <code>qr-code.png</code>.</li>
-                        <li>Paste it inside the <code>D:\Shree Website\assets\</code> folder (replacing the placeholder).</li>
-                        <li>Deploy or refresh and your new QR code will automatically appear on checkout!</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-
-        <!-- Security / Password Panel -->
-        <div id="securityPanel" class="admin-panel">
-            <div class="admin-card">
-                <h2 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--primary);">Change Admin Password</h2>
-                <p style="color: var(--text-muted); margin-bottom: 24px;">Update the password used to access this admin panel.</p>
-
-                <form onsubmit="handleChangePassword(event)" style="max-width: 400px;">
-                    <div class="form-field" style="margin-bottom: 16px;">
-                        <label>Current Password *</label>
-                        <input type="password" id="currentPass" required>
-                    </div>
-                    <div class="form-field" style="margin-bottom: 20px;">
-                        <label>New Password *</label>
-                        <input type="password" id="newPass" required minlength="4">
-                    </div>
-                    <button type="submit" class="btn-primary">Update Password</button>
-                </form>
-            </div>
-
-            <div class="admin-card">
-                <h2 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--primary);">Reset Product Catalog</h2>
-                <p style="color: var(--text-muted); margin-bottom: 16px;">If products are not showing correctly, reset the catalog to reload from database.</p>
-                <div style="padding: 16px; background: #FEF3C7; border: 1px solid #F59E0B; border-radius: var(--radius-sm); margin-bottom: 16px;">
-                    <strong style="color: #92400E;">⚠️ Warning:</strong>
-                    <p style="color: #78350F; margin-top: 8px; font-size: 0.9rem;">This will clear the browser cache and reload products from the Supabase database. Any products deleted will re-appear after reload.</p>
-                </div>
-                <button onclick="resetProductCatalog()" class="btn-primary" style="background: #DC2626;">Reset Product Catalog</button>
-            </div>
-        </div>
-
-        <!-- Heritage Image Panel -->
-        <div id="heritagePanel" class="admin-panel">
-            <div class="admin-card">
-                <h2 style="font-size: 1.4rem; margin-bottom: 16px; color: var(--primary);">Heritage Section Image</h2>
-                <p style="color: var(--text-muted); margin-bottom: 24px;">Upload an image for the "About Shree Collection" section on the homepage.</p>
-
-                <div style="margin-bottom: 20px;">
-                    <input type="file" id="heritageImageUpload" accept="image/*" onchange="handleHeritageUpload(event)" style="margin-bottom: 12px;">
-                    <small style="color: var(--text-muted); font-size: 0.85rem; display: block;">Recommended: 800x480px or similar landscape image</small>
-                </div>
-
-                <div id="heritagePreviewContainer" style="margin-top: 20px;">
-                    <p style="font-weight: 600; margin-bottom: 8px;">Current Heritage Image:</p>
-                    <img id="heritagePreview" src="" alt="Heritage Preview" style="max-width: 100%; height: 300px; object-fit: cover; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: none;">
-                    <div id="heritageNoImage" style="padding: 40px; background: var(--bg-cream); border-radius: var(--radius-md); text-align: center; color: var(--text-muted);">
-                        No heritage image uploaded yet
-                    </div>
-                </div>
-
-                <button onclick="removeHeritageImage()" class="btn-primary" style="background: #DC2626; margin-top: 16px;">Remove Heritage Image</button>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3 data-config="store-name-upper">SHREE COLLECTION</h3>
-                    <p>Admin dashboard for managing your online boutique</p>
-                </div>
-                <div class="footer-section">
-                    <h4>Storefront Links</h4>
-                    <a href="index.html">Home</a>
-                    <a href="catalog.html">Catalog</a>
-                    <a href="contact.html">Contact</a>
-                </div>
-                <div class="footer-section">
-                    <h4>Help & Support</h4>
-                    <p>Phone: <span data-config="primary-phone">9841735450</span></p>
-                    <p>Location: <span data-config="location-short">Butwal, Nepal</span></p>
-                </div>
+    <!-- Main app shell -->
+    <div class="admin-shell" id="adminShell" style="display: none;">
+        <!-- Backdrop dims page when mobile drawer is open; tap to close -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+        <!-- Sidebar -->
+        <aside class="admin-sidebar" id="adminSidebar">
+            <div class="admin-sidebar-brand">
+                <div class="brand-name">SHREE COLLECTION</div>
+                <div class="brand-sub">Admin Panel</div>
             </div>
-            <div class="footer-bottom">
-                <p data-config="copyright">&copy; 2026 Shree Collection Admin Panel</p>
+            <ul class="admin-nav" id="adminNav">
+                <li class="admin-nav-divider">Overview</li>
+                <li><a data-page="dashboard" class="active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+                    Dashboard
+                </a></li>
+
+                <li class="admin-nav-divider">Sales</li>
+                <li><a data-page="orders">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    Orders
+                </a></li>
+                <li><a data-page="customers">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                    Customers
+                </a></li>
+
+                <li class="admin-nav-divider">Catalog</li>
+                <li><a data-page="products">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    Products
+                </a></li>
+                <li><a data-page="inventory">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+                    Inventory
+                </a></li>
+            </ul>
+            <div class="admin-sidebar-foot">
+                <div>v1.0 &middot; Shree Collection</div>
             </div>
+        </aside>
+
+        <!-- Main content -->
+        <div class="admin-main">
+            <header class="admin-topbar">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    </button>
+                    <h1 id="topbarTitle">Dashboard</h1>
+                </div>
+                <div class="admin-topbar-actions">
+                    <a href="index.html" class="btn-icon" target="_blank" title="View store">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+                        <span>View Store</span>
+                    </a>
+                    <div class="admin-user-chip" title="Admin">
+                        <div class="avatar">A</div>
+                        <span>Admin</span>
+                    </div>
+                    <button class="btn-icon btn-danger" id="logoutBtn" title="Sign out" aria-label="Sign out">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+                        <span>Sign Out</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="admin-content">
+
+                <!-- DASHBOARD -->
+                <div class="admin-page active" data-page="dashboard">
+                    <div class="page-header">
+                        <div>
+                            <h2>Dashboard Overview</h2>
+                            <p>Real-time snapshot of your store</p>
+                        </div>
+                        <button class="btn btn-ghost btn-sm" id="refreshDashboard">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+                            Refresh
+                        </button>
+                    </div>
+
+                    <!-- Stat cards -->
+                    <div class="stat-grid" id="dashStats">
+                        <div class="state-block" style="grid-column: 1/-1; padding: 40px;">
+                            <div class="spinner"></div>
+                            <p class="state-title" style="margin-top: 12px;">Loading dashboard…</p>
+                        </div>
+                    </div>
+
+                    <!-- Recent orders + low stock -->
+                    <div class="two-col">
+                        <div class="card">
+                            <div class="card-head">
+                                <h3>Recent Orders</h3>
+                                <a href="#" class="subtle" data-jump="orders">View all →</a>
+                            </div>
+                            <div id="dashRecentOrders">
+                                <div class="state-block"><div class="spinner"></div></div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="card-head">
+                                <h3>Low Stock Alerts</h3>
+                                <a href="#" class="subtle" data-jump="inventory">View →</a>
+                            </div>
+                            <div id="dashLowStock">
+                                <div class="state-block"><div class="spinner"></div></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sales by status -->
+                    <div class="card" style="margin-top: 18px;">
+                        <div class="card-head">
+                            <h3>Orders by Status</h3>
+                            <span class="subtle">Last 30 days</span>
+                        </div>
+                        <div id="dashStatusBreakdown">
+                            <div class="state-block"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ORDERS -->
+                <div class="admin-page" data-page="orders">
+                    <div class="page-header">
+                        <div>
+                            <h2>Orders</h2>
+                            <p>Manage customer orders and fulfillment</p>
+                        </div>
+                    </div>
+
+                    <div class="toolbar">
+                        <div class="search-input">
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="search" id="orderSearch" placeholder="Search by order ID, name, phone, or city…">
+                        </div>
+                        <div class="filter-pills" id="orderStatusFilter">
+                            <button class="filter-pill active" data-filter="all">All</button>
+                            <button class="filter-pill" data-filter="pending">Pending</button>
+                            <button class="filter-pill" data-filter="processing">Processing</button>
+                            <button class="filter-pill" data-filter="shipped">Shipped</button>
+                            <button class="filter-pill" data-filter="delivered">Delivered</button>
+                            <button class="filter-pill" data-filter="cancelled">Cancelled</button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 0; overflow: hidden;">
+                        <div id="ordersList">
+                            <div class="state-block" style="padding: 60px;"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PRODUCTS -->
+                <div class="admin-page" data-page="products">
+                    <div class="page-header">
+                        <div>
+                            <h2>Products</h2>
+                            <p>Add, edit, and remove products from your catalog</p>
+                        </div>
+                        <button class="btn btn-gold" id="addProductBtn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            Add Product
+                        </button>
+                    </div>
+
+                    <div class="toolbar">
+                        <div class="search-input">
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="search" id="productSearch" placeholder="Search products…">
+                        </div>
+                        <div class="filter-pills" id="productFilter">
+                            <button class="filter-pill active" data-filter="all">All</button>
+                            <button class="filter-pill" data-filter="instock">In Stock</button>
+                            <button class="filter-pill" data-filter="out">Out of Stock</button>
+                            <button class="filter-pill" data-filter="featured">Featured</button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 0; overflow: hidden;">
+                        <div id="productsList">
+                            <div class="state-block" style="padding: 60px;"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INVENTORY -->
+                <div class="admin-page" data-page="inventory">
+                    <div class="page-header">
+                        <div>
+                            <h2>Inventory & Variants</h2>
+                            <p>View variant combinations (size × color) for each product</p>
+                        </div>
+                    </div>
+
+                    <div id="inventoryList">
+                        <div class="state-block" style="padding: 60px;"><div class="spinner"></div></div>
+                    </div>
+                </div>
+
+                <!-- CUSTOMERS -->
+                <div class="admin-page" data-page="customers">
+                    <div class="page-header">
+                        <div>
+                            <h2>Customers</h2>
+                            <p>Customers are derived from order history</p>
+                        </div>
+                    </div>
+
+                    <div class="toolbar">
+                        <div class="search-input">
+                            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                            <input type="search" id="customerSearch" placeholder="Search by name, phone, or city…">
+                        </div>
+                    </div>
+
+                    <div class="card" style="padding: 0; overflow: hidden;">
+                        <div id="customersList">
+                            <div class="state-block" style="padding: 60px;"><div class="spinner"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
         </div>
-    </footer>
+    </div>
 
     <script src="config.js"></script>
     <script src="db.js"></script>
-    <script src="cart.js"></script>
-    <script src="main.js"></script>
     <script src="admin.js"></script>
 </body>
 </html>

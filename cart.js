@@ -138,7 +138,7 @@ function getCartSubtotal() {
 
 // Update cart count badges
 function updateCartBadges() {
-    const countBadges = document.querySelectorAll('.cart-count, #cartCount, [data-cart-count]');
+    const countBadges = document.querySelectorAll('.cart-count, #cartCount, #cartHeaderCount, [data-cart-count]');
     const totalCount = getCartCount();
 
     countBadges.forEach(badge => {
@@ -169,15 +169,18 @@ function updateCartUI() {
     const cartItemsContainer = document.getElementById('cartItems');
     const cartEmptyState = document.getElementById('cartEmptyState');
     const cartHasItems = document.getElementById('cartHasItems');
+    const cartHasItemsFooter = document.getElementById('cartHasItemsFooter');
 
     if (cartItemsContainer) {
         if (cart.length === 0) {
             if (cartEmptyState) cartEmptyState.style.display = 'flex';
             if (cartHasItems) cartHasItems.style.display = 'none';
+            if (cartHasItemsFooter) cartHasItemsFooter.style.display = 'none';
             cartItemsContainer.innerHTML = '';
         } else {
             if (cartEmptyState) cartEmptyState.style.display = 'none';
             if (cartHasItems) cartHasItems.style.display = 'block';
+            if (cartHasItemsFooter) cartHasItemsFooter.style.display = 'block';
 
             cartItemsContainer.innerHTML = cart.map((item, index) => {
                 const itemTotal = item.price * item.quantity;
