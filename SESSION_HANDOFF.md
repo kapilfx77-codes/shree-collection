@@ -100,3 +100,47 @@ GitHub: up to date with origin/main
 ## KNOWN ISSUES
 - Product pages use query parameters (?id=N) - not ideal for deep SEO
 - Heritage/about section has placeholder image upload feature
+
+## UX/UI FIX PASS - 2026-09-04
+
+Targeted bug fix pass resolving 4 user-reported issues without redesigning the site.
+
+### ISSUE 1 — View Cart Not Working (FIXED)
+**Root cause:** `product.html` was still using legacy `cartModal` markup while `cart.js` was updated to use the new `cartDrawer` + `cartOverlay` elements. The cart icon click handler (`#cartBtn`) tried to call `openCartDrawer()` but the DOM elements didn't exist on the product page.
+**Fix:** Replaced the legacy modal in `product.html` with the full cart drawer/overlay markup matching `index.html`. Cart now opens correctly from any page.
+
+### ISSUE 2 — Admin Dashboard Title Contrast (FIXED)
+**Root cause:** "Store Management Dashboard" h1 used default white text on the brown gradient header — visible but not strong enough.
+**Fix:** Updated `admin.html` to use `color: var(--gold-light)` with `font-weight: 600` on the h1. This provides a warm gold tone that matches the Shree Collection palette while remaining immediately readable. Subtitle opacity bumped from 0.9 to 0.95.
+
+### ISSUE 3 — WhatsApp Icons Too Small (FIXED)
+**Root cause:** Product card WhatsApp icon was 18×18 px — too small relative to button size. Other locations used 20–24 px.
+**Standardization:** All WhatsApp icons bumped to 22×22 px for primary action buttons, 20×20 for inline buttons. Affected:
+- `main.js` product card WhatsApp link (18 → 22)
+- `product.html` action button WhatsApp icon (added, 22×22)
+- `product.html` sticky buy bar WhatsApp icon (added, 20×20)
+- `product.html` cart drawer WhatsApp button (added, 20×20)
+Icons are now clearly visible, properly aligned, and consistent across the site. Mobile sizing remains appropriate.
+
+### ISSUE 4 — No Clear Checkout CTA in Cart (FIXED)
+**Root cause:** Cart drawer had a Proceed to Checkout button but no secondary WhatsApp alternative in the footer hierarchy.
+**Fix:** Added a prominent "Order via WhatsApp" secondary button below the primary checkout CTA in the cart drawer. New `sendCartViaWhatsApp()` function in `cart.js` formats the entire cart as a pre-filled WhatsApp message. The two purchase paths remain distinct:
+- Normal: Cart → Proceed to Checkout → COD/eSewa → Order
+- WhatsApp: Cart → Order via WhatsApp → Pre-filled message
+
+### FILES MODIFIED (UX FIX PASS)
+- `product.html` — Replaced cart modal with cart drawer markup, added WhatsApp icons to action buttons and sticky bar
+- `cart.js` — Added `sendCartViaWhatsApp()` function
+- `styles.css` — Added `.whatsapp-order-btn` styles
+- `admin.html` — Improved dashboard title contrast
+- `main.js` — Bumped product card WhatsApp icon size
+- `index.html` — Added WhatsApp order button to cart drawer footer
+- `SESSION_HANDOFF.md` — This update
+
+### TESTING VERIFIED
+- View Cart opens correctly from product page after Add to Cart
+- Admin title is clearly readable against brown gradient background
+- WhatsApp icons visible and consistent across pages
+- Cart drawer has clear Proceed to Checkout + secondary WhatsApp order
+- Cart contents preserved when navigating to checkout
+- Empty cart shows warning toast and does not proceed

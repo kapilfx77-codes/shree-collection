@@ -469,6 +469,32 @@ function sendOrderViaWhatsApp(orderData) {
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, '_blank');
 }
 
+// Send entire cart via WhatsApp
+function sendCartViaWhatsApp() {
+    if (cart.length === 0) {
+        showToast('Your cart is empty', 'warning');
+        return;
+    }
+
+    const total = getCartTotal();
+    let itemsList = cart.map(item =>
+        `• ${item.name} (${item.size}, ${item.color}) ×${item.quantity} = NPR ${(item.price * item.quantity).toLocaleString('en-IN')}`
+    ).join('\n');
+
+    const message = `🌸 *NEW ORDER - SHREE COLLECTION* 🌸
+
+*Order Details:*
+${itemsList}
+
+*Total Amount:* NPR ${total.toLocaleString('en-IN')}
+*Payment:* Cash on Delivery
+
+_Please confirm my order and share shipping details!_ 🙏`;
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, '_blank');
+}
+
 // Quick WhatsApp order for single product
 async function orderViaWhatsApp(productId) {
     const product = await getProductById(productId);
