@@ -391,6 +391,9 @@ button {
     flex-direction: column;
     text-decoration: none;
     line-height: 1.2;
+    white-space: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 .logo-main {
@@ -399,6 +402,7 @@ button {
     font-weight: 700;
     color: var(--primary);
     letter-spacing: 2px;
+    white-space: nowrap;
 }
 
 .logo-sub {
@@ -408,6 +412,7 @@ button {
     text-transform: uppercase;
     font-weight: 600;
     margin-top: 2px;
+    white-space: nowrap;
 }
 
 .nav-center {
@@ -2588,6 +2593,26 @@ button {
 
     .mobile-menu-btn {
         display: flex;
+    }
+
+    /* Logo: shrink so it never wraps on small screens */
+    .logo {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .logo-main {
+        font-size: 1.1rem;
+        letter-spacing: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .logo-sub {
+        font-size: 0.55rem;
+        letter-spacing: 2px;
     }
 
     .nav-search-dropdown {
