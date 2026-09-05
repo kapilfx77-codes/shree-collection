@@ -87,7 +87,12 @@ CREATE TABLE IF NOT EXISTS public.inventory (
 
 -- ---------------------------------------------------------------------------
 -- 4. RLS — anon key can only read public products, never write anything.
---    Service role key bypasses RLS so /api/admin/* still has full access.
+-- ---------------------------------------------------------------------------
+-- Important Supabase gotcha: `service_role` is NOT a superuser. RLS policies
+-- only restrict; the underlying table-level GRANT to the role is also needed
+-- before the service_role key can SELECT / INSERT / UPDATE / DELETE. Without
+-- the GRANTs at the end of this section, /api/admin/* POST/PATCH/DELETE all
+-- 403 even though the RLS policies would have allowed them.
 -- ---------------------------------------------------------------------------
 ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.orders   ENABLE ROW LEVEL SECURITY;
@@ -105,6 +110,13 @@ CREATE POLICY orders_anon_insert ON public.orders
   FOR INSERT TO anon WITH CHECK (true);
 
 -- inventory: anon has no access at all (no policy = blocked).
+
+-- Service role gets full read+write on all three admin-managed tables.
+-- (The same fix lives in sql/007_admin_table_grants.sql for projects
+-- that already ran this init without these GRANTs.)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.products  TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.orders   TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.inventory TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 5. STORAGE — create the product-images bucket if it does not exist

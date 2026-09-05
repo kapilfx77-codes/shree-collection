@@ -1,0 +1,29 @@
+-- ============================================================================
+-- Shree Collection — Sequence Grants 008
+-- ============================================================================
+-- Run this ONCE in the Supabase SQL Editor.
+--
+-- BACKGROUND
+-- 006_products_id_default.sql created `public.products_id_seq` to back the
+-- DEFAULT nextval(...) on products.id. 007_admin_table_grants.sql granted
+-- service_role the table-level privileges, but Postgres treats sequences as
+-- separate database objects: a table GRANT does NOT include the sequence
+-- the column's DEFAULT depends on. Any INSERT into products that lets the
+-- DEFAULT fire (i.e. the JS handler doesn't supply id) has to call
+-- nextval('public.products_id_seq'), which requires the USAGE (or SELECT)
+-- privilege on the sequence itself. Without it, the INSERT 403s with
+--   42501: permission denied for sequence products_id_seq
+-- and /api/admin/products returns 403 to the admin UI even though the
+-- table-level GRANT looks correct.
+--
+-- 009_full_init_fixes.sql does the same for any other sequences the
+-- schema may need.
+--
+-- VERIFY IT WORKED
+--   After running, this should return true (not 403):
+--     select has_sequence_privilege('service_role', 'public.products_id_seq', 'USAGE');
+--   And "Add Product" in the admin dashboard should save.
+-- ============================================================================
+
+-- Allow service_role to advance the products.id sequence.
+grant usage, select on sequence public.products_id_seq to service_role;
