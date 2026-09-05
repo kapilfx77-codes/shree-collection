@@ -318,8 +318,16 @@ async function handleCreate(req, res) {
   // audit trail reflects what happened. Cancellation here is internal
   // to this request — no partial stock decrements linger.
   const decrementFailures = [];
-  console.log('[DIAG-V16] env', JSON.stringify({ SUPABASE_URL, items_len: items.length, order_id: row && row.order_id }));
+  const tStart = process.hrtime.bigint();
+  console.log('[DIAG-V16] env', JSON.stringify({
+    SUPABASE_URL,
+    items_len: items.length,
+    order_id: row && row.order_id,
+    t_start_ms: Number(tStart / 1000000n),
+    node_version: process.version,
+  }));
   for (const line of items) {
+    const tBeforeRpc = process.hrtime.bigint();
     // eslint-disable-next-line no-await-in-loop
     const dec = await sbFetch('rpc/decrement_inventory', {
       method: 'POST',
@@ -331,10 +339,13 @@ async function handleCreate(req, res) {
         p_qty: line.quantity,
       }),
     });
+    const tAfterRpc = process.hrtime.bigint();
     // [DIAG-V16] trace exactly what decrement_inventory returns under load
     console.log('[DIAG-V16]', JSON.stringify({
       order_id: row && row.order_id,
       line: { id: line.id, color: line.color, size: line.size, qty: line.quantity },
+      t_offset_ms: Number((tBeforeRpc - tStart) / 1000000n),
+      rpc_dur_ms: Number((tAfterRpc - tBeforeRpc) / 1000000n),
       dec_status: dec.status,
       dec_data_type: Array.isArray(dec.data) ? 'array' : typeof dec.data,
       dec_data_len: Array.isArray(dec.data) ? dec.data.length : (dec.data ? 'n/a' : 'null'),
