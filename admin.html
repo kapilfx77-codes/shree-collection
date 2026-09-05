@@ -656,7 +656,17 @@
             padding: 24px;
         }
         .modal-backdrop.open { display: flex; }
-        .modal {
+        /*
+           NOTE on selectors below: the inner card uses class `modal` (same name
+           as the storefront's full-screen overlay in styles.css). Scope every
+           `.modal*` rule to `.modal-backdrop .modal*` so the storefront rule
+           can't leak position:fixed / opacity:0 / visibility:hidden into the
+           admin's modal content. We also explicitly reset those properties
+           here for defense in depth.
+        */
+        .modal-backdrop .modal {
+            position: relative;
+            inset: auto;
             background: #FFFFFF;
             border-radius: var(--radius-md);
             max-width: 720px;
@@ -664,21 +674,24 @@
             max-height: 90vh;
             overflow-y: auto;
             box-shadow: var(--shadow-lg);
+            opacity: 1;
+            visibility: visible;
+            z-index: auto;
         }
-        .modal-head {
+        .modal-backdrop .modal-head {
             padding: 20px 24px;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .modal-head h3 {
+        .modal-backdrop .modal-head h3 {
             font-family: var(--font-serif);
             font-size: 1.25rem;
             color: var(--text-dark);
             font-weight: 600;
         }
-        .modal-head .close {
+        .modal-backdrop .modal-head .close {
             background: none;
             border: none;
             font-size: 1.5rem;
@@ -687,8 +700,8 @@
             padding: 0;
             line-height: 1;
         }
-        .modal-body { padding: 24px; }
-        .modal-foot {
+        .modal-backdrop .modal-body { padding: 24px; }
+        .modal-backdrop .modal-foot {
             padding: 16px 24px;
             border-top: 1px solid var(--border);
             display: flex;
