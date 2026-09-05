@@ -96,6 +96,7 @@ body {
     background-color: var(--bg-cream);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -1039,6 +1040,9 @@ button {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    word-break: break-word;
+    -webkit-hyphens: auto;
+    hyphens: auto;
 }
 
 .product-title:hover {
@@ -1841,7 +1845,8 @@ button {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md);
-    margin-top: var(--space-md);
+    margin-top: auto;
+    padding-top: var(--space-md);
 }
 
 .product-features-box {
@@ -2488,6 +2493,14 @@ button {
         display: none;
     }
 
+    .nav-container {
+        gap: var(--space-md);
+    }
+
+    .nav-actions .admin-badge {
+        display: none;
+    }
+
     .nav-links {
         display: none;
         position: absolute;
@@ -2596,6 +2609,17 @@ button {
         font-size: 1rem;
     }
 
+    .product-actions .btn {
+        padding: 10px 8px;
+        font-size: 0.8125rem;
+        gap: 4px;
+    }
+
+    .btn-add-cart svg {
+        width: 14px;
+        height: 14px;
+    }
+
     .product-card-actions {
         opacity: 1;
         transform: translateY(0);
@@ -2660,8 +2684,8 @@ button {
     .floating-whatsapp {
         bottom: var(--space-md);
         right: var(--space-md);
-        width: 52px;
-        height: 52px;
+        width: 60px;
+        height: 60px;
     }
 
     body.sticky-buy-visible .floating-whatsapp {
