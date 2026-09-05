@@ -1,6 +1,9 @@
 {
   "permissions": {
     "allow": [
+      "Bash(git push origin main)",
+      "Bash(curl https://shree-collection-opal.vercel.app/*)",
+      "Bash(python tools/*)",
       "PowerShell(sqlite3 *)",
       "PowerShell(python -c \"import sqlite3; conn = sqlite3.connect\\(r'D:\\\\Shree Website\\\\shree_collection.db'\\); cursor = conn.cursor\\(\\); cursor.execute\\(\\\\\"SELECT name FROM sqlite_master WHERE type='table'\\\\\"\\); print\\([row[0] for row in cursor.fetchall\\(\\)]\\); conn.close\\(\\)\")",
       "PowerShell(python \"D:\\\\Shree Website\\\\read_db.py\")",

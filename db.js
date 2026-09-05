@@ -316,7 +316,11 @@ async function adminCancelOrder(orderId) {
 
 async function callOrdersApi(path, init = {}) {
     const headers = { 'Content-Type': 'application/json', ...(init.headers || {}) };
-    const resp = await fetch(`/api/orders/${path}`, { ...init, headers });
+    // Join with a single slash; if path is empty, do NOT add a trailing slash
+    // (Vercel normalises /api/orders/ to /api/orders, but a separate fetch
+    // to /api/orders/ would 405 because the route is the bare /api/orders).
+    const url = path ? `/api/orders/${path}` : '/api/orders';
+    const resp = await fetch(url, { ...init, headers });
     let data = null;
     const text = await resp.text();
     if (text) {

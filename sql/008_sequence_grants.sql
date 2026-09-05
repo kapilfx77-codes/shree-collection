@@ -24,6 +24,5 @@
 --     select has_sequence_privilege('service_role', 'public.products_id_seq', 'USAGE');
 --   And "Add Product" in the admin dashboard should save.
 -- ============================================================================
-
 -- Allow service_role to advance the products.id sequence.
 grant usage, select on sequence public.products_id_seq to service_role;

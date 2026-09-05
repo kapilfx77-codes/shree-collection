@@ -84,8 +84,8 @@ async def main_async():
     parser = argparse.ArgumentParser()
     parser.add_argument("--local", action="store_true",
                         help="Use the local dev-server (http://127.0.0.1:9090) instead of the production URL")
-    parser.add_argument("--admin-password", default=os.environ.get("ADMIN_PASSWORD", "shree2026"),
-                        help="Admin password (defaults to the dev password or ADMIN_PASSWORD env var)")
+    parser.add_argument("--admin-password", default=os.environ.get("ADMIN_PASSWORD", ""),
+                        help="Admin password (defaults to the ADMIN_PASSWORD env var). If empty, T18 is skipped.")
     args = parser.parse_args()
 
     if args.local:
@@ -223,12 +223,14 @@ async def main_async():
             await page.goto(f"{base}/catalog.html", wait_until="networkidle")
             await page.wait_for_timeout(800)
             # Click the cart button to open the drawer, then "Checkout" / "Proceed to checkout"
+            await page.evaluate("() => { var d=document.getElementById('cartDrawer'),o=document.getElementById('cartOverlay'); if(d)d.classList.remove('open'); if(o)o.classList.remove('open'); }")
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(500)
             # The checkout button in the drawer is #checkoutBtn
             await page.click("#checkoutBtn, button:has-text('Checkout'), button:has-text('Proceed to checkout')")
-            await page.wait_for_url("**/checkout.html", timeout=10000)
-            results["T07"] = (True, "redirected to checkout.html")
+            # Vercel rewrites /checkout.html → /checkout, so match either
+            await page.wait_for_url("**/checkout*", timeout=10000)
+            results["T07"] = (True, f"redirected to {page.url}")
         except Exception as e:
             results["T07"] = (False, f"exception: {e}")
 
@@ -304,10 +306,11 @@ async def main_async():
             await page.click("button.btn-add-cart, button:has-text('Add to Cart')")
             await page.wait_for_timeout(800)
             # Go to checkout
+            await page.evaluate("() => { var d=document.getElementById('cartDrawer'),o=document.getElementById('cartOverlay'); if(d)d.classList.remove('open'); if(o)o.classList.remove('open'); }")
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(400)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
-            await page.wait_for_url("**/checkout.html", timeout=10000)
+            await page.wait_for_url("**/checkout*", timeout=10000)
             # Pick eSewa + fill form
             await page.click("label.payment-option:has(input[value='esewa'])")
             await page.wait_for_timeout(300)
@@ -401,7 +404,7 @@ async def main_async():
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(300)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
-            await page.wait_for_url("**/checkout.html", timeout=10000)
+            await page.wait_for_url("**/checkout*", timeout=10000)
             # COD is the default selected payment; just fill the form
             await page.fill("#customerName", gen_name())
             await page.fill("#customerPhone", gen_phone())
@@ -446,10 +449,11 @@ async def main_async():
                     localStorage.setItem('shree_collection_cart', JSON.stringify(cart));
                 }
             """)
+            await page.evaluate("() => { var d=document.getElementById('cartDrawer'),o=document.getElementById('cartOverlay'); if(d)d.classList.remove('open'); if(o)o.classList.remove('open'); }")
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(300)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
-            await page.wait_for_url("**/checkout.html", timeout=10000)
+            await page.wait_for_url("**/checkout*", timeout=10000)
             # COD
             await page.fill("#customerName", gen_name())
             phone3 = gen_phone()
@@ -482,82 +486,87 @@ async def main_async():
         # already in_stock=false in the DB, we just confirm the rejection
         # message. This test is best-effort: if admin login fails, we
         # mark the test as inconclusive rather than fail.
-        try:
-            # Attempt admin login
-            admin_login = await page.evaluate(f"""
-                async () => {{
-                    const r = await fetch('/api/login', {{
-                        method: 'POST',
-                        headers: {{ 'Content-Type': 'application/json' }},
-                        body: JSON.stringify({{ password: '{args.admin_password}' }})
-                    }});
-                    return {{ status: r.status, body: await r.json() }};
-                }}
-            """)
-            if admin_login.get("status") != 200 or not admin_login.get("body", {}).get("token"):
-                results["T18"] = (False, f"admin login failed (status={admin_login.get('status')}); cannot flip in_stock — test skipped as inconclusive")
-            else:
-                admin_token = admin_login["body"]["token"]
-                # Flip in_stock=false on the test product
-                flip_resp = await page.evaluate(f"""
+        if not args.admin_password:
+            results["T18"] = (False, "ADMIN_PASSWORD not set — T18 skipped (inconclusive)")
+        else:
+            try:
+                # Attempt admin login
+                admin_login = await page.evaluate(f"""
                     async () => {{
-                        const r = await fetch('/api/admin/products', {{
-                            method: 'PATCH',
-                            headers: {{ 'Content-Type': 'application/json', 'Authorization': 'Bearer {admin_token}' }},
-                            body: JSON.stringify({{ id: {product_id}, in_stock: false }})
+                        const r = await fetch('/api/login', {{
+                            method: 'POST',
+                            headers: {{ 'Content-Type': 'application/json' }},
+                            body: JSON.stringify({{ password: '{args.admin_password}' }})
                         }});
                         return {{ status: r.status, body: await r.json() }};
                     }}
                 """)
-                if flip_resp.get("status") >= 400:
-                    results["T18"] = (False, f"could not flip in_stock via admin API: {flip_resp}")
+                if admin_login.get("status") != 200 or not admin_login.get("body", {}).get("token"):
+                    results["T18"] = (False, f"admin login failed (status={admin_login.get('status')}); cannot flip in_stock — test skipped as inconclusive")
                 else:
-                    # Try to checkout with this product. Fresh cart, single item.
-                    await page.evaluate("() => localStorage.removeItem('shree_collection_cart')")
-                    await page.goto(f"{base}/product.html?id={product_id}", wait_until="networkidle")
-                    await page.wait_for_timeout(800)
-                    # The product page's add-to-cart call should still go through
-                    # (we don't block on in_stock at add-to-cart time), but the
-                    # /api/orders endpoint will reject. So we add it then try to
-                    # submit and observe the error.
-                    try:
-                        await page.click("button.btn-add-cart, button:has-text('Add to Cart')", timeout=3000)
-                    except Exception:
-                        pass
-                    await page.wait_for_timeout(500)
-                    await page.click("#cartBtn, [data-cart-btn], .cart-btn")
-                    await page.wait_for_timeout(300)
-                    await page.click("#checkoutBtn, button:has-text('Checkout')")
-                    await page.wait_for_url("**/checkout.html", timeout=10000)
-                    await page.fill("#customerName", gen_name())
-                    await page.fill("#customerPhone", gen_phone())
-                    await page.fill("#customerCity", "Butwal")
-                    await page.fill("#customerAddress", "Ward 5, Milanchowk")
-                    await page.click("#placeOrderBtn")
-                    # We expect to stay on the checkout page with a toast about
-                    # out-of-stock. Wait a moment for the network call to fail
-                    # and the toast to appear.
-                    await page.wait_for_timeout(2500)
-                    toast_text = await page.evaluate("""
-                        () => {
-                            const t = document.getElementById('cartToast');
-                            return t ? t.textContent : '';
-                        }
-                    """)
-                    ok = ("out of stock" in toast_text.lower() or "unavailable" in toast_text.lower())
-                    results["T18"] = (ok, f"toast: {toast_text!r}")
-                    # Restore the product so we don't leave the test data mutated
-                    await page.evaluate(f"""
+                    admin_token = admin_login["body"]["token"]
+                    # Flip in_stock=false on the test product
+                    flip_resp = await page.evaluate(f"""
                         async () => {{
-                            await fetch('/api/admin/products', {{
+                            const r = await fetch('/api/admin/products', {{
                                 method: 'PATCH',
                                 headers: {{ 'Content-Type': 'application/json', 'Authorization': 'Bearer {admin_token}' }},
-                                body: JSON.stringify({{ id: {product_id}, in_stock: true }})
+                                body: JSON.stringify({{ id: {product_id}, in_stock: false }})
                             }});
+                            return {{ status: r.status, body: await r.json() }};
                         }}
                     """)
-        except Exception as e:
-            results["T18"] = (False, f"exception: {e}")
+                    if flip_resp.get("status") >= 400:
+                        results["T18"] = (False, f"could not flip in_stock via admin API: {flip_resp}")
+                    else:
+                        # Try to checkout with this product. Fresh cart, single item.
+                        await page.evaluate("() => localStorage.removeItem('shree_collection_cart')")
+                        await page.goto(f"{base}/product.html?id={product_id}", wait_until="networkidle")
+                        await page.wait_for_timeout(800)
+                        # The product page's add-to-cart call should still go through
+                        # (we don't block on in_stock at add-to-cart time), but the
+                        # /api/orders endpoint will reject. So we add it then try to
+                        # submit and observe the error.
+                        try:
+                            await page.click("button.btn-add-cart, button:has-text('Add to Cart')", timeout=3000)
+                        except Exception:
+                            pass
+                        await page.wait_for_timeout(500)
+                        # Close the cart drawer if it's open from a previous test
+                        await page.evaluate("() => { var d=document.getElementById('cartDrawer'),o=document.getElementById('cartOverlay'); if(d)d.classList.remove('open'); if(o)o.classList.remove('open'); }")
+                        await page.click("#cartBtn, [data-cart-btn], .cart-btn")
+                        await page.wait_for_timeout(300)
+                        await page.click("#checkoutBtn, button:has-text('Checkout')")
+                        await page.wait_for_url("**/checkout*", timeout=10000)
+                        await page.fill("#customerName", gen_name())
+                        await page.fill("#customerPhone", gen_phone())
+                        await page.fill("#customerCity", "Butwal")
+                        await page.fill("#customerAddress", "Ward 5, Milanchowk")
+                        await page.click("#placeOrderBtn")
+                        # We expect to stay on the checkout page with a toast about
+                        # out-of-stock. Wait a moment for the network call to fail
+                        # and the toast to appear.
+                        await page.wait_for_timeout(2500)
+                        toast_text = await page.evaluate("""
+                            () => {
+                                const t = document.getElementById('cartToast');
+                                return t ? t.textContent : '';
+                            }
+                        """)
+                        ok = ("out of stock" in toast_text.lower() or "unavailable" in toast_text.lower())
+                        results["T18"] = (ok, f"toast: {toast_text!r}")
+                        # Restore the product so we don't leave the test data mutated
+                        await page.evaluate(f"""
+                            async () => {{
+                                await fetch('/api/admin/products', {{
+                                    method: 'PATCH',
+                                    headers: {{ 'Content-Type': 'application/json', 'Authorization': 'Bearer {admin_token}' }},
+                                    body: JSON.stringify({{ id: {product_id}, in_stock: true }})
+                                }});
+                            }}
+                        """)
+            except Exception as e:
+                results["T18"] = (False, f"exception: {e}")
 
         await browser.close()
 
