@@ -12,6 +12,11 @@
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
+-- 0. EXTENSIONS — moddatetime lives in the extensions schema on Supabase
+-- ---------------------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS moddatetime SCHEMA extensions;
+
+-- ---------------------------------------------------------------------------
 -- 1. PRODUCTS
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.products (
@@ -67,7 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON public.orders (payment_s
 DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders;
 CREATE TRIGGER trg_orders_updated_at
   BEFORE UPDATE ON public.orders
-  FOR EACH ROW EXECUTE FUNCTION public.moddatetime(updated_at);
+  FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 -- ---------------------------------------------------------------------------
 -- 3. INVENTORY

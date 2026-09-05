@@ -16,7 +16,8 @@
       "Read(//Users/kapil/.claude-code/**)",
       "Read(//Users/kapil/.claude/**)",
       "Read(//Users/kapil/.config/claude-code/**)",
-      "Read(//Users/**)"
+      "Read(//Users/**)",
+      "PowerShell(Get-ChildItem env: | Where-Object { $_.Name -match \"PROXY|BASE_URL|SOCKS|OMNI\" } | Format-Table -AutoSize)"
     ]
   }
 }
