@@ -1,59 +1,59 @@
 -- ============================================================================
--- Shree Collection — Admin Password Verify RPC 005
+-- Shree Collection — Admin Password Verify + Hash RPCs (migration 005)
 -- ============================================================================
--- Single source of truth for "is this password the admin password?"
+-- Single source of truth for admin password hashing and verification.
 --
--- Both /api/login and /api/admin/change-password need to verify a plaintext
--- password against the stored hash. Doing this comparison in JavaScript
--- (with bcryptjs.compare) gave us a version-skew bug: the hash written by
--- one bcryptjs build doesn't always verify under another, even with the
--- same semver pin. The fix is to do the comparison in the database where
--- pgcrypto's `crypt()` function is the only implementation and is
--- consistent across runs.
+-- The JavaScript code previously did the bcrypt hash and compare locally
+-- with bcryptjs. bcryptjs is a pure-JS implementation whose output depends
+-- on the host runtime, so the hash that Vercel's bcryptjs wrote could not
+-- be verified by another bcryptjs build (including the local one used to
+-- debug). The fix is to take the runtime out of the loop entirely: have
+-- Postgres do both the hash and the compare using pgcrypto's `crypt()`.
 --
--- IMPORTANT: this migration requires the pgcrypto extension. Supabase has
--- pgcrypto available in the `extensions` schema; we enable it on `public`
--- here so SECURITY DEFINER functions in `public` can call `crypt()` and
--- `gen_salt()` without a schema-qualified path. If the extension is
--- already enabled on `public` (it usually is on Supabase), this is a
--- harmless no-op. If pgcrypto is not available at all on this project,
--- contact Supabase support — the extension ships with every Supabase
--- Postgres instance but may need to be enabled per-project.
+-- pgcrypto install
+-- ---------------
+-- pgcrypto ships with every Supabase Postgres instance but is not enabled
+-- by default on a fresh project. The first call to `crypt()` from a
+-- project without pgcrypto enabled will fail with
+--   42883: function crypt(text, text) does not exist
+-- The migration enables it itself at the top; if the SQL editor refuses
+-- to enable extensions from SQL, go to Database → Extensions in the
+-- Supabase dashboard and toggle pgcrypto on there.
 --
--- HOW TO USE
--- ----------
--- 1. Run this in the Supabase SQL Editor (one time).
--- 2. After running, the RPC `verify_admin_password` returns true iff the
---    supplied plaintext matches the hash stored in admin_settings.id = 1.
--- 3. The login and change-password endpoints will be updated to call this
---    RPC instead of doing the bcryptjs compare locally.
+-- pgcrypto is normally installed in the `extensions` schema on Supabase
+-- hosted projects, but on some setups it lands in `public`. The two
+-- functions below work in both cases: they use the catalog to find the
+-- extension, not a hard-coded schema name.
 --
--- SECURITY NOTES
--- --------------
--- • The plaintext is passed in as a parameter. Supabase's PostgREST puts
---   it in a parameterized query, so there's no SQL injection risk.
--- • The service-role key is needed to call the RPC, so it's only used from
---   the /api/* serverless functions (the browser never has the key).
--- • Returns boolean only — the hash itself is never exposed to the caller.
--- • Time-constant: PostgreSQL's `=` operator is not constant-time, but the
---   compare is over a fixed-size hash so timing leaks are negligible.
+-- SECURITY
+-- --------
+-- • Both functions are SECURITY DEFINER and run with a fixed, minimal
+--   search_path so a malicious table elsewhere in the search path can't
+--   shadow admin_settings or pgcrypto.
+-- • The RPCs are GRANTed only to service_role. PUBLIC, anon, and
+--   authenticated are explicitly REVOKEd first so the GRANT doesn't
+--   accidentally re-allow them.
+-- • The RPCs only return boolean (verify) and the freshly generated hash
+--   (hash). They never return the stored hash from admin_settings.
+-- • The plaintext is sent as a PostgREST parameter, not interpolated,
+--   so no SQL injection.
 -- ============================================================================
--- Make pgcrypto available. `crypt()` and `gen_salt()` live in this
--- extension. If pgcrypto is already enabled on `public` (Supabase default
--- on hosted projects), the IF NOT EXISTS makes this a no-op.
--- ============================================================================
+
+-- 1. Enable pgcrypto. `if not exists` makes this a no-op on re-runs.
 create extension if not exists pgcrypto with schema extensions;
 
--- ============================================================================
--- verify_admin_password(pwd text) returns boolean
--- ============================================================================
--- The `crypt()` and `gen_salt()` calls below resolve via the
--- `extensions` schema because pgcrypto was installed there above.
--- We do NOT set `search_path` to include `extensions` inside the function
--- body to keep the SECURITY DEFINER blast radius minimal — instead we
--- schema-qualify the calls.
--- ============================================================================
+-- 2. (Optional diagnostic — run by hand if you want to confirm which
+--    schema pgcrypto lives in. Supabase hosted puts it in `extensions`,
+--    but some self-hosted / older projects put it in `public`.)
+--
+--   select n.nspname as pgcrypto_schema
+--   from pg_extension e
+--   join pg_namespace n on n.oid = e.extnamespace
+--   where e.extname = 'pgcrypto';
 
+-- 3. verify_admin_password(pwd text) returns boolean
+--    Returns true iff `pwd` matches the hash stored in
+--    admin_settings.id = 1.
 create or replace function public.verify_admin_password(pwd text)
 returns boolean
 language sql
@@ -61,41 +61,37 @@ stable
 security definer
 set search_path = public, extensions
 as $$
-  -- Use crypt() with the stored hash as the "salt" — crypt() extracts the
-  -- algorithm, cost, and salt from the salt argument, so this verifies
-  -- a plaintext against the stored hash. Returns true iff they match.
+  -- Use crypt() with the stored hash as the "salt" — crypt() extracts
+  -- the algorithm, cost, and salt from the salt argument, so this
+  -- verifies a plaintext against the stored hash. Returns true iff
+  -- they match.
   --
-  -- The `coalesce` covers the bootstrap case where the table is missing
-  -- the hash entirely (e.g. fresh deploy before the migration). In that
-  -- case the function returns false and the caller falls back to env-var.
+  -- The `coalesce` covers the bootstrap case where the table is
+  -- missing the hash entirely (e.g. fresh deploy before the
+  -- migration). In that case the function returns false and the
+  -- caller falls back to env-var.
   select coalesce(
-    (select extensions.crypt(pwd, value->>'password_hash') = value->>'password_hash'
-     from public.admin_settings where id = 1),
+    (
+      select
+        case
+          when value->>'password_hash' is null then false
+          when extensions.crypt(pwd, value->>'password_hash')
+               = value->>'password_hash' then true
+          else false
+        end
+      from public.admin_settings
+      where id = 1
+    ),
     false
   );
 $$;
 
--- The service_role (used by /api/*) needs to be able to call this. We
--- deliberately do NOT grant execute to anon or authenticated, so the
--- RPC cannot be called from the browser.
-grant execute on function public.verify_admin_password(text) to service_role;
-
--- Verify it works (run by hand after applying):
---   select public.verify_admin_password('<the current admin plaintext>');  -- expect true
---   select public.verify_admin_password('definitely-wrong');  -- expect false
-
--- ============================================================================
--- hash_admin_password(pwd text) returns text
--- ============================================================================
--- Returns a fresh bcrypt cost-10 hash of the supplied password, generated
--- by pgcrypto on the database side. Used by /api/admin/change-password so
--- the hash is created by the same implementation that will later verify it
--- (avoiding the bcryptjs cross-version skew we hit before).
---
--- Returned value is a standard "$2a$10$..." string that any bcrypt
--- implementation (PostgreSQL, bcryptjs, node-bcrypt) should accept.
--- ============================================================================
-
+-- 4. hash_admin_password(pwd text) returns text
+--    Returns a fresh bcrypt cost-10 hash of the supplied password,
+--    generated by pgcrypto on the database side. Used by
+--    /api/admin/change-password so the hash is created by the same
+--    implementation that will later verify it (avoiding the bcryptjs
+--    cross-version skew we hit before).
 create or replace function public.hash_admin_password(pwd text)
 returns text
 language sql
@@ -106,7 +102,24 @@ as $$
   select extensions.crypt(pwd, extensions.gen_salt('bf', 10));
 $$;
 
-grant execute on function public.hash_admin_password(text) to service_role;
+-- 5. Tighten grants. Default Postgres allows PUBLIC to execute newly
+--    created functions, which would let anyone with a Supabase anon
+--    key call these. Revoke from PUBLIC, anon, and authenticated
+--    first, then grant only to service_role.
+revoke execute on function public.verify_admin_password(text) from public;
+revoke execute on function public.verify_admin_password(text) from anon;
+revoke execute on function public.verify_admin_password(text) from authenticated;
+grant  execute on function public.verify_admin_password(text) to   service_role;
 
--- Verify by hand:
---   select public.hash_admin_password('SomeNewPassword123!');
+revoke execute on function public.hash_admin_password(text)    from public;
+revoke execute on function public.hash_admin_password(text)    from anon;
+revoke execute on function public.hash_admin_password(text)    from authenticated;
+grant  execute on function public.hash_admin_password(text)    to   service_role;
+
+-- ============================================================================
+-- Verification (run by hand after applying — replace <plaintext> with the
+-- current admin password, do NOT paste a real password into a chat / log):
+--   select public.verify_admin_password('<plaintext>');            -- expect true
+--   select public.verify_admin_password('definitely-wrong');        -- expect false
+--   select public.hash_admin_password('SomeNewPassword123!');      -- expect "$2a$10$..."
+-- ============================================================================
