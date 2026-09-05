@@ -126,6 +126,16 @@ async def main_async():
         except Exception as e:
             results["T01"] = (False, f"exception: {e}")
 
+        # Clear any leftover state from prior test runs in the same browser context.
+        await page.evaluate("""
+            () => {
+                for (const k of ['shree_collection_cart', 'shree_collection_pending_order', 'shree_last_order', 'shree_admin_session', 'shree_admin_token']) {
+                    try { localStorage.removeItem(k); } catch {}
+                    try { sessionStorage.removeItem(k); } catch {}
+                }
+            }
+        """)
+
         # --- T02: catalog shows at least one product card ---
         try:
             await page.goto(base + "/catalog.html", wait_until="networkidle")
@@ -143,15 +153,39 @@ async def main_async():
             # Find a product link by going through the first card's link
             await page.goto(base + "/catalog.html", wait_until="networkidle")
             await page.wait_for_timeout(1200)
-            # Get a product id from the first card's link or any list element
-            product_id = await page.evaluate("""
-                () => {
-                    const link = document.querySelector('a[href*="product.html?id="]');
-                    if (!link) return null;
-                    const m = link.getAttribute('href').match(/id=(\\d+)/);
-                    return m ? m[1] : null;
-                }
-            """)
+            # The catalog page itself does not surface in_stock status in the
+            # DOM, so the page order is whatever Supabase returned. The cart
+            # side does enforce in_stock at checkout time, so we ask the
+            # Supabase REST endpoint directly to pick the first in-stock
+            # product. If the network call fails, fall back to whatever the
+            # catalog has.
+            supabase_url = await page.evaluate("() => (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || ''")
+            supabase_key = await page.evaluate("() => (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || ''")
+            in_stock_id = None
+            if supabase_url and supabase_key:
+                try:
+                    r = await page.request.get(
+                        f"{supabase_url}/rest/v1/products?select=id&in_stock=eq.true&order=id&limit=1",
+                        headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+                    )
+                    if r.status == 200:
+                        rows = await r.json()
+                        if rows and isinstance(rows, list) and rows[0].get("id") is not None:
+                            in_stock_id = str(rows[0]["id"])
+                except Exception as e:
+                    pass
+            if in_stock_id:
+                product_id = in_stock_id
+            else:
+                # Fallback: use the first card from the catalog DOM
+                product_id = await page.evaluate("""
+                    () => {
+                        const link = document.querySelector('a[href*="product.html?id="]');
+                        if (!link) return null;
+                        const m = link.getAttribute('href').match(/id=(\\d+)/);
+                        return m ? m[1] : null;
+                    }
+                """)
             if not product_id:
                 results["T03"] = (False, "could not find a product id on catalog")
             else:
@@ -220,17 +254,42 @@ async def main_async():
 
         # --- T07: proceed to checkout redirects to checkout.html ---
         try:
+            # Re-navigate to the catalog to ensure a clean state with the cart we built in T04-T06
             await page.goto(f"{base}/catalog.html", wait_until="networkidle")
             await page.wait_for_timeout(800)
             # Click the cart button to open the drawer, then "Checkout" / "Proceed to checkout"
-            await page.evaluate("() => { var d=document.getElementById('cartDrawer'),o=document.getElementById('cartOverlay'); if(d)d.classList.remove('open'); if(o)o.classList.remove('open'); }")
+            await page.evaluate("""
+                () => {
+                    var d = document.getElementById('cartDrawer');
+                    var o = document.getElementById('cartOverlay');
+                    if (d) {
+                        d.classList.remove('open');
+                        d.dispatchEvent(new Event('cart:close'));
+                    }
+                    if (o) {
+                        o.classList.remove('open');
+                        o.style.pointerEvents = 'none';
+                    }
+                    if (d) d.classList.remove('touch-open');
+                }
+            """)
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(500)
             # The checkout button in the drawer is #checkoutBtn
             await page.click("#checkoutBtn, button:has-text('Checkout'), button:has-text('Proceed to checkout')")
             # Vercel rewrites /checkout.html → /checkout, so match either
-            await page.wait_for_url("**/checkout*", timeout=10000)
-            results["T07"] = (True, f"redirected to {page.url}")
+            try:
+                await page.wait_for_url("**/checkout**", timeout=15000)
+            except Exception:
+                pass
+            # wait_for_url can miss a 308 redirect that lands back on a
+            # "clean" URL; fall back to polling page.url explicitly.
+            for _ in range(30):
+                if "/checkout" in page.url and "/catalog" not in page.url:
+                    break
+                await page.wait_for_timeout(200)
+            ok = ("/checkout" in page.url and "/catalog" not in page.url)
+            results["T07"] = (ok, f"page.url = {page.url}")
         except Exception as e:
             results["T07"] = (False, f"exception: {e}")
 
@@ -283,10 +342,17 @@ async def main_async():
         try:
             # Click the submit button ONCE
             await page.click("#placeOrderBtn")
-            # Wait for redirect to checkout-success
-            await page.wait_for_url("**/checkout-success.html**", timeout=15000)
+            # Wait for redirect to checkout-success. Vercel rewrites
+            # checkout-success.html to /checkout-success via cleanUrls.
+            try:
+                await page.wait_for_url("**/checkout-success**", timeout=20000)
+            except Exception:
+                pass
+            for _ in range(40):
+                if "/checkout-success" in page.url:
+                    break
+                await page.wait_for_timeout(200)
             url = page.url
-            # Extract the order id from the URL
             from urllib.parse import urlparse, parse_qs
             qs = parse_qs(urlparse(url).query)
             esewa_order_id = (qs.get("order") or [None])[0]
@@ -306,11 +372,34 @@ async def main_async():
             await page.click("button.btn-add-cart, button:has-text('Add to Cart')")
             await page.wait_for_timeout(800)
             # Go to checkout
-            await page.evaluate("() => { var d=document.getElementById('cartDrawer'),o=document.getElementById('cartOverlay'); if(d)d.classList.remove('open'); if(o)o.classList.remove('open'); }")
+            await page.evaluate("""
+                () => {
+                    var d = document.getElementById('cartDrawer');
+                    var o = document.getElementById('cartOverlay');
+                    if (d) {
+                        d.classList.remove('open');
+                        d.dispatchEvent(new Event('cart:close'));
+                    }
+                    if (o) {
+                        o.classList.remove('open');
+                        o.style.pointerEvents = 'none';
+                    }
+                    if (d) d.classList.remove('touch-open');
+                }
+            """)
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(400)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
-            await page.wait_for_url("**/checkout*", timeout=10000)
+            try:
+                await page.wait_for_url("**/checkout**", timeout=15000)
+            except Exception:
+                pass
+            # wait_for_url can miss a 308 redirect that lands back on a
+            # "clean" URL; fall back to polling page.url explicitly.
+            for _ in range(30):
+                if "/checkout" in page.url and "/catalog" not in page.url and "/checkout-success" not in page.url:
+                    break
+                await page.wait_for_timeout(200)
             # Pick eSewa + fill form
             await page.click("label.payment-option:has(input[value='esewa'])")
             await page.wait_for_timeout(300)
@@ -324,7 +413,14 @@ async def main_async():
             # Rapidly click submit twice within 100ms — the in-flight guard should
             # ignore the second click.
             await page.evaluate("document.getElementById('placeOrderBtn').click(); document.getElementById('placeOrderBtn').click();")
-            await page.wait_for_url("**/checkout-success.html**", timeout=15000)
+            try:
+                await page.wait_for_url("**/checkout-success**", timeout=20000)
+            except Exception:
+                pass
+            for _ in range(40):
+                if "/checkout-success" in page.url:
+                    break
+                await page.wait_for_timeout(200)
             from urllib.parse import urlparse, parse_qs
             qs = parse_qs(urlparse(page.url).query)
             oid2 = (qs.get("order") or [None])[0]
@@ -404,14 +500,30 @@ async def main_async():
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(300)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
-            await page.wait_for_url("**/checkout*", timeout=10000)
+            try:
+                await page.wait_for_url("**/checkout**", timeout=15000)
+            except Exception:
+                pass
+            # wait_for_url can miss a 308 redirect that lands back on a
+            # "clean" URL; fall back to polling page.url explicitly.
+            for _ in range(30):
+                if "/checkout" in page.url and "/catalog" not in page.url and "/checkout-success" not in page.url:
+                    break
+                await page.wait_for_timeout(200)
             # COD is the default selected payment; just fill the form
             await page.fill("#customerName", gen_name())
             await page.fill("#customerPhone", gen_phone())
             await page.fill("#customerCity", "Butwal")
             await page.fill("#customerAddress", "Ward 5, Milanchowk")
             await page.click("#placeOrderBtn")
-            await page.wait_for_url("**/checkout-success.html**", timeout=15000)
+            try:
+                await page.wait_for_url("**/checkout-success**", timeout=20000)
+            except Exception:
+                pass
+            for _ in range(40):
+                if "/checkout-success" in page.url:
+                    break
+                await page.wait_for_timeout(200)
             from urllib.parse import urlparse, parse_qs
             qs = parse_qs(urlparse(page.url).query)
             cod_order_id = (qs.get("order") or [None])[0]
@@ -449,11 +561,34 @@ async def main_async():
                     localStorage.setItem('shree_collection_cart', JSON.stringify(cart));
                 }
             """)
-            await page.evaluate("() => { var d=document.getElementById('cartDrawer'),o=document.getElementById('cartOverlay'); if(d)d.classList.remove('open'); if(o)o.classList.remove('open'); }")
+            await page.evaluate("""
+                () => {
+                    var d = document.getElementById('cartDrawer');
+                    var o = document.getElementById('cartOverlay');
+                    if (d) {
+                        d.classList.remove('open');
+                        d.dispatchEvent(new Event('cart:close'));
+                    }
+                    if (o) {
+                        o.classList.remove('open');
+                        o.style.pointerEvents = 'none';
+                    }
+                    if (d) d.classList.remove('touch-open');
+                }
+            """)
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(300)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
-            await page.wait_for_url("**/checkout*", timeout=10000)
+            try:
+                await page.wait_for_url("**/checkout**", timeout=15000)
+            except Exception:
+                pass
+            # wait_for_url can miss a 308 redirect that lands back on a
+            # "clean" URL; fall back to polling page.url explicitly.
+            for _ in range(30):
+                if "/checkout" in page.url and "/catalog" not in page.url and "/checkout-success" not in page.url:
+                    break
+                await page.wait_for_timeout(200)
             # COD
             await page.fill("#customerName", gen_name())
             phone3 = gen_phone()
@@ -461,7 +596,14 @@ async def main_async():
             await page.fill("#customerCity", "Butwal")
             await page.fill("#customerAddress", "Ward 5, Milanchowk")
             await page.click("#placeOrderBtn")
-            await page.wait_for_url("**/checkout-success.html**", timeout=15000)
+            try:
+                await page.wait_for_url("**/checkout-success**", timeout=20000)
+            except Exception:
+                pass
+            for _ in range(40):
+                if "/checkout-success" in page.url:
+                    break
+                await page.wait_for_timeout(200)
             from urllib.parse import urlparse, parse_qs
             qs = parse_qs(urlparse(page.url).query)
             tampered_order_id = (qs.get("order") or [None])[0]
@@ -533,11 +675,34 @@ async def main_async():
                             pass
                         await page.wait_for_timeout(500)
                         # Close the cart drawer if it's open from a previous test
-                        await page.evaluate("() => { var d=document.getElementById('cartDrawer'),o=document.getElementById('cartOverlay'); if(d)d.classList.remove('open'); if(o)o.classList.remove('open'); }")
+                        await page.evaluate("""
+                () => {
+                    var d = document.getElementById('cartDrawer');
+                    var o = document.getElementById('cartOverlay');
+                    if (d) {
+                        d.classList.remove('open');
+                        d.dispatchEvent(new Event('cart:close'));
+                    }
+                    if (o) {
+                        o.classList.remove('open');
+                        o.style.pointerEvents = 'none';
+                    }
+                    if (d) d.classList.remove('touch-open');
+                }
+            """)
                         await page.click("#cartBtn, [data-cart-btn], .cart-btn")
                         await page.wait_for_timeout(300)
                         await page.click("#checkoutBtn, button:has-text('Checkout')")
-                        await page.wait_for_url("**/checkout*", timeout=10000)
+                        # wait_for_url can miss a 308 redirect that lands back on a
+                        # "clean" URL; fall back to polling page.url explicitly.
+                        try:
+                            await page.wait_for_url("**/checkout**", timeout=15000)
+                        except Exception:
+                            pass
+                        for _ in range(30):
+                            if "/checkout" in page.url and "/catalog" not in page.url:
+                                break
+                            await page.wait_for_timeout(200)
                         await page.fill("#customerName", gen_name())
                         await page.fill("#customerPhone", gen_phone())
                         await page.fill("#customerCity", "Butwal")

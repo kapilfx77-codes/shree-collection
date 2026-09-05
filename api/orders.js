@@ -55,13 +55,18 @@ export default async function handler(req, res) {
 
   try {
     const url = req.url || '';
-    if (req.method === 'POST' && url.endsWith('/lookup')) {
+    // Vercel routes /api/orders only (no sub-paths) to this function. We
+    // dispatch on ?action= so the lookup/txn flows use a single endpoint
+    // and avoid the need for nested api/orders/lookup.js files that
+    // Vercel would treat as separate functions.
+    const action = (req.query && req.query.action) || '';
+    if (req.method === 'POST' && action === 'lookup') {
       return await handleLookup(req, res);
     }
-    if (req.method === 'GET' && url.includes('/lookup')) {
+    if (req.method === 'GET' && action === 'lookup') {
       return await handleLookup(req, res);
     }
-    if (req.method === 'POST' && url.endsWith('/txn')) {
+    if (req.method === 'POST' && action === 'txn') {
       return await handleTxn(req, res);
     }
     if (req.method === 'POST' && (url === '/api/orders' || url.endsWith('/api/orders'))) {

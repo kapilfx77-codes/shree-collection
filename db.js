@@ -316,10 +316,11 @@ async function adminCancelOrder(orderId) {
 
 async function callOrdersApi(path, init = {}) {
     const headers = { 'Content-Type': 'application/json', ...(init.headers || {}) };
-    // Join with a single slash; if path is empty, do NOT add a trailing slash
-    // (Vercel normalises /api/orders/ to /api/orders, but a separate fetch
-    // to /api/orders/ would 405 because the route is the bare /api/orders).
-    const url = path ? `/api/orders/${path}` : '/api/orders';
+    // Vercel deploys api/orders.js as a single function at /api/orders.
+    // Sub-paths like /api/orders/lookup are not routed to it (Vercel
+    // expects a separate api/orders/lookup.js file). To keep a single
+    // function for create / lookup / txn, dispatch via ?action=<name>.
+    const url = path ? `/api/orders?action=${path}` : '/api/orders';
     const resp = await fetch(url, { ...init, headers });
     let data = null;
     const text = await resp.text();
