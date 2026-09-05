@@ -412,7 +412,10 @@ async function submitEsewaTransaction({ orderId, phone, txn }) {
 async function lookupOrder({ orderId, phone }) {
     try {
         const qs = new URLSearchParams({ order_id: orderId, phone });
-        const result = await callOrdersApi(`lookup?${qs.toString()}`, { method: 'GET' });
+        // callOrdersApi builds the URL as `/api/orders?action=<path>`. If
+        // <path> itself starts with `?...`, we need to join with `&` to
+        // produce `/api/orders?action=lookup&order_id=...&phone=...`.
+        const result = await callOrdersApi(`lookup&${qs.toString()}`, { method: 'GET' });
         return { ok: true, order: result };
     } catch (err) {
         console.error('lookupOrder failed:', err);

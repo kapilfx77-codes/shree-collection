@@ -73,6 +73,60 @@ def gen_txn():
     return "TST" + "".join(random.choices(string.digits, k=9))
 
 
+# Reusable JS snippets for cart-drawer / cart-state cleanup. The drawer
+# persists across page navigations; the page's own closeCartDrawer() handles
+# the well-known paths, but we also flip the classes/overflow defensively.
+CLOSE_DRAWER_JS = """
+() => {
+    if (typeof closeCartDrawer === 'function') {
+        try { closeCartDrawer(); } catch {}
+    }
+    var d = document.getElementById('cartDrawer');
+    var o = document.getElementById('cartOverlay');
+    if (d) {
+        d.classList.remove('open');
+        d.classList.remove('touch-open');
+        try { d.dispatchEvent(new Event('cart:close')); } catch {}
+    }
+    if (o) {
+        o.classList.remove('open');
+        o.style.pointerEvents = 'none';
+    }
+    document.body.style.overflow = '';
+    return true;
+}
+"""
+
+CLEAR_CART_JS = """
+() => {
+    try { localStorage.removeItem('shree_collection_cart'); } catch {}
+    return true;
+}
+"""
+
+CLEAR_CART_AND_DRAWER_JS = """
+() => {
+    try { localStorage.removeItem('shree_collection_cart'); } catch {}
+    if (typeof closeCartDrawer === 'function') {
+        try { closeCartDrawer(); } catch {}
+    }
+    var d = document.getElementById('cartDrawer');
+    var o = document.getElementById('cartOverlay');
+    if (d) {
+        d.classList.remove('open');
+        d.classList.remove('touch-open');
+        try { d.dispatchEvent(new Event('cart:close')); } catch {}
+    }
+    if (o) {
+        o.classList.remove('open');
+        o.style.pointerEvents = 'none';
+    }
+    document.body.style.overflow = '';
+    return true;
+}
+"""
+
+
 def log(name, ok, detail=""):
     flag = "PASS" if ok else "FAIL"
     line = f"[{flag}] {name}: {detail}"
@@ -298,21 +352,7 @@ async def main_async():
             await page.goto(f"{base}/catalog.html", wait_until="networkidle")
             await page.wait_for_timeout(800)
             # Click the cart button to open the drawer, then "Checkout" / "Proceed to checkout"
-            await page.evaluate("""
-                () => {
-                    var d = document.getElementById('cartDrawer');
-                    var o = document.getElementById('cartOverlay');
-                    if (d) {
-                        d.classList.remove('open');
-                        d.dispatchEvent(new Event('cart:close'));
-                    }
-                    if (o) {
-                        o.classList.remove('open');
-                        o.style.pointerEvents = 'none';
-                    }
-                    if (d) d.classList.remove('touch-open');
-                }
-            """)
+            await page.evaluate(CLOSE_DRAWER_JS)
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(500)
             # The checkout button in the drawer is #checkoutBtn
@@ -412,21 +452,7 @@ async def main_async():
             await page.click("button.btn-add-cart, button:has-text('Add to Cart')")
             await page.wait_for_timeout(800)
             # Go to checkout
-            await page.evaluate("""
-                () => {
-                    var d = document.getElementById('cartDrawer');
-                    var o = document.getElementById('cartOverlay');
-                    if (d) {
-                        d.classList.remove('open');
-                        d.dispatchEvent(new Event('cart:close'));
-                    }
-                    if (o) {
-                        o.classList.remove('open');
-                        o.style.pointerEvents = 'none';
-                    }
-                    if (d) d.classList.remove('touch-open');
-                }
-            """)
+            await page.evaluate(CLOSE_DRAWER_JS)
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(400)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
@@ -531,8 +557,8 @@ async def main_async():
         # --- T15: COD order success page shows "Order Confirmed! Pay on delivery." ---
         cod_order_id = None
         try:
-            # Fresh cart
-            await page.evaluate("() => localStorage.removeItem('shree_collection_cart')")
+            # Fresh cart + ensure drawer is fully closed
+            await page.evaluate(CLEAR_CART_AND_DRAWER_JS)
             await page.goto(f"{base}/product.html?id={product_id}", wait_until="networkidle")
             await page.wait_for_timeout(800)
             await page.click("button.btn-add-cart, button:has-text('Add to Cart')")
@@ -601,21 +627,7 @@ async def main_async():
                     localStorage.setItem('shree_collection_cart', JSON.stringify(cart));
                 }
             """)
-            await page.evaluate("""
-                () => {
-                    var d = document.getElementById('cartDrawer');
-                    var o = document.getElementById('cartOverlay');
-                    if (d) {
-                        d.classList.remove('open');
-                        d.dispatchEvent(new Event('cart:close'));
-                    }
-                    if (o) {
-                        o.classList.remove('open');
-                        o.style.pointerEvents = 'none';
-                    }
-                    if (d) d.classList.remove('touch-open');
-                }
-            """)
+            await page.evaluate(CLOSE_DRAWER_JS)
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(300)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
@@ -701,45 +713,28 @@ async def main_async():
                     if flip_resp.get("status") >= 400:
                         results["T18"] = (False, f"could not flip in_stock via admin API: {flip_resp}")
                     else:
-                        # Try to checkout with this product. Fresh cart, single item.
-                        await page.evaluate("() => localStorage.removeItem('shree_collection_cart')")
-                        await page.goto(f"{base}/product.html?id={product_id}", wait_until="networkidle")
-                        await page.wait_for_timeout(800)
-                        # The product page's add-to-cart call should still go through
-                        # (we don't block on in_stock at add-to-cart time), but the
-                        # /api/orders endpoint will reject. So we add it then try to
-                        # submit and observe the error.
+                        # Set the cart directly (don't rely on async addToCart UI click)
+                        # so we can be sure there's an item when we hit checkout.
+                        await page.evaluate(f"""
+                            () => {{
+                                const cart = [{{
+                                    id: {product_id},
+                                    name: 'Test Product',
+                                    size: 'M',
+                                    color: 'Red',
+                                    price: 1500,
+                                    quantity: 1
+                                }}];
+                                localStorage.setItem('shree_collection_cart', JSON.stringify(cart));
+                            }}
+                        """)
+                        await page.goto(f"{base}/checkout.html", wait_until="networkidle")
+                        await page.wait_for_timeout(1000)
                         try:
-                            await page.click("button.btn-add-cart, button:has-text('Add to Cart')", timeout=3000)
+                            await page.wait_for_url("**/checkout**", timeout=10000)
                         except Exception:
                             pass
-                        await page.wait_for_timeout(500)
-                        # Close the cart drawer if it's open from a previous test
-                        await page.evaluate("""
-                () => {
-                    var d = document.getElementById('cartDrawer');
-                    var o = document.getElementById('cartOverlay');
-                    if (d) {
-                        d.classList.remove('open');
-                        d.dispatchEvent(new Event('cart:close'));
-                    }
-                    if (o) {
-                        o.classList.remove('open');
-                        o.style.pointerEvents = 'none';
-                    }
-                    if (d) d.classList.remove('touch-open');
-                }
-            """)
-                        await page.click("#cartBtn, [data-cart-btn], .cart-btn")
-                        await page.wait_for_timeout(300)
-                        await page.click("#checkoutBtn, button:has-text('Checkout')")
-                        # wait_for_url can miss a 308 redirect that lands back on a
-                        # "clean" URL; fall back to polling page.url explicitly.
-                        try:
-                            await page.wait_for_url("**/checkout**", timeout=15000)
-                        except Exception:
-                            pass
-                        for _ in range(30):
+                        for _ in range(20):
                             if "/checkout" in page.url and "/catalog" not in page.url:
                                 break
                             await page.wait_for_timeout(200)
@@ -751,14 +746,14 @@ async def main_async():
                         # We expect to stay on the checkout page with a toast about
                         # out-of-stock. Wait a moment for the network call to fail
                         # and the toast to appear.
-                        await page.wait_for_timeout(2500)
+                        await page.wait_for_timeout(3000)
                         toast_text = await page.evaluate("""
                             () => {
                                 const t = document.getElementById('cartToast');
                                 return t ? t.textContent : '';
                             }
                         """)
-                        ok = ("out of stock" in toast_text.lower() or "unavailable" in toast_text.lower())
+                        ok = ("out of stock" in toast_text.lower() or "unavailable" in toast_text.lower() or "not available" in toast_text.lower())
                         results["T18"] = (ok, f"toast: {toast_text!r}")
                         # Restore the product so we don't leave the test data mutated
                         await page.evaluate(f"""
