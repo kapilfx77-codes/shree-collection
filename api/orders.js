@@ -330,6 +330,7 @@ async function handleCreate(req, res) {
         p_qty: line.quantity,
       }),
     });
+    console.log('[V16-DEBUG] decrement result:', JSON.stringify({ status: dec.status, data: dec.data, raw: (dec.raw||'').slice(0, 100) }));
     if (dec.status >= 400) {
       console.error('decrement_inventory error:', dec.status, dec.data || dec.raw);
       decrementFailures.push({ line, reason: 'rpc_error', detail: dec.data || dec.raw });
