@@ -598,6 +598,19 @@ async def main_async():
             qs = parse_qs(urlparse(page.url).query)
             cod_order_id = (qs.get("order") or [None])[0]
             cleanup_orders.append(cod_order_id) if cod_order_id else None
+            # Wait for the live server lookup to complete (it overwrites
+            # the placeholder "Order Received!" with "Order Confirmed!" or
+            # "Order Not Found" depending on result).
+            try:
+                await page.wait_for_function(
+                    """() => {
+                        const t = (document.getElementById('successTitle')||{}).textContent || '';
+                        return t !== 'Order Received!' && t !== 'Order Received' && t !== '';
+                    }""",
+                    timeout=10000,
+                )
+            except Exception:
+                pass
             title = (await page.locator("#successTitle").text_content() or "").strip()
             ok = "Confirmed" in title and "delivery" in (await page.locator("#successMessage").text_content() or "").lower()
             results["T15"] = (ok, f"title='{title}' order_id={cod_order_id!r}")
