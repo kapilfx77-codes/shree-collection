@@ -50,7 +50,10 @@ async function addToCart(productId, size = null, color = null, quantity = 1) {
             size: selectedSize,
             color: selectedColor,
             quantity: quantity,
-            maxStock: product.stock || 99
+            // The products table exposes `in_stock` (boolean), not a stock
+            // count. We cap per-line at a sane default; the server is the
+            // final authority on per-line availability.
+            maxStock: 10
         });
     }
 
@@ -293,20 +296,34 @@ function clearPendingOrder() {
     localStorage.removeItem(PENDING_ORDER_KEY);
 }
 
-// Validate stock before checkout
+// Validate stock before checkout. The products table exposes a boolean
+// `in_stock` column (and historically a `stock` int via inventory), not
+// the `product.stock` key the old code read. We check `in_stock` and
+// cap at a sane per-line maximum; the authoritative recompute lives in
+// the server-side /api/orders endpoint.
 async function validateCartStock() {
     const stockErrors = [];
+    const MAX_PER_LINE = 10; // mirrors server INVENTORY_PER_ITEM_CAP default
 
     for (const item of cart) {
         try {
             const product = await getProductById(item.id);
             if (product) {
-                const availableStock = product.stock || 99;
-                if (item.quantity > availableStock) {
+                if (product.in_stock === false) {
                     stockErrors.push({
                         name: item.name,
                         requested: item.quantity,
-                        available: availableStock
+                        available: 0,
+                        outOfStock: true
+                    });
+                    continue;
+                }
+                if (item.quantity > MAX_PER_LINE) {
+                    stockErrors.push({
+                        name: item.name,
+                        requested: item.quantity,
+                        available: MAX_PER_LINE,
+                        overCap: true
                     });
                 }
             }
@@ -337,6 +354,12 @@ async function proceedToCheckout() {
     // Validate stock
     const stockErrors = await validateCartStock();
     if (stockErrors.length > 0) {
+        const hasOutOfStock = stockErrors.some(e => e.outOfStock);
+        if (hasOutOfStock) {
+            const names = stockErrors.filter(e => e.outOfStock).map(e => e.name).join(', ');
+            showToast(`Out of stock: ${names}. Please remove these items.`, 'error');
+            return;
+        }
         const errorMsg = stockErrors.map(e =>
             `${e.name}: only ${e.available} available`
         ).join(', ');
@@ -362,76 +385,140 @@ async function proceedToCheckout() {
 // ORDER SUBMISSION
 // ==========================================================================
 
-// Submit order with specific payment method
+// Re-entrancy guard. The submit button click handler in checkout.html
+// also sets a local guard, but this module-level flag protects against
+// accidental double-invocation from any code path (button click, Enter
+// key, auto-submit, retry). Cleared on success, error, and after a
+// short cooldown so a user can retry after a network blip.
+let submitInFlight = false;
+
 async function submitOrder(orderData, paymentMethod = 'cod') {
-    const orderId = generateOrderId();
-    const totalAmount = getCartTotal();
-
-    const orderRecord = {
-        orderId,
-        date: new Date().toISOString(),
-        name: orderData.name,
-        phone: orderData.phone,
-        city: orderData.city,
-        address: orderData.address,
-        txn: orderData.txn || (paymentMethod === 'cod' ? 'Cash on Delivery' : 'Pending eSewa'),
-        items: cart.map(item => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            size: item.size,
-            color: item.color,
-            quantity: item.quantity
-        })),
-        total: totalAmount,
-        paymentMethod,
-        status: paymentMethod === 'cod' ? 'confirmed' : 'pending_payment'
-    };
-
-    // Save pending order for eSewa flow
-    if (paymentMethod === 'esewa') {
-        savePendingOrder(orderRecord);
+    if (submitInFlight) {
+        console.warn('submitOrder ignored: another submission is already in flight.');
+        return null;
     }
+    submitInFlight = true;
 
-    // Try to save to database
-    if (typeof createOrder === 'function') {
-        try {
-            const success = await createOrder(orderRecord);
-            if (!success) {
-                showToast('Could not save order. Please try again.', 'error');
-                return null;
-            }
-        } catch (e) {
-            console.error('Order save error:', e);
-            showToast('Connection error. Please try again.', 'error');
+    try {
+        const totalAmount = getCartTotal();
+
+        // The new /api/orders endpoint re-reads every product and
+        // recomputes the total from server-side prices. We pass the
+        // client total as advisory only — the server total wins.
+        const createPayload = {
+            name: orderData.name,
+            phone: orderData.phone,
+            city: orderData.city,
+            address: orderData.address,
+            items: cart.map(item => ({
+                id: item.id,
+                size: item.size,
+                color: item.color,
+                quantity: item.quantity,
+            })),
+            total: totalAmount,
+            paymentMethod,
+            txn: orderData.txn || null,
+        };
+
+        if (typeof createOrder !== 'function') {
+            showToast('Order system is not ready. Please refresh the page.', 'error');
             return null;
         }
-    }
 
-    return orderRecord;
+        const result = await createOrder(createPayload);
+        if (!result || !result.ok) {
+            // createOrder already toasted a useful message; nothing more
+            // to do here. The server's error message was specific to the
+            // failure (out of stock, invalid size, etc.).
+            return null;
+        }
+
+        // Use the server-issued order_id; never trust the client to
+        // generate the order number anymore. The server is authoritative
+        // on price/total, so the cart's local prices can stay stale.
+        const orderRecord = {
+            orderId: result.orderId,
+            date: new Date().toISOString(),
+            name: orderData.name,
+            phone: orderData.phone,
+            city: orderData.city,
+            address: orderData.address,
+            txn: orderData.txn || (paymentMethod === 'cod' ? 'Cash on Delivery' : null),
+            items: cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                size: item.size,
+                color: item.color,
+                quantity: item.quantity,
+            })),
+            total: result.total, // server's recomputed value
+            paymentMethod,
+            // The DB schema's CHECK constraint allows only pending /
+            // processing / shipped / delivered / cancelled. The server
+            // inserts 'pending' and only the admin can move it forward.
+            status: 'pending',
+            paymentStatus: result.paymentStatus || 'pending',
+        };
+
+        // For eSewa: persist a local pending-order record so the success
+        // page (and a refresh on the same browser) can find the order by
+        // id + phone without re-prompting. The actual eSewa transaction
+        // reference submission happens in confirmEsewaSubmission() AFTER
+        // the order is on file.
+        if (paymentMethod === 'esewa') {
+            savePendingOrder(orderRecord);
+        }
+
+        // Clear the cart as soon as the order is on file. We don't wait
+        // for the eSewa txn ref to be submitted — that's a follow-up,
+        // not a prerequisite for the order existing.
+        cart = [];
+        saveCart();
+
+        return orderRecord;
+    } catch (e) {
+        console.error('Order save error:', e);
+        showToast('Connection error. Please try again.', 'error');
+        return null;
+    } finally {
+        // Allow retry shortly after; prevents a click-spam from creating
+        // duplicate orders if a previous call was aborted mid-flight.
+        setTimeout(() => { submitInFlight = false; }, 250);
+    }
 }
 
-// Complete eSewa payment (customer clicked "I have paid")
-async function confirmEsewaPayment() {
-    const pending = getPendingOrder();
-    if (!pending) {
-        showToast('No pending order found', 'error');
-        return false;
+// Submit the eSewa transaction reference to the server. This is called
+// from the checkout page's "I have paid" button after the customer has
+// typed the reference into the txn field. The server stores the
+// reference but does NOT mark the order as paid — only the admin
+// "Verify Payment" action does that. The customer flow is honest UX:
+// "submitted, awaiting verification", not "paid".
+async function confirmEsewaSubmission({ orderId, phone, txn }) {
+    if (!orderId || !phone || !txn) {
+        showToast('Order ID, phone, and transaction reference are all required.', 'error');
+        return { ok: false, error: 'missing_fields' };
     }
 
-    // Update order status
-    pending.status = 'paid';
-    pending.paidAt = new Date().toISOString();
-
-    if (typeof updateOrderStatus === 'function') {
-        await updateOrderStatus(pending.orderId, 'paid', 'esewa');
+    if (typeof submitEsewaTransaction !== 'function') {
+        showToast('Order system is not ready. Please refresh the page.', 'error');
+        return { ok: false, error: 'not_ready' };
     }
 
-    // Clear pending order and cart
-    clearPendingOrder();
-    clearCart();
-
-    return pending;
+    const result = await submitEsewaTransaction({ orderId, phone, txn });
+    if (result && result.ok) {
+        // Update the local pending-order record so a refresh sees the
+        // txn we just submitted. The order itself remains 'pending'
+        // payment status — the admin still has to verify.
+        const pending = getPendingOrder();
+        if (pending && pending.orderId === orderId) {
+            pending.txn = txn;
+            pending.txnSubmittedAt = new Date().toISOString();
+            savePendingOrder(pending);
+        }
+    }
+    return result;
 }
 
 // ==========================================================================
@@ -460,7 +547,7 @@ function generateWhatsAppOrder(orderData) {
 ${itemsListText}
 
 *Total Amount:* NPR ${totalAmount.toLocaleString('en-IN')}
-*Payment Method:* ${orderData.paymentMethod === 'esewa' ? 'eSewa (Paid)' : 'Cash on Delivery'}
+*Payment Method:* ${orderData.paymentMethod === 'esewa' ? 'eSewa (manual verification by Shree Collection)' : 'Cash on Delivery'}
 
 _Please confirm my order and share shipping updates!_ 🙏`;
 }
@@ -623,7 +710,7 @@ window.cartFunctions = {
     getCartTotal,
     getCartCount,
     submitOrder,
-    confirmEsewaPayment,
+    confirmEsewaSubmission,
     generateOrderId,
     showToast
 };

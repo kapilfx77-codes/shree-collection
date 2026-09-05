@@ -306,72 +306,121 @@ async function adminCancelOrder(orderId) {
     });
 }
 
-// --- Storefront order creation (the only anon write the storefront does) ---
+// --- Storefront order creation ---
+// As of the payment/order hardening pass, the storefront no longer writes
+// directly to Supabase. All order creation, eSewa transaction reference
+// submission, and public order lookup goes through /api/orders, which runs
+// on the server with the service role key and re-validates the cart
+// (price, total, stock) before persisting anything. This wrapper is the
+// thin client-side caller for that endpoint.
 
-async function createOrder(orderData) {
-    if (!isSupabaseReady()) {
-        showSupabaseError();
-        return false;
+async function callOrdersApi(path, init = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(init.headers || {}) };
+    const resp = await fetch(`/api/orders/${path}`, { ...init, headers });
+    let data = null;
+    const text = await resp.text();
+    if (text) {
+        try { data = JSON.parse(text); } catch { data = { error: text }; }
     }
-    try {
-        const payload = {
-            order_id: orderData.orderId,
-            name: orderData.name,
-            phone: orderData.phone,
-            city: orderData.city,
-            address: orderData.address,
-            txn: orderData.txn,
-            items: orderData.items,
-            total: orderData.total,
-        };
-        // Persist payment_method if provided (the new column is optional in payload)
-        if (orderData.paymentMethod) payload.payment_method = orderData.paymentMethod;
-        if (orderData.paymentStatus) payload.payment_status = orderData.paymentStatus;
+    if (!resp.ok) {
+        const err = new Error((data && data.error) || `HTTP ${resp.status}`);
+        err.status = resp.status;
+        err.payload = data;
+        err.userMessage = (data && data.error) || 'Could not place your order. Please try again.';
+        throw err;
+    }
+    return data;
+}
 
-        const { error } = await supabaseClient.from('orders').insert([payload]);
-        if (error) throw error;
-        return true;
+// createOrder is called by cart.js submitOrder(). It used to do a direct
+// anon-key insert with a browser-supplied total - that path is closed.
+// The server is now the only authority on price, stock, and total.
+async function createOrder(orderData) {
+    try {
+        const result = await callOrdersApi('', {
+            method: 'POST',
+            body: JSON.stringify({
+                name: orderData.name,
+                phone: orderData.phone,
+                city: orderData.city,
+                address: orderData.address,
+                items: orderData.items,
+                total: orderData.total,         // advisory; server recomputes
+                paymentMethod: orderData.paymentMethod,
+                txn: orderData.txn,
+            }),
+        });
+        return {
+            ok: true,
+            orderId: result.order_id,
+            total: result.total,
+            paymentStatus: result.payment_status,
+            status: result.status,
+            clientTotalMismatch: !!result.client_total_mismatch,
+        };
     } catch (err) {
-        console.error('Error creating order:', err);
-        showSupabaseError();
-        return false;
+        console.error('createOrder failed:', err);
+        if (typeof showToast === 'function') {
+            showToast(err.userMessage || 'Could not place your order. Please try again.', 'error');
+        }
+        return { ok: false, error: err.userMessage || err.message, status: err.status, payload: err.payload };
     }
 }
 
 async function getOrderById(orderId) {
-    // Public lookup only — for checkout success page. Uses anon key.
-    if (!isSupabaseReady()) return null;
+    // Public lookup is intentionally not available without a phone match.
+    // The success page uses lookupOrder({ orderId, phone }) for a soft
+    // authenticated read. Existing admin code paths should use
+    // adminGetOrder() instead. This stub returns null so a stray caller
+    // is forced to be explicit about what it is doing.
+    return null;
+}
+
+// submitEsewaTransaction is called by cart.js after the customer has
+// paid via the personal eSewa QR and typed in their transaction
+// reference. It calls the public PATCH-style POST /api/orders/txn
+// endpoint, which soft-authenticates on (orderId, last-10-digits-of-phone)
+// and refuses to attach a txn to an order that has already been paid
+// or failed. payment_status stays 'pending' here — only the admin
+// "Verify Payment" action flips it to 'paid'.
+async function submitEsewaTransaction({ orderId, phone, txn }) {
     try {
-        const { data, error } = await supabaseClient
-            .from('orders')
-            .select('*')
-            .eq('order_id', orderId)
-            .single();
-        if (error) return null;
-        return data;
+        const result = await callOrdersApi('txn', {
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId, phone, txn }),
+        });
+        return { ok: true, paymentStatus: result.payment_status, txn: result.txn };
     } catch (err) {
-        return null;
+        console.error('submitEsewaTransaction failed:', err);
+        if (typeof showToast === 'function') {
+            showToast(err.userMessage || 'Could not save your transaction reference.', 'error');
+        }
+        return { ok: false, error: err.userMessage || err.message, status: err.status, payload: err.payload };
     }
 }
 
-// Legacy wrapper used by cart.js confirmEsewaPayment. In the secure
-// architecture, customers don't have admin tokens — so the customer-side
-// "I have paid" click is purely UX (clears local pending order, shows the
-// success page). The actual payment_status flip happens in the admin
-// dashboard after the merchant confirms the eSewa transfer out of band.
-async function updateOrderStatus(orderId, status, paymentMethod) {
-    if (!getAdminToken()) {
-        // No admin session — customer flow, nothing to do server-side.
-        return true;
-    }
+// lookupOrder is called by checkout-success.html. It takes both the
+// orderId and the customer's phone, soft-matches on the phone's last 10
+// digits server-side, and returns a sanitized order view. The phone is
+// saved in localStorage by handleCheckoutSubmit just before redirect,
+// so the success page has both pieces.
+async function lookupOrder({ orderId, phone }) {
     try {
-        const extras = paymentMethod ? { payment_method: paymentMethod } : {};
-        return await adminUpdateOrderStatus(orderId, status, extras);
-    } catch (e) {
-        console.error('updateOrderStatus failed:', e);
-        return false;
+        const qs = new URLSearchParams({ order_id: orderId, phone });
+        const result = await callOrdersApi(`lookup?${qs.toString()}`, { method: 'GET' });
+        return { ok: true, order: result };
+    } catch (err) {
+        console.error('lookupOrder failed:', err);
+        return { ok: false, error: err.userMessage || err.message, status: err.status, payload: err.payload };
     }
 }
+
+// Legacy wrapper removed. In the secure architecture, the customer-side
+// eSewa submission goes through submitEsewaTransaction() (which calls
+// the public /api/orders/txn endpoint with a soft phone match). The
+// payment_status flip from pending -> paid happens only via the admin
+// "Verify Payment" action on /api/admin/orders/verify, never from a
+// browser-side call.
 
 // ==========================================================================
 // IMAGE UPLOAD — admin only via /api/admin/upload-image

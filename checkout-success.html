@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmed - Shree Collection</title>
-    <meta name="description" content="Your order has been confirmed! Thank you for shopping with Shree Collection.">
+    <title>Order Received - Shree Collection</title>
+    <meta name="description" content="Thank you for your order at Shree Collection. Your order has been received.">
     <link rel="canonical" href="https://shree-collection-opal.vercel.app/checkout-success.html">
     <meta name="theme-color" content="#2D2320">
 
@@ -23,6 +23,68 @@
             anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh6dGZvYXVxZWNubXpuc3pnaGNqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg1MzI4NjUsImV4cCI6MjEwNDEwODg2NX0.PGbr_Tz8pyr-afRtTRBRnTpaxBo756DVbk7xvRi9fzU'
         };
     </script>
+
+    <style>
+        .payment-state-panel {
+            margin-top: var(--space-md);
+            padding: var(--space-md) var(--space-lg);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            text-align: left;
+        }
+        .payment-state-panel.pending {
+            background: rgba(176, 141, 87, 0.08);
+            border-left: 4px solid var(--gold, #B08D57);
+            color: var(--text);
+        }
+        .payment-state-panel.paid {
+            background: rgba(76, 153, 76, 0.08);
+            border-left: 4px solid #4c994c;
+            color: var(--text);
+        }
+        .payment-state-panel.cod {
+            background: rgba(45, 35, 32, 0.05);
+            border-left: 4px solid var(--primary, #2D2320);
+            color: var(--text);
+        }
+        .payment-state-panel.failed {
+            background: rgba(204, 51, 51, 0.08);
+            border-left: 4px solid #c33;
+            color: var(--text);
+        }
+        .payment-state-panel strong { color: var(--primary, #2D2320); }
+        .success-icon.pending-icon svg { color: var(--gold, #B08D57); }
+        .success-icon.paid-icon svg   { color: #4c994c; }
+        .success-icon.failed-icon svg { color: #c33; }
+        .txn-row {
+            display: flex;
+            gap: var(--space-sm);
+            align-items: center;
+            margin-top: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            background: var(--bg-card, #fff);
+            border: 1px solid var(--border-subtle, #eee);
+            border-radius: var(--radius-sm, 4px);
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.85rem;
+            color: var(--text, #2D2320);
+            word-break: break-all;
+        }
+        .order-detail-row .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .order-detail-row .badge.paid     { background: rgba(76, 153, 76, 0.15); color: #2d6a2d; }
+        .order-detail-row .badge.pending  { background: rgba(176, 141, 87, 0.18); color: #7a5a2e; }
+        .order-detail-row .badge.failed   { background: rgba(204, 51, 51, 0.15);  color: #882222; }
+        .order-detail-row .badge.cod      { background: rgba(45, 35, 32, 0.10);   color: #2D2320; }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
@@ -38,14 +100,14 @@
     <!-- Success Page -->
     <main class="checkout-success-page">
         <div class="checkout-success-container">
-            <div class="success-icon">
-                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <div id="successIcon" class="success-icon paid-icon">
+                <svg id="successIconSvg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
             </div>
 
-            <h1>Order Confirmed!</h1>
-            <p id="successMessage">Thank you for your order. We'll process it shortly and get back to you.</p>
+            <h1 id="successTitle">Order Received!</h1>
+            <p id="successMessage">Thank you for shopping with Shree Collection. We will be in touch shortly.</p>
 
             <div class="order-details-box" id="orderDetails">
                 <h4>Order Details</h4>
@@ -65,65 +127,213 @@
                     <span>Payment Method</span>
                     <span id="orderPayment">---</span>
                 </div>
+                <div class="order-detail-row" id="orderPaymentStatusRow" style="display: none;">
+                    <span>Payment Status</span>
+                    <span id="orderPaymentStatus">---</span>
+                </div>
+                <div id="esewaTxnRow" style="display: none;">
+                    <div class="order-detail-row">
+                        <span>eSewa Reference</span>
+                        <span id="esewaTxnValue" style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace;">---</span>
+                    </div>
+                </div>
             </div>
+
+            <div id="paymentStatePanel"></div>
 
             <div class="success-actions">
                 <a href="catalog.html" class="btn btn-primary btn-lg">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     Continue Shopping
                 </a>
-                <a href="https://wa.me/9779841735450?text=Namaste%20Shree%20Collection!%20I%20just%20placed%20an%20order%20and%20would%20like%20to%20check%20on%20its%20status."
-                   class="btn btn-outline btn-lg" id="trackOrderBtn" target="_blank">
+                <a id="trackOrderBtn" href="https://wa.me/9779841735450" class="btn btn-outline btn-lg" target="_blank">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                    Track Order on WhatsApp
+                    Contact us on WhatsApp
                 </a>
             </div>
 
-            <p style="margin-top: var(--space-xl); font-size: 0.875rem; color: var(--text-muted);">
-                We'll send you updates about your order via WhatsApp. Please keep your phone on!
+            <p id="footerNote" style="margin-top: var(--space-xl); font-size: 0.875rem; color: var(--text-muted);">
+                We will send you updates about your order via WhatsApp. Please keep your phone on.
             </p>
         </div>
     </main>
 
+    <script src="config.js"></script>
+    <script src="db.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Get order ID from URL
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Read order_id from the URL and the order+phone pair we
+            // saved on the checkout page right before redirect.
             const urlParams = new URLSearchParams(window.location.search);
-            const orderId = urlParams.get('order') || 'SHREE-' + Date.now().toString(36).toUpperCase();
+            const orderId = urlParams.get('order') || '';
 
-            // Get pending order details if available
-            const pendingOrder = JSON.parse(localStorage.getItem('shree_collection_pending_order') || 'null');
+            let lastOrder = null;
+            try {
+                lastOrder = JSON.parse(localStorage.getItem('shree_last_order') || 'null');
+            } catch { lastOrder = null; }
 
-            // Populate order details
-            document.getElementById('orderId').textContent = orderId;
+            const phone = (lastOrder && lastOrder.phone) || '';
+            const fallbackPayment = (lastOrder && lastOrder.paymentMethod) || '';
+
+            // Populate the order details header immediately so the page
+            // is never blank while we wait for the server lookup.
+            document.getElementById('orderId').textContent = orderId || '---';
             document.getElementById('orderDate').textContent = new Date().toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
+                day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
             });
 
-            if (pendingOrder) {
-                document.getElementById('orderTotal').textContent = 'NPR ' + pendingOrder.total.toLocaleString('en-IN');
-                document.getElementById('orderPayment').textContent = pendingOrder.paymentMethod === 'esewa' ? 'eSewa (Paid)' : 'Cash on Delivery';
+            // Default rendering using the local last-order cache. The
+            // server lookup below will overwrite these with the live row.
+            if (lastOrder && lastOrder.orderId === orderId) {
+                document.getElementById('orderPayment').textContent =
+                    lastOrder.paymentMethod === 'esewa' ? 'eSewa (manual verification)' : 'Cash on Delivery';
             } else {
-                // Calculate from cart (if still available)
-                const cart = JSON.parse(localStorage.getItem('shree_collection_cart') || '[]');
-                const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                document.getElementById('orderTotal').textContent = 'NPR ' + total.toLocaleString('en-IN');
-                document.getElementById('orderPayment').textContent = 'Pending Review';
+                document.getElementById('orderPayment').textContent = fallbackPayment === 'esewa'
+                    ? 'eSewa (manual verification)' : (fallbackPayment === 'cod' ? 'Cash on Delivery' : '---');
             }
 
-            // Update WhatsApp button with order ID
-            const whatsappBtn = document.getElementById('trackOrderBtn');
+            // Update the WhatsApp button with order ID
             const whatsappBase = 'https://wa.me/9779841735450?text=';
-            const message = encodeURIComponent(`Namaste Shree Collection! I just placed an order (${orderId}) and would like to check on its status.`);
-            whatsappBtn.href = whatsappBase + message;
+            const message = `Namaste Shree Collection! I just placed an order (${orderId || 'no-id'}) and would like to check on its status.`;
+            document.getElementById('trackOrderBtn').href = whatsappBase + encodeURIComponent(message);
 
-            // Clear pending order after success
-            localStorage.removeItem('shree_collection_pending_order');
+            // If we have both orderId and phone, do a live lookup. The
+            // server is the source of truth for total, status, and txn.
+            if (orderId && phone && typeof lookupOrder === 'function') {
+                try {
+                    const res = await lookupOrder({ orderId, phone });
+                    if (res && res.ok && res.order) {
+                        renderOrder(res.order);
+                    } else {
+                        renderNotFound();
+                    }
+                } catch (e) {
+                    console.warn('Order lookup failed:', e);
+                    renderLookupError();
+                }
+            } else {
+                // Either no orderId or no phone — we can't verify state.
+                // Render the local best-effort view.
+                renderLocalOnly(lastOrder, orderId);
+            }
+
+            // The pending-order record is only needed for the in-flight
+            // checkout recovery. Now that the order is on the server, we
+            // can drop it so a refresh sees the live state.
+            try { localStorage.removeItem('shree_collection_pending_order'); } catch {}
         });
+
+        // Render the live order from the server. The four message states:
+        //   1. COD:    "Order Confirmed! Pay on delivery."
+        //   2. eSewa + paid:    "Payment verified! Order confirmed."
+        //   3. eSewa + pending: "Payment submitted — verification pending."
+        //   4. eSewa + failed:  "Payment could not be verified."
+        function renderOrder(order) {
+            const titleEl = document.getElementById('successTitle');
+            const msgEl   = document.getElementById('successMessage');
+            const iconWrap = document.getElementById('successIcon');
+            const panelEl = document.getElementById('paymentStatePanel');
+            const footer  = document.getElementById('footerNote');
+            const totalEl = document.getElementById('orderTotal');
+            const payEl   = document.getElementById('orderPayment');
+            const payStatusRow = document.getElementById('orderPaymentStatusRow');
+            const payStatus = document.getElementById('orderPaymentStatus');
+            const txnWrap = document.getElementById('esewaTxnRow');
+            const txnVal  = document.getElementById('esewaTxnValue');
+
+            totalEl.textContent = 'NPR ' + Number(order.total || 0).toLocaleString('en-IN');
+
+            const method = order.payment_method || '';
+            const payStatusVal = order.payment_status || 'pending';
+            const isEsewa = method === 'esewa';
+            const isCod = method === 'cod';
+
+            payEl.textContent = isCod ? 'Cash on Delivery' : (isEsewa ? 'eSewa' : method);
+            payStatusRow.style.display = '';
+            const badge = `<span class="badge ${payStatusVal}">${payStatusVal}</span>`;
+            payStatus.innerHTML = badge;
+
+            if (isEsewa && order.txn) {
+                txnWrap.style.display = '';
+                txnVal.textContent = order.txn;
+            }
+
+            if (isCod) {
+                iconWrap.className = 'success-icon paid-icon';
+                titleEl.textContent = 'Order Confirmed!';
+                msgEl.textContent = 'Thank you for your order. We will deliver it to you and collect payment on delivery.';
+                panelEl.innerHTML = '';
+                footer.textContent = 'We will send you delivery updates via WhatsApp. Please keep your phone on!';
+                return;
+            }
+
+            if (isEsewa && payStatusVal === 'paid') {
+                iconWrap.className = 'success-icon paid-icon';
+                titleEl.textContent = 'Payment Verified — Order Confirmed!';
+                msgEl.textContent = 'Thank you. Shree Collection has verified your eSewa payment and your order is being processed.';
+                panelEl.innerHTML = `<div class="payment-state-panel paid">
+                    <strong>Payment verified.</strong> Your eSewa transfer has been received and matched to this order. We will follow up on WhatsApp with delivery updates.
+                </div>`;
+                footer.textContent = 'You will receive a WhatsApp message once your order is dispatched.';
+                return;
+            }
+
+            if (isEsewa && payStatusVal === 'failed') {
+                iconWrap.className = 'success-icon failed-icon';
+                titleEl.textContent = 'Payment Could Not Be Verified';
+                msgEl.textContent = 'We were unable to verify your eSewa transfer. Your order has been recorded but is on hold.';
+                panelEl.innerHTML = `<div class="payment-state-panel failed">
+                    <strong>Payment verification failed.</strong> The eSewa reference you provided could not be matched to a received transfer. Please contact us on WhatsApp so we can resolve this before dispatch.
+                </div>`;
+                footer.textContent = 'We will reach out on WhatsApp to help resolve this. If you have not heard from us within a few hours, please message us first.';
+                return;
+            }
+
+            // eSewa + pending (the common case for a fresh order)
+            iconWrap.className = 'success-icon pending-icon';
+            titleEl.textContent = 'Payment Submitted — Verification Pending';
+            msgEl.textContent = 'Thank you. Your order has been received. Shree Collection will verify your eSewa payment before processing it.';
+            panelEl.innerHTML = `<div class="payment-state-panel pending">
+                <strong>Payment is being verified.</strong> We will confirm your eSewa transfer out of band and update this page. You will also receive a WhatsApp message once verification is complete.
+                <br><br>
+                <span style="font-size: 0.85rem; color: var(--text-muted);">This usually takes a few hours during shop hours. If anything looks wrong, contact us on WhatsApp.</span>
+            </div>`;
+            footer.textContent = 'We will confirm payment verification by WhatsApp within a few hours.';
+        }
+
+        function renderNotFound() {
+            document.getElementById('successTitle').textContent = 'Order Not Found';
+            document.getElementById('successMessage').textContent =
+                'We could not find this order with the phone number you provided. Please contact us on WhatsApp if you believe this is an error.';
+            document.getElementById('paymentStatePanel').innerHTML =
+                '<div class="payment-state-panel failed">No matching order was found. Double-check your order ID and phone number, or message us on WhatsApp.</div>';
+        }
+
+        function renderLookupError() {
+            document.getElementById('successTitle').textContent = 'Order Received';
+            document.getElementById('successMessage').textContent =
+                'Your order has been received. We could not load its current status at the moment — please refresh in a moment.';
+            document.getElementById('paymentStatePanel').innerHTML =
+                '<div class="payment-state-panel pending">Status is temporarily unavailable. Please refresh, or contact us on WhatsApp with your order ID.</div>';
+        }
+
+        function renderLocalOnly(lastOrder, orderId) {
+            if (!orderId) {
+                document.getElementById('successTitle').textContent = 'Order Received';
+                document.getElementById('successMessage').textContent = 'Thank you for your order.';
+                return;
+            }
+            // The local cache is enough to know the payment method. Do
+            // not claim a COD order is "Paid" — and do not claim an
+            // eSewa order is anything other than pending verification.
+            if (lastOrder && lastOrder.paymentMethod === 'cod') {
+                document.getElementById('successTitle').textContent = 'Order Confirmed!';
+                document.getElementById('successMessage').textContent = 'Thank you. Pay on delivery.';
+            } else if (lastOrder && lastOrder.paymentMethod === 'esewa') {
+                document.getElementById('successTitle').textContent = 'Payment Submitted — Verification Pending';
+                document.getElementById('successMessage').textContent = 'Your eSewa payment will be verified by Shree Collection before processing.';
+            }
+        }
     </script>
 </body>
 </html>

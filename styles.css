@@ -3369,8 +3369,84 @@ button {
 .esewa-qr-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: var(--space-md);
+}
+
+.esewa-qr-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+}
+
+.esewa-payment-side {
+    flex: 1 1 240px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    text-align: left;
+}
+
+.esewa-confirm-block {
+    width: 100%;
+    margin-top: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    text-align: left;
+}
+
+.esewa-confirm-block .form-group {
+    margin-bottom: 0;
+}
+
+.esewa-confirm-check {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    font-size: 0.9rem;
+    color: var(--text);
+    cursor: pointer;
+    line-height: 1.4;
+}
+
+.esewa-confirm-check input[type="checkbox"] {
+    margin-top: 4px;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--gold, #B08D57);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.esewa-pending-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    background: rgba(176, 141, 87, 0.08);
+    border-left: 3px solid var(--gold, #B08D57);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.45;
+}
+
+.esewa-pending-notice svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--gold, #B08D57);
+}
+
+.form-hint {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 4px;
 }
 
 .esewa-qr-image {
@@ -3390,16 +3466,17 @@ button {
 }
 
 .esewa-instructions {
-    text-align: center;
-    margin-top: var(--space-md);
-    padding-top: var(--space-md);
-    border-top: 1px solid var(--border-subtle);
+    text-align: left;
+    margin: 0;
+    padding: 0 0 0 1.25rem;
+    list-style: decimal;
 }
 
-.esewa-instructions p {
+.esewa-instructions li {
     font-size: 0.875rem;
     color: var(--text-muted);
     margin-bottom: var(--space-sm);
+    line-height: 1.45;
 }
 
 .copy-phone-btn {

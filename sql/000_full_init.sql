@@ -60,6 +60,14 @@ CREATE TABLE IF NOT EXISTS public.orders (
   payment_status  TEXT
     CHECK (payment_status IS NULL OR payment_status IN ('pending', 'paid', 'failed', 'refunded')),
   cancelled_at    TIMESTAMPTZ,
+  -- Manual eSewa payment verification trail. Populated by the admin
+  -- "Verify Payment" / "Reject Payment" actions on the orders page.
+  -- See sql/009_payment_verification.sql for the audit rationale.
+  payment_verified_at        TIMESTAMPTZ,
+  payment_verified_by        TEXT,
+  payment_verification_source TEXT,
+  payment_rejected_at        TIMESTAMPTZ,
+  payment_rejection_reason   TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ
 );
@@ -67,6 +75,10 @@ CREATE TABLE IF NOT EXISTS public.orders (
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders (status);
 CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON public.orders (payment_status);
+-- Partial index for the admin "eSewa awaiting verification" queue.
+CREATE INDEX IF NOT EXISTS idx_orders_esewa_pending
+  ON public.orders (created_at DESC)
+  WHERE payment_method = 'esewa' AND payment_status = 'pending';
 
 -- Auto-update updated_at
 DROP TRIGGER IF EXISTS trg_orders_updated_at ON public.orders;

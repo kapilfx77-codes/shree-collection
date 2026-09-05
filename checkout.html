@@ -137,21 +137,43 @@
 
                             <!-- eSewa Payment Details -->
                             <div id="esewaPaymentSection" class="esewa-payment-section">
-                                <h4>Scan QR Code to Pay</h4>
+                                <h4>eSewa Payment</h4>
                                 <div class="esewa-qr-container">
-                                    <img src="assets/qr-code.png" alt="eSewa QR Code" class="esewa-qr-image"
-                                        onerror="this.src='assets/placeholder-qr.png'">
-                                    <p class="esewa-amount">Pay: NPR <span id="esewaAmount">0</span></p>
-                                    <div class="esewa-instructions">
-                                        <p>1. Open eSewa or any mobile banking app</p>
-                                        <p>2. Scan the QR code above</p>
-                                        <p>3. Complete the payment</p>
-                                        <p>4. Return here and click "I Have Paid"</p>
-                                        <button type="button" class="copy-phone-btn" onclick="copyShopPhone()">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                            Copy Phone: <span id="esewaPhone">9841735450</span>
-                                        </button>
-                                        <p style="margin-top: 8px; font-size: 0.75rem;">Or send payment to the phone number above via eSewa</p>
+                                    <div class="esewa-qr-row">
+                                        <img src="assets/qr-code.png" alt="eSewa QR Code" class="esewa-qr-image"
+                                            onerror="this.src='assets/placeholder-qr.png'">
+                                        <div class="esewa-payment-side">
+                                            <p class="esewa-amount">Amount to Pay: <strong>NPR <span id="esewaAmount">0</span></strong></p>
+                                            <ol class="esewa-instructions">
+                                                <li>Open your eSewa app (or any supported mobile banking app)</li>
+                                                <li>Scan the QR code on the left, or send to the phone number below</li>
+                                                <li>Pay the <strong>exact amount</strong> shown above</li>
+                                                <li>Copy the eSewa transaction reference / ID from your payment confirmation</li>
+                                                <li>Paste it in the field below and tick the confirmation checkbox</li>
+                                            </ol>
+                                            <button type="button" class="copy-phone-btn" onclick="copyShopPhone()">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                                Copy Phone: <span id="esewaPhone">9841735450</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div class="esewa-confirm-block">
+                                        <div class="form-group">
+                                            <label for="esewaTxn">eSewa Transaction Reference / ID <span class="required">*</span></label>
+                                            <input type="text" id="esewaTxn" name="esewaTxn" class="form-input"
+                                                placeholder="e.g. 0000ABCD1234 or 8 digit reference" autocomplete="off"
+                                                pattern="[A-Za-z0-9 _.\-/]{4,64}" minlength="4" maxlength="64">
+                                            <span class="form-hint">4–64 characters, letters / numbers / spaces / dashes only.</span>
+                                        </div>
+                                        <label class="esewa-confirm-check">
+                                            <input type="checkbox" id="esewaPaidConfirm">
+                                            <span>I confirm I have completed the eSewa payment of <strong>NPR <span id="esewaAmountConfirm">0</span></strong> to the phone number above.</span>
+                                        </label>
+                                        <p class="esewa-pending-notice">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                            Payment verification will be confirmed by <strong>Shree Collection</strong> before the order is processed. You will receive a WhatsApp message once we verify your payment.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -162,7 +184,7 @@
                             <div class="checkout-actions">
                                 <button type="submit" id="placeOrderBtn" class="checkout-submit-btn">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                                    Place Order
+                                    <span id="placeOrderBtnLabel">Place Order (COD)</span>
                                 </button>
                                 <button type="button" id="whatsappOrderBtn" class="whatsapp-submit-btn" onclick="sendWhatsAppOrder()">
                                     <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -252,24 +274,19 @@
             }
         }
 
-        // Continue with pending order
+        // Continue with pending order. The new single-step eSewa flow
+        // doesn't need a separate "I have paid" button: the txn ref and
+        // the confirm checkbox are captured on this same checkout page
+        // before the order is created. If we still have a stale pending
+        // order from a prior session, just route the user to the success
+        // page so they can see the current state (pending or verified).
         function continuePendingOrder() {
             const pending = getPendingOrder();
-            if (pending) {
-                // Show eSewa payment section
-                document.querySelector('input[name="paymentMethod"][value="esewa"]').checked = true;
-                toggleEsewaPayment(true);
-
-                // Fill form with pending order data
-                document.getElementById('customerName').value = pending.name || '';
-                document.getElementById('customerPhone').value = pending.phone || '';
-                document.getElementById('customerCity').value = pending.city || '';
-                document.getElementById('customerAddress').value = pending.address || '';
-
+            if (pending && pending.orderId) {
+                window.location.href = `checkout-success.html?order=${encodeURIComponent(pending.orderId)}`;
+            } else {
                 document.getElementById('pendingOrderAlert').style.display = 'none';
                 document.getElementById('placeOrderBtn').disabled = false;
-
-                showToast('Please complete your eSewa payment', 'info');
             }
         }
 
@@ -313,8 +330,25 @@
             subtotalEl.textContent = 'NPR ' + total.toLocaleString('en-IN');
             totalEl.textContent = 'NPR ' + total.toLocaleString('en-IN');
 
-            // Update eSewa amount
-            document.getElementById('esewaAmount').textContent = total.toLocaleString('en-IN');
+            // Update eSewa amount (both the QR-block label and the confirm-checkbox label)
+            const amtText = total.toLocaleString('en-IN');
+            const amtEl = document.getElementById('esewaAmount');
+            if (amtEl) amtEl.textContent = amtText;
+            const amtConfirmEl = document.getElementById('esewaAmountConfirm');
+            if (amtConfirmEl) amtConfirmEl.textContent = amtText;
+        }
+
+        // Update the submit button label based on the selected payment
+        // method. COD → "Place Order (COD)". eSewa → "Submit Payment Details"
+        // (the eSewa flow captures the txn + checkbox on the same screen).
+        function updateSubmitButtonLabel() {
+            const checked = document.querySelector('input[name="paymentMethod"]:checked');
+            if (!checked) return;
+            const labelEl = document.getElementById('placeOrderBtnLabel');
+            if (!labelEl) return;
+            labelEl.textContent = checked.value === 'esewa'
+                ? 'Submit Payment Details'
+                : 'Place Order (COD)';
         }
 
         // Setup payment method selection
@@ -329,6 +363,7 @@
 
                     const value = option.querySelector('input').value;
                     toggleEsewaPayment(value === 'esewa');
+                    updateSubmitButtonLabel();
                 });
             });
 
@@ -336,6 +371,7 @@
             if (typeof STORE_CONFIG !== 'undefined' && STORE_CONFIG.esewa) {
                 document.getElementById('esewaPhone').textContent = STORE_CONFIG.esewa.accountNumber;
             }
+            updateSubmitButtonLabel();
         }
 
         // Toggle eSewa payment section
@@ -402,9 +438,19 @@
             return isValid;
         }
 
+        // Local submit-in-flight guard. Mirrors the one in cart.js but is
+        // kept here too so the disabled state of the button is consistent
+        // even if a different caller invokes the handler.
+        let checkoutSubmitInFlight = false;
+
         // Handle form submission
         async function handleCheckoutSubmit(event) {
-            event.preventDefault();
+            if (event && event.preventDefault) event.preventDefault();
+
+            if (checkoutSubmitInFlight) {
+                console.warn('Checkout submit ignored: already in flight.');
+                return;
+            }
 
             if (!validateForm()) {
                 showToast('Please fill in all required fields correctly', 'error');
@@ -424,49 +470,75 @@
                 paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value
             };
 
+            // For eSewa, the txn ref + confirmation checkbox are required
+            // BEFORE the order is created. We do not silently create a
+            // pending order and ask for the txn later — the customer's
+            // intent ("I paid") is required to even create the row.
+            if (orderData.paymentMethod === 'esewa') {
+                const txn = document.getElementById('esewaTxn').value.trim();
+                const confirmed = document.getElementById('esewaPaidConfirm').checked;
+                if (!txn || txn.length < 4) {
+                    showToast('Please enter your eSewa transaction reference.', 'error');
+                    document.getElementById('esewaTxn').focus();
+                    return;
+                }
+                if (!confirmed) {
+                    showToast('Please confirm you have completed the eSewa payment.', 'error');
+                    return;
+                }
+                orderData.txn = txn;
+            }
+
             // Save for returning customer
             localStorage.setItem('shree_checkout_name', orderData.name);
             localStorage.setItem('shree_checkout_phone', orderData.phone);
 
             const paymentMethod = orderData.paymentMethod;
 
-            if (paymentMethod === 'esewa') {
-                // For eSewa, save pending order and wait for payment confirmation
-                await submitOrder(orderData, 'esewa');
-                showToast('Order saved! Please complete your eSewa payment.', 'info');
+            const btn = document.getElementById('placeOrderBtn');
+            const labelEl = document.getElementById('placeOrderBtnLabel');
+            const originalLabel = labelEl ? labelEl.textContent : 'Place Order';
 
-                // Change button to "I Have Paid"
-                const btn = document.getElementById('placeOrderBtn');
-                btn.textContent = 'I Have Paid - Confirm Payment';
-                btn.onclick = async () => {
-                    btn.disabled = true;
-                    btn.textContent = 'Confirming...';
-
-                    const result = await confirmEsewaPayment();
-                    if (result) {
-                        // Redirect to success page
-                        window.location.href = `checkout-success.html?order=${result.orderId}`;
-                    } else {
-                        btn.disabled = false;
-                        btn.textContent = 'I Have Paid - Confirm Payment';
-                        btn.onclick = handleCheckoutSubmit;
-                    }
-                };
+            checkoutSubmitInFlight = true;
+            btn.disabled = true;
+            if (labelEl) {
+                labelEl.textContent = 'Processing...';
             } else {
-                // COD - submit directly
-                const btn = document.getElementById('placeOrderBtn');
-                btn.disabled = true;
-                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spinning"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Processing...';
+                btn.textContent = 'Processing...';
+            }
 
-                const result = await submitOrder(orderData, 'cod');
-                if (result) {
-                    // Clear cart and redirect to success
-                    clearCart();
-                    window.location.href = `checkout-success.html?order=${result.orderId}`;
-                } else {
-                    btn.disabled = false;
-                    btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg> Place Order';
+            try {
+                const result = await submitOrder(orderData, paymentMethod);
+                if (result && result.orderId) {
+                    // Save order id + phone to localStorage so checkout-success
+                    // can look it up via the public /api/orders/lookup endpoint
+                    // (soft-authenticated on phone).
+                    try {
+                        localStorage.setItem('shree_last_order', JSON.stringify({
+                            orderId: result.orderId,
+                            phone: orderData.phone,
+                            paymentMethod: result.paymentMethod,
+                        }));
+                    } catch {}
+
+                    // cart.js clears the cart as soon as the order is on
+                    // file, so no need to clearCart() here.
+                    window.location.href = `checkout-success.html?order=${encodeURIComponent(result.orderId)}`;
+                    return;
                 }
+                // submission failed — show toast, restore button
+                throw new Error('Order could not be created.');
+            } catch (e) {
+                console.error('Checkout submit failed:', e);
+                btn.disabled = false;
+                if (labelEl) {
+                    labelEl.textContent = originalLabel;
+                } else {
+                    btn.textContent = originalLabel;
+                }
+            } finally {
+                // Allow retry after a short cooldown
+                setTimeout(() => { checkoutSubmitInFlight = false; }, 250);
             }
         }
 

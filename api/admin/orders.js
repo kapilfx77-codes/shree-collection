@@ -16,6 +16,13 @@ export default async function handler(req, res) {
     if (!session) return;
 
     try {
+        const url = req.url || '';
+        if (req.method === 'POST' && url.endsWith('/verify')) {
+            return await handleVerify(req, res, session);
+        }
+        if (req.method === 'POST' && url.endsWith('/reject')) {
+            return await handleReject(req, res, session);
+        }
         if (req.method === 'GET') {
             return await handleGet(req, res);
         }
@@ -132,4 +139,94 @@ async function handleCancel(req, res) {
     );
     if (r.status >= 400) return res.status(r.status).json(r.data || { error: r.raw });
     return res.status(200).json({ ok: true, order: (r.data || [])[0], soft_deleted: true });
+}
+
+// -------------------------------------------------------------------------
+// POST /api/admin/orders/verify — admin confirms the eSewa payment was
+// received. Records the timestamp, the admin session subject, and the
+// verification source in a single atomic update.
+// -------------------------------------------------------------------------
+async function handleVerify(req, res, session) {
+    const body = req.body || {};
+    const orderId = String(body.order_id || '').trim();
+    if (!orderId) return res.status(400).json({ error: 'order_id is required' });
+
+    // Load the order to ensure it exists and is in a state that can be
+    // verified (eSewa + pending). This avoids accidentally flipping a
+    // COD order or double-verifying one that's already paid.
+    const lookup = await sbFetch(`orders?order_id=eq.${encodeURIComponent(orderId)}&select=*`);
+    if (lookup.status >= 400) return res.status(lookup.status).json(lookup.data || { error: lookup.raw });
+    if (!Array.isArray(lookup.data) || lookup.data.length === 0) {
+        return res.status(404).json({ error: 'Order not found' });
+    }
+    const order = lookup.data[0];
+    if (order.payment_method !== 'esewa') {
+        return res.status(409).json({ error: 'Only eSewa orders can be verified by this action.' });
+    }
+    if (order.payment_status === 'paid') {
+        return res.status(409).json({ error: 'This order is already marked as paid.' });
+    }
+
+    const updates = {
+        payment_status: 'paid',
+        payment_verified_at: new Date().toISOString(),
+        payment_verified_by: String(session && session.sub ? session.sub : 'admin'),
+        payment_verification_source: String(body.source || 'manual_admin'),
+    };
+
+    const r = await sbFetch(
+        `orders?order_id=eq.${encodeURIComponent(orderId)}`,
+        {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify(updates),
+        }
+    );
+    if (r.status >= 400) return res.status(r.status).json(r.data || { error: r.raw });
+    return res.status(200).json({ ok: true, order: (r.data || [])[0] });
+}
+
+// -------------------------------------------------------------------------
+// POST /api/admin/orders/reject — admin marks a pending eSewa payment as
+// not received. A reason is required so the audit trail explains why.
+// -------------------------------------------------------------------------
+async function handleReject(req, res, session) {
+    const body = req.body || {};
+    const orderId = String(body.order_id || '').trim();
+    const reason = String(body.reason || '').trim();
+    if (!orderId) return res.status(400).json({ error: 'order_id is required' });
+    if (reason.length < 4) {
+        return res.status(400).json({ error: 'A rejection reason of at least 4 characters is required.' });
+    }
+
+    const lookup = await sbFetch(`orders?order_id=eq.${encodeURIComponent(orderId)}&select=*`);
+    if (lookup.status >= 400) return res.status(lookup.status).json(lookup.data || { error: lookup.raw });
+    if (!Array.isArray(lookup.data) || lookup.data.length === 0) {
+        return res.status(404).json({ error: 'Order not found' });
+    }
+    const order = lookup.data[0];
+    if (order.payment_method !== 'esewa') {
+        return res.status(409).json({ error: 'Only eSewa orders can be rejected by this action.' });
+    }
+    if (order.payment_status === 'paid') {
+        return res.status(409).json({ error: 'This order is already marked as paid and cannot be rejected.' });
+    }
+
+    const updates = {
+        payment_status: 'failed',
+        payment_rejected_at: new Date().toISOString(),
+        payment_rejected_by: String(session && session.sub ? session.sub : 'admin'),
+        payment_rejection_reason: reason,
+    };
+
+    const r = await sbFetch(
+        `orders?order_id=eq.${encodeURIComponent(orderId)}`,
+        {
+            method: 'PATCH',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify(updates),
+        }
+    );
+    if (r.status >= 400) return res.status(r.status).json(r.data || { error: r.raw });
+    return res.status(200).json({ ok: true, order: (r.data || [])[0] });
 }

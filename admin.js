@@ -708,6 +708,26 @@ function openOrderModal(orderId) {
                 `).join('')}
             </div>
         </div>
+
+        ${order.payment_method === 'esewa' && order.payment_status === 'pending' ? `
+        <div style="margin-top: 18px; padding: 16px; background: rgba(176, 141, 87, 0.06); border: 1px solid rgba(176, 141, 87, 0.3); border-radius: var(--radius-md);">
+            <h4 style="font-family: var(--font-serif); margin-bottom: 8px; color: var(--primary);">eSewa Payment Verification</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+                Verify or reject the customer's eSewa payment. The transaction reference on record is:
+                <code style="font-family: ui-monospace, monospace; background: var(--bg-card); padding: 1px 6px; border-radius: 3px;">${escapeHtml(order.txn || 'none')}</code>
+            </p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary" onclick="verifyPayment('${escapeHtml(order.order_id)}', ${Number(order.total || 0)})">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    Verify Payment
+                </button>
+                <button class="btn btn-outline" style="border-color: #c33; color: #c33;" onclick="rejectPayment('${escapeHtml(order.order_id)}')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    Reject Payment
+                </button>
+            </div>
+        </div>
+        ` : ''}
     `;
 
     document.getElementById('orderModalFoot').innerHTML = `
@@ -762,6 +782,68 @@ async function cancelOrderConfirm(orderId) {
         if (o) o.status = 'cancelled';
         openOrderModal(orderId);
         renderOrders();
+    } catch (err) {
+        showApiError(err);
+    }
+}
+
+// Verify a pending eSewa payment. The server records the timestamp, the
+// admin session subject, and the verification source so the audit trail
+// is complete. Confirmation is required because the flip is permanent
+// from this screen (an admin would have to use a separate credit-note
+// flow to reverse a "paid" order, which is out of scope).
+async function verifyPayment(orderId, totalNpr) {
+    const total = Number(totalNpr || 0);
+    const msg = `Mark payment of NPR ${total.toLocaleString('en-IN')} for order ${orderId} as received?\n\n` +
+                `This will set payment_status to "paid", record your admin user as the verifier, and stamp the verification time.\n\n` +
+                `This cannot be undone from this screen.`;
+    if (!confirm(msg)) return;
+    try {
+        const result = await adminFetch('orders/verify', {
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId, source: 'manual_admin' }),
+        });
+        if (result && result.ok && result.order) {
+            // Replace the local cache entry with the server's response
+            const idx = ordersCacheList.findIndex(x => x.order_id === orderId);
+            if (idx >= 0) ordersCacheList[idx] = { ...ordersCacheList[idx], ...result.order };
+            showToast('Payment verified — order is now paid.', 'success');
+            openOrderModal(orderId);
+            renderOrders();
+        } else {
+            showToast('Verification failed: unexpected response', 'error');
+        }
+    } catch (err) {
+        showApiError(err);
+    }
+}
+
+// Reject a pending eSewa payment. A reason of at least 4 characters is
+// required by the server so the audit trail explains why.
+async function rejectPayment(orderId) {
+    const reason = prompt(`Reject the eSewa payment for order ${orderId}?\n\n` +
+                          `Please enter a reason (at least 4 characters). This will be saved in the order record.`, '');
+    if (reason === null) return; // user cancelled the prompt
+    const trimmed = String(reason || '').trim();
+    if (trimmed.length < 4) {
+        showToast('A rejection reason of at least 4 characters is required.', 'error');
+        return;
+    }
+    if (!confirm(`Reject eSewa payment for ${orderId}?\n\nReason: "${trimmed}"\n\nThis will set payment_status to "failed".`)) return;
+    try {
+        const result = await adminFetch('orders/reject', {
+            method: 'POST',
+            body: JSON.stringify({ order_id: orderId, reason: trimmed }),
+        });
+        if (result && result.ok && result.order) {
+            const idx = ordersCacheList.findIndex(x => x.order_id === orderId);
+            if (idx >= 0) ordersCacheList[idx] = { ...ordersCacheList[idx], ...result.order };
+            showToast('Payment rejected.', 'info');
+            openOrderModal(orderId);
+            renderOrders();
+        } else {
+            showToast('Rejection failed: unexpected response', 'error');
+        }
     } catch (err) {
         showApiError(err);
     }
