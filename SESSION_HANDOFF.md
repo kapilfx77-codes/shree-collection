@@ -876,15 +876,26 @@ writes it also verifies, by construction.
 - sql/005_verify_admin_password.sql (new)
     Two SECURITY DEFINER RPCs in the public schema:
       • `verify_admin_password(pwd text) returns boolean`
-        — runs `crypt(pwd, value->>'password_hash') = value->>'password_hash'`
+        — runs `extensions.crypt(pwd, value->>'password_hash')
+                = value->>'password_hash'`
           against admin_settings.id=1 in pgcrypto.
       • `hash_admin_password(pwd text) returns text`
-        — runs `crypt(pwd, gen_salt('bf', 10))` and returns the
-          fresh hash. Used by change-password to write the new row.
-    Both functions are `set search_path = public` and are
-    GRANT'd only to `service_role` (not to anon / authenticated),
+        — runs `extensions.crypt(pwd, extensions.gen_salt('bf', 10))`
+          and returns the fresh hash. Used by change-password to
+          write the new row.
+    Both functions are `set search_path = public, extensions` and
+    are GRANT'd only to `service_role` (not to anon / authenticated),
     so the browser cannot call them. The plaintext is sent as a
     PostgREST parameter, so no SQL injection.
+
+    **pgcrypto must be enabled on the Supabase project.** First
+    run of the migration on the new project failed with
+    `function crypt(text, text) does not exist` because pgcrypto
+    was not enabled in the `extensions` schema. The file now does
+    `create extension if not exists pgcrypto with schema extensions;`
+    at the top — the migration is now self-bootstrapping. If the
+    SQL editor still rejects it, enable pgcrypto manually under
+    Database → Extensions in the Supabase dashboard first.
 - api/login.js (changed)
     Now calls the `verify_admin_password` RPC. If the RPC is
     missing (404 — user hasn't run 005 yet) the code falls through
