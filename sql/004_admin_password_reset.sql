@@ -37,8 +37,17 @@ update public.admin_settings
 set value = jsonb_set(
         value,
         '{password_hash}',
-        crypt('PUT_NEW_PASSWORD_HERE_BETWEEN_QUOTES', gen_salt('bf', 10)),
+        to_jsonb(crypt('PUT_NEW_PASSWORD_HERE_BETWEEN_QUOTES', gen_salt('bf', 10))),
         false
      ),
     updated_at = now()
 where id = 1;
+
+-- ============================================================================
+-- PATCH NOTE
+-- The original draft used `crypt('...', gen_salt('bf', 10))` directly as
+-- the third argument to jsonb_set, which fails with:
+--   42883: function jsonb_set(jsonb, unknown, text, boolean) does not exist
+-- jsonb_set requires the third argument to be jsonb; crypt() returns text.
+-- Wrapping the call in to_jsonb(...) is the fix.
+-- ============================================================================
