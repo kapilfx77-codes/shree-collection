@@ -135,6 +135,17 @@ export default async function handler(req, res) {
             passwordHash: newHash,
             sessionSecret: newSessionSecret,
         });
+        // TEMP DIAGNOSTIC: log the write result so we can see what the
+        // Supabase REST API actually returned. Never log the hash/secret
+        // themselves — only the status and a fingerprint of the row that
+        // was supposedly written. Remove once the e2e test is green.
+        console.error('[change-password] writeAdminSettings result:', JSON.stringify({
+            ok: write.ok,
+            status: write.status,
+            error: write.error,
+            newHashLen: newHash.length,
+            newSecretLen: newSessionSecret.length,
+        }));
         if (!write.ok) {
             console.error('change-password write failed:', write);
             return res.status(500).json({ error: 'Failed to persist the new password' });
