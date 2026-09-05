@@ -233,10 +233,20 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Inventory mutation RPCs are reserved for service_role. The
+-- storefront's only valid write path is POST /api/orders, which runs
+-- server-side with the service role key. Letting anon call these
+-- directly would let any browser zero out a variant's stock (decrement)
+-- or inflate stock (restore) without going through the order flow.
+-- 014_revoke_decrement_from_anon.sql documents the original hole.
+REVOKE EXECUTE ON FUNCTION public.decrement_inventory(BIGINT, TEXT, TEXT, INT)
+  FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.decrement_inventory(BIGINT, TEXT, TEXT, INT)
-  TO anon, authenticated, service_role;
+  TO service_role;
+REVOKE EXECUTE ON FUNCTION public.restore_inventory(BIGINT, TEXT, TEXT, INT)
+  FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.restore_inventory(BIGINT, TEXT, TEXT, INT)
-  TO anon, authenticated, service_role;
+  TO service_role;
 
 -- ---------------------------------------------------------------------------
 -- 6. STORAGE — create the product-images bucket if it does not exist

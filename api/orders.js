@@ -318,16 +318,14 @@ async function handleCreate(req, res) {
   // audit trail reflects what happened. Cancellation here is internal
   // to this request — no partial stock decrements linger.
   const decrementFailures = [];
-  const tStart = process.hrtime.bigint();
-  console.log('[DIAG-V16] env', JSON.stringify({
-    SUPABASE_URL,
-    items_len: items.length,
-    order_id: row && row.order_id,
-    t_start_ms: Number(tStart / 1000000n),
-    node_version: process.version,
-  }));
+  // Track which lines were actually decremented so we can restore ONLY
+  // those on failure. A previous version iterated over `items` in the
+  // restore loop, which inflated stock for lines that were never
+  // decremented (because the loop `break`s at the first failure) — this
+  // is the root cause of the V16 race-test seeing 6-7 successes against
+  // a stock of 5.
+  const decrementedLines = [];
   for (const line of items) {
-    const tBeforeRpc = process.hrtime.bigint();
     // eslint-disable-next-line no-await-in-loop
     const dec = await sbFetch('rpc/decrement_inventory', {
       method: 'POST',
@@ -339,19 +337,6 @@ async function handleCreate(req, res) {
         p_qty: line.quantity,
       }),
     });
-    const tAfterRpc = process.hrtime.bigint();
-    // [DIAG-V16] trace exactly what decrement_inventory returns under load
-    console.log('[DIAG-V16]', JSON.stringify({
-      order_id: row && row.order_id,
-      line: { id: line.id, color: line.color, size: line.size, qty: line.quantity },
-      t_offset_ms: Number((tBeforeRpc - tStart) / 1000000n),
-      rpc_dur_ms: Number((tAfterRpc - tBeforeRpc) / 1000000n),
-      dec_status: dec.status,
-      dec_data_type: Array.isArray(dec.data) ? 'array' : typeof dec.data,
-      dec_data_len: Array.isArray(dec.data) ? dec.data.length : (dec.data ? 'n/a' : 'null'),
-      dec_data: dec.data,
-      dec_raw_head: (dec.raw || '').slice(0, 200),
-    }));
     if (dec.status >= 400) {
       console.error('decrement_inventory error:', dec.status, dec.data || dec.raw);
       decrementFailures.push({ line, reason: 'rpc_error', detail: dec.data || dec.raw });
@@ -364,13 +349,16 @@ async function handleCreate(req, res) {
       decrementFailures.push({ line, reason: 'insufficient_stock' });
       break;
     }
+    // Line was decremented successfully — record it so we can restore on
+    // a later-line failure.
+    decrementedLines.push(line);
   }
 
   if (decrementFailures.length > 0) {
-    // Restore any lines that DID succeed so a failed order doesn't
-    // permanently remove stock. Reverse order is not necessary — the
-    // restore_inventory RPC is additive.
-    for (const line of items) {
+    // Restore ONLY the lines that were actually decremented above. Lines
+    // after the failure point were never touched, so restoring them
+    // would over-credit stock and re-introduce the V16 race.
+    for (const line of decrementedLines) {
       // eslint-disable-next-line no-await-in-loop
       await sbFetch('rpc/restore_inventory', {
         method: 'POST',
