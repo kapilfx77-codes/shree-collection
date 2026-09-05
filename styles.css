@@ -1902,6 +1902,96 @@ button {
     padding-top: var(--space-md);
 }
 
+/* --------------------------------------------------------------------------
+   Product Card & Detail Buttons (Add to Cart / WhatsApp)
+   -------------------------------------------------------------------------- */
+.btn-add-cart {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 16px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #FFFFFF;
+    background: var(--primary);
+    border: 1.5px solid var(--primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(45, 35, 32, 0.15);
+    width: 100%;
+}
+
+.btn-add-cart:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(45, 35, 32, 0.28);
+    color: #FFFFFF;
+}
+
+.btn-add-cart:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 4px rgba(45, 35, 32, 0.2);
+}
+
+.btn-add-cart:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-add-cart svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.btn-whatsapp-buy {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 16px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: #FFFFFF;
+    background: #25D366;
+    border: 1.5px solid #25D366;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);
+    width: 100%;
+}
+
+.btn-whatsapp-buy:hover {
+    background: #1DA851;
+    border-color: #1DA851;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(37, 211, 102, 0.4);
+    color: #FFFFFF;
+}
+
+.btn-whatsapp-buy:active {
+    transform: translateY(0) scale(0.98);
+    box-shadow: 0 2px 4px rgba(37, 211, 102, 0.3);
+}
+
+.btn-whatsapp-buy svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
 .product-features-box {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -2206,24 +2296,43 @@ button {
     position: fixed;
     bottom: var(--space-xl);
     right: var(--space-xl);
-    width: 56px;
-    height: 56px;
-    background: #25D366;
-    border-radius: 50%;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: #25D366;
+    border: none;
+    border-radius: var(--radius-full);
     color: #FFFFFF;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
     box-shadow: 0 6px 20px rgba(37, 211, 102, 0.4);
     z-index: 99;
-    text-decoration: none;
-    transition: all var(--transition);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .floating-whatsapp:hover {
-    transform: scale(1.1);
+    background: #1DA851;
+    transform: translateY(-2px);
     box-shadow: 0 10px 28px rgba(37, 211, 102, 0.5);
     color: #FFFFFF;
+}
+
+.floating-whatsapp:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.floating-whatsapp svg {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+}
+
+.floating-whatsapp-label {
+    display: inline-block;
 }
 
 /* --------------------------------------------------------------------------
@@ -2762,8 +2871,13 @@ button {
     .floating-whatsapp {
         bottom: var(--space-md);
         right: var(--space-md);
-        width: 60px;
-        height: 60px;
+        padding: 11px 16px;
+        font-size: 0.875rem;
+    }
+
+    .floating-whatsapp svg {
+        width: 20px;
+        height: 20px;
     }
 
     body.sticky-buy-visible .floating-whatsapp {
