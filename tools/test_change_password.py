@@ -16,6 +16,14 @@ Exercises:
     12. (cleanup verification) login with the original password → 200
 
 Runs ONLY against the live production URL.
+
+Required environment variables (exported in the shell that invokes this
+test; the file does NOT hardcode the admin password):
+    SHREE_TEST_CURRENT_PASSWORD  - the admin's CURRENT password (e.g. the
+                                    seed default after 002 ran)
+    SHREE_TEST_NEW_PASSWORD      - the temporary password the test will
+                                    set, then revert. Defaults to
+                                    'ShreeTest!2026-XYZ' if unset.
 """
 import asyncio
 import os
