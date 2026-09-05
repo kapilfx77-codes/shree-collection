@@ -330,6 +330,16 @@ async function handleCreate(req, res) {
         p_qty: line.quantity,
       }),
     });
+    // [DIAG-V16] trace exactly what decrement_inventory returns under load
+    console.log('[DIAG-V16]', JSON.stringify({
+      order_id: row && row.order_id,
+      line: { id: line.id, color: line.color, size: line.size, qty: line.quantity },
+      dec_status: dec.status,
+      dec_data_type: Array.isArray(dec.data) ? 'array' : typeof dec.data,
+      dec_data_len: Array.isArray(dec.data) ? dec.data.length : (dec.data ? 'n/a' : 'null'),
+      dec_data: dec.data,
+      dec_raw_head: (dec.raw || '').slice(0, 200),
+    }));
     if (dec.status >= 400) {
       console.error('decrement_inventory error:', dec.status, dec.data || dec.raw);
       decrementFailures.push({ line, reason: 'rpc_error', detail: dec.data || dec.raw });
