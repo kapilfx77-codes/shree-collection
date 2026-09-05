@@ -28,8 +28,17 @@ from _test_env import resolve_base_url, clean_env_for_playwright
 from playwright.async_api import async_playwright
 
 BASE = resolve_base_url()
-ORIGINAL_PASSWORD = "shree2026"        # the seed default — what the user expects to use
-TEST_PASSWORD     = "ShreeTest!2026-XYZ"  # temporary strong password for the test
+# Both passwords are read from the environment so nothing sensitive is
+# committed to the repo. The defaults below are intentionally NOT the
+# production admin password — they only kick in if the env vars are
+# missing, which makes the test fail loudly in that case.
+ORIGINAL_PASSWORD = os.environ.get("SHREE_TEST_CURRENT_PASSWORD", "")
+TEST_PASSWORD     = os.environ.get("SHREE_TEST_NEW_PASSWORD", "ShreeTest!2026-XYZ")
+if not ORIGINAL_PASSWORD:
+    print("[test_change_password] SHREE_TEST_CURRENT_PASSWORD is not set; "
+          "export it to the admin's current password before running this test.",
+          file=sys.stderr, flush=True)
+    sys.exit(2)
 
 print(f"[test_change_password] BASE = {BASE}", flush=True)
 
