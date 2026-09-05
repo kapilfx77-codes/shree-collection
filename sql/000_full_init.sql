@@ -62,11 +62,13 @@ CREATE TABLE IF NOT EXISTS public.orders (
   cancelled_at    TIMESTAMPTZ,
   -- Manual eSewa payment verification trail. Populated by the admin
   -- "Verify Payment" / "Reject Payment" actions on the orders page.
-  -- See sql/009_payment_verification.sql for the audit rationale.
+  -- See sql/009_payment_verification.sql and sql/010_payment_rejection_audit.sql
+  -- for the audit rationale.
   payment_verified_at        TIMESTAMPTZ,
   payment_verified_by        TEXT,
   payment_verification_source TEXT,
   payment_rejected_at        TIMESTAMPTZ,
+  payment_rejected_by        TEXT,
   payment_rejection_reason   TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ
