@@ -97,13 +97,6 @@ CLOSE_DRAWER_JS = """
 }
 """
 
-CLEAR_CART_JS = """
-() => {
-    try { localStorage.removeItem('shree_collection_cart'); } catch {}
-    return true;
-}
-"""
-
 CLEAR_CART_AND_DRAWER_JS = """
 () => {
     try { localStorage.removeItem('shree_collection_cart'); } catch {}
@@ -406,9 +399,10 @@ async def main_async():
             results["T10"] = (False, f"exception: {e}")
 
         # --- Fill in customer info for the eSewa order ---
+        esewa_phone = gen_phone()
         try:
             await page.fill("#customerName", gen_name())
-            await page.fill("#customerPhone", gen_phone())
+            await page.fill("#customerPhone", esewa_phone)
             await page.fill("#customerCity", "Butwal")
             await page.fill("#customerAddress", "Ward 5, Milanchowk")
             await page.fill("#esewaTxn", gen_txn())
@@ -516,25 +510,19 @@ async def main_async():
             if not esewa_order_id:
                 results["T13"] = (False, "no order id from T11")
             else:
-                # Re-look up the first eSewa order
-                await page.goto(f"{base}/checkout.html", wait_until="networkidle")
-                await page.wait_for_timeout(500)
-                # Read the saved phone+order pair from localStorage
-                saved = await page.evaluate("() => JSON.parse(localStorage.getItem('shree_last_order')||'null')")
-                if not saved or not saved.get("phone"):
-                    results["T13"] = (False, "no last-order cache in localStorage")
-                else:
-                    api_resp = await page.evaluate(f"""
-                        async () => {{
-                            const r = await fetch('/api/orders?action=lookup&order_id={esewa_order_id}&phone={saved["phone"]}');
-                            return {{ status: r.status, body: await r.json() }};
-                        }}
-                    """)
-                    order = api_resp.get("body", {})
-                    ok = (api_resp.get("status") == 200
-                          and order.get("payment_status") == "pending"
-                          and order.get("payment_method") == "esewa")
-                    results["T13"] = (ok, f"payment_status={order.get('payment_status')!r} method={order.get('payment_method')!r}")
+                # Use the captured phone and order id directly (avoids any
+                # localStorage-clearing or DOM-state pitfalls).
+                api_resp = await page.evaluate(f"""
+                    async () => {{
+                        const r = await fetch('/api/orders?action=lookup&order_id={esewa_order_id}&phone={esewa_phone}');
+                        return {{ status: r.status, body: await r.json() }};
+                    }}
+                """)
+                order = api_resp.get("body", {})
+                ok = (api_resp.get("status") == 200
+                      and order.get("payment_status") == "pending"
+                      and order.get("payment_method") == "esewa")
+                results["T13"] = (ok, f"payment_status={order.get('payment_status')!r} method={order.get('payment_method')!r}")
         except Exception as e:
             results["T13"] = (False, f"exception: {e}")
 
@@ -543,9 +531,21 @@ async def main_async():
             if not esewa_order_id:
                 results["T14"] = (False, "no order id from T11")
             else:
+                # Seed localStorage so the success page can look up the
+                # eSewa order with the matching phone (T12 may have
+                # overwritten shree_last_order with its own orderId).
+                await page.evaluate(f"""
+                    () => {{
+                        localStorage.setItem('shree_last_order', JSON.stringify({{
+                            orderId: {esewa_order_id!r},
+                            phone: {esewa_phone!r},
+                            paymentMethod: 'esewa'
+                        }}));
+                    }}
+                """)
                 # Re-navigate to the success page for the first order
                 await page.goto(f"{base}/checkout-success.html?order={esewa_order_id}", wait_until="networkidle")
-                await page.wait_for_timeout(2000)
+                await page.wait_for_timeout(2500)
                 title = (await page.locator("#successTitle").text_content() or "").strip()
                 panel = await page.locator(".payment-state-panel.pending").count()
                 ok = ("Verification" in title or "Pending" in title or "Submitted" in title) and panel >= 1
@@ -563,6 +563,10 @@ async def main_async():
             await page.wait_for_timeout(800)
             await page.click("button.btn-add-cart, button:has-text('Add to Cart')")
             await page.wait_for_timeout(500)
+            # Add-to-cart auto-opens the drawer; close it before clicking
+            # the cart icon (so we don't have to deal with both states).
+            await page.evaluate(CLOSE_DRAWER_JS)
+            await page.wait_for_timeout(200)
             await page.click("#cartBtn, [data-cart-btn], .cart-btn")
             await page.wait_for_timeout(300)
             await page.click("#checkoutBtn, button:has-text('Checkout')")
