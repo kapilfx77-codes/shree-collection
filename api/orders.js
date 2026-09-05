@@ -318,7 +318,6 @@ async function handleCreate(req, res) {
   // audit trail reflects what happened. Cancellation here is internal
   // to this request — no partial stock decrements linger.
   const decrementFailures = [];
-  const decrementSuccesses = [];
   for (const line of items) {
     // eslint-disable-next-line no-await-in-loop
     const dec = await sbFetch('rpc/decrement_inventory', {
@@ -337,9 +336,6 @@ async function handleCreate(req, res) {
       break;
     }
     const decRows = Array.isArray(dec.data) ? dec.data : [];
-    if (decRows.length > 0) {
-      decrementSuccesses.push({ line, rows: decRows });
-    }
     if (decRows.length === 0) {
       // Another order won the race for this variant between the
       // pre-check and the decrement. Treat the same as a stock failure.
@@ -407,7 +403,6 @@ async function handleCreate(req, res) {
     payment_status: 'pending',
     status: 'pending',
     created_at: row && row.created_at ? row.created_at : now,
-    _debug_decrement: decrementSuccesses,
   });
 }
 
