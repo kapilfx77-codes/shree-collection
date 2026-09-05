@@ -68,10 +68,22 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- decrement_inventory can only REDUCE stock. Letting anon call it via the
+-- Supabase REST RPC endpoint is safe (an attacker cannot inflate stock by
+-- passing a negative qty — the WHERE quantity >= p_qty filter would still
+-- match a row with quantity >= -N, so the function would *decrement* by
+-- |-N|, i.e. *increase* it. To prevent that, decrement_inventory is
+-- reserved for service_role too).
 GRANT EXECUTE ON FUNCTION public.decrement_inventory(BIGINT, TEXT, TEXT, INT)
-  TO anon, authenticated, service_role;
+  TO service_role;
+-- restore_inventory can INFLATE stock. It must NEVER be callable by anon
+-- or authenticated — only by the service_role key used by the admin
+-- serverless functions. If anon could call it, anyone could arbitrarily
+-- increase variant stock and break the race-safety guarantees.
+REVOKE EXECUTE ON FUNCTION public.restore_inventory(BIGINT, TEXT, TEXT, INT)
+  FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.restore_inventory(BIGINT, TEXT, TEXT, INT)
-  TO anon, authenticated, service_role;
+  TO service_role;
 
 -- ============================================================================
 -- Verify

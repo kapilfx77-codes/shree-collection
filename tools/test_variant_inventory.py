@@ -1,14 +1,14 @@
-"""Variant-level inventory — V01 to V24.
+"""Variant-level inventory - V01 to V24.
 Run against the live production site. Each test prints:
   [PASS] vNN: detail  or  [FAIL] vNN: detail
 
 Tests cover:
-  V01–V04   Product page and cart UI stock state
-  V05–V10   Server-side order validation, decrement, restore, race conditions
-  V11–V12   Anon cannot mutate inventory
-  V13–V14   Admin can read/write inventory via API
-  V15–V16   Race condition: concurrent orders vs limited stock
-  V17–V18   Admin product create/update auto-creates/extends inventory rows
+  V01-V04   Product page and cart UI stock state
+  V05-V10   Server-side order validation, decrement, restore, race conditions
+  V11-V12   Anon cannot mutate inventory
+  V13-V14   Admin can read/write inventory via API
+  V15-V16   Race condition: concurrent orders vs limited stock
+  V17-V18   Admin product create/update auto-creates/extends inventory rows
   V19       Anon can read inventory (RLS SELECT policy)
   V20       Existing products backfilled after migration runs
   V21       CHECK constraint blocks negative stock
@@ -32,7 +32,7 @@ from _test_env import resolve_base_url
 BASE = resolve_base_url()
 PASSWORD = "Kapil@Ef2618F"
 
-# Known test variant — product 1, color "Red", size "M" (from admin_verify_test.py seed)
+# Known test variant - product 1, color "Red", size "M" (from admin_verify_test.py seed)
 TEST_PRODUCT_ID = 1
 TEST_COLOR = "Red"
 TEST_SIZE = "M"
@@ -121,7 +121,7 @@ def get_inventory_anon(product_id):
     RPC (which requires auth) is rejected. The positive case (anon SELECT
     works) is implicitly proven by the product page loading without error.
     """
-    # Anonymous POST to the decrement RPC should 401/403 — verify RLS blocks it.
+    # Anonymous POST to the decrement RPC should 401/403 - verify RLS blocks it.
     status, _ = http(
         "POST",
         "/api/rpc/decrement_inventory",
@@ -145,7 +145,7 @@ def get_variant_stock(token, product_id, color, size):
                 and str(row.get("color")).strip() == str(color).strip()
                 and str(row.get("size")).strip() == str(size).strip()):
             return int(row.get("quantity") or 0)
-    return 0  # row doesn't exist yet → 0
+    return 0  # row doesn't exist yet -> 0
 
 
 def create_product_admin(token, name, colors, sizes, price=999):
@@ -185,7 +185,7 @@ def v02_cart_shows_only_x_left():
     s, _ = set_inventory(token, TEST_PRODUCT_ID, TEST_COLOR, TEST_SIZE, 3)
     if s not in (200, 201):
         return False, f"set_inventory failed: {s}"
-    # Place an order for 1 → should succeed
+    # Place an order for 1 -> should succeed
     s, body = http("POST", "/api/orders", make_order([
         {"id": TEST_PRODUCT_ID, "color": TEST_COLOR, "size": TEST_SIZE, "quantity": 1}
     ]))
@@ -390,7 +390,7 @@ def v14_admin_can_adjust_by_delta():
 
 
 def v15_race_stock_one_two_simultaneous():
-    """V15: stock=1, two simultaneous orders — exactly one succeeds (201) and one fails (409)."""
+    """V15: stock=1, two simultaneous orders - exactly one succeeds (201) and one fails (409)."""
     token = login()
     if not token:
         return False, "login failed"
@@ -418,7 +418,7 @@ def v15_race_stock_one_two_simultaneous():
 
 
 def v16_race_stock_five_ten_simultaneous():
-    """V16: stock=5, ten simultaneous orders — exactly five succeed (201)."""
+    """V16: stock=5, ten simultaneous orders - exactly five succeed (201)."""
     token = login()
     if not token:
         return False, "login failed"
@@ -440,7 +440,7 @@ def v16_race_stock_five_ten_simultaneous():
 
 
 def v17_admin_product_create_auto_creates_inventory():
-    """V17: Admin product create auto-creates N×M inventory rows at qty 0."""
+    """V17: Admin product create auto-creates N?M inventory rows at qty 0."""
     token = login()
     if not token:
         return False, "login failed"
@@ -458,7 +458,7 @@ def v17_admin_product_create_auto_creates_inventory():
         headers=admin_headers(token),
     )
     rows = inv_body.get("inventory", []) if isinstance(inv_body, dict) else []
-    ok = (len(rows) == 4)  # 2 colors × 2 sizes
+    ok = (len(rows) == 4)  # 2 colors ? 2 sizes
     return ok, f"product id={pid}: {len(rows)} inventory rows (expect 4)"
 
 
@@ -491,7 +491,7 @@ def v18_admin_product_update_preserves_existing_stock():
     zinc_rows = [r for r in rows if str(r.get("color")).strip() == "Zinc"]
     ok = (before == 77 and after == 77 and len(zinc_rows) >= 1)
     return ok, (f"Red/M before={before} after={after} (expect 77,77), "
-                f"Zinc rows={len(zinc_rows)} (expect ≥1)")
+                f"Zinc rows={len(zinc_rows)} (expect >=1)")
 
 
 def v19_anon_can_read_inventory():
@@ -519,7 +519,7 @@ def v19_anon_can_read_inventory():
 
 
 def v20_existing_products_backfilled():
-    """V20: Existing products are backfilled with N×M inventory rows after migration.
+    """V20: Existing products are backfilled with N?M inventory rows after migration.
     Product 1 should have at least 1 inventory row (it was created in Prompt 3)."""
     token = login()
     if not token:
@@ -531,7 +531,7 @@ def v20_existing_products_backfilled():
     )
     rows = inv_body.get("inventory", []) if isinstance(inv_body, dict) else []
     ok = (len(rows) >= 1)
-    return ok, f"product 1 has {len(rows)} inventory rows (expect ≥1)"
+    return ok, f"product 1 has {len(rows)} inventory rows (expect >=1)"
 
 
 def v21_check_constraint_blocks_negative():
@@ -547,7 +547,7 @@ def v21_check_constraint_blocks_negative():
     stock = get_variant_stock(token, TEST_PRODUCT_ID, "NeonTestColor", "XXS")
     set_inventory(token, TEST_PRODUCT_ID, "NeonTestColor", "XXS", 0)
     ok = (stock >= 0)
-    return ok, f"adjust -99 from 3: stock={stock} (must be ≥ 0, CHECK constraint)"
+    return ok, f"adjust -99 from 3: stock={stock} (must be >= 0, CHECK constraint)"
 
 
 def v22_mixed_oos_instock_order_fails_without_partial_decrement():
@@ -559,7 +559,7 @@ def v22_mixed_oos_instock_order_fails_without_partial_decrement():
     # Set stock for the test variant; leave product 2 variant OOS.
     set_inventory(token, TEST_PRODUCT_ID, TEST_COLOR, TEST_SIZE, 5)
     # Ensure product 2 (if it exists) has 0 stock for this variant.
-    # Use product 1 with a non-existent variant (NeonGhost/YYY) → OOS.
+    # Use product 1 with a non-existent variant (NeonGhost/YYY) -> OOS.
     set_inventory(token, TEST_PRODUCT_ID, "NeonGhost", "YYY", 0)
     before_instock = get_variant_stock(token, TEST_PRODUCT_ID, TEST_COLOR, TEST_SIZE)
     # Order: one in-stock line + one OOS line
@@ -607,7 +607,7 @@ def v24_cart_checkout_disabled_when_oos():
     ]))
     set_inventory(token, TEST_PRODUCT_ID, TEST_COLOR, TEST_SIZE, 100)
     ok = (s == 409)
-    return ok, f"OOS line → checkout fails: HTTP {s} (expect 409)"
+    return ok, f"OOS line -> checkout fails: HTTP {s} (expect 409)"
 
 
 # ---------------------------------------------------------------------------

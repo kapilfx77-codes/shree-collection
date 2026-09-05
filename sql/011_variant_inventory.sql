@@ -158,14 +158,48 @@ CREATE OR REPLACE FUNCTION public.decrement_inventory(
   p_qty INT
 )
 RETURNS TABLE (new_quantity INT) AS $$
+DECLARE
+  v_locked_qty INT;
 BEGIN
-  -- Negative qty means "restore" — only allow for service_role callers.
-  -- The API uses restore_inventory() for the restore path, so any caller
-  -- using decrement_inventory with a negative qty is doing something
-  -- unexpected. We refuse here to keep the two paths semantically clean.
   IF p_qty IS NULL OR p_qty <= 0 THEN
     RAISE EXCEPTION 'decrement_inventory requires a positive qty (got %)', p_qty
       USING ERRCODE = '22023';
+  END IF;
+
+  -- We lock the row FOR UPDATE first, then re-read its current quantity
+  -- under the lock, then apply the UPDATE. This pattern is airtight
+  -- against concurrent callers:
+  --   * The SELECT ... FOR UPDATE acquires a row-level exclusive lock
+  --     that blocks any other transaction from reading-for-update or
+  --     writing the same row until our transaction ends.
+  --   * Two concurrent callers serialize on this lock: the second
+  --     waits for the first to commit, then re-reads the post-decrement
+  --     quantity.
+  --   * The UPDATE only applies when the freshly-read quantity is at
+  --     least p_qty, so callers who find the row already drained return
+  --     zero rows and the API treats that as "out of stock".
+  --   * RETURN QUERY streams the new quantity to the caller.
+  --
+  -- We do this inside a single PL/pgSQL function call (one transaction)
+  -- so the lock is held continuously from the SELECT through the
+  -- UPDATE, with no application-level window in between.
+  SELECT quantity INTO v_locked_qty
+  FROM public.inventory
+  WHERE product_id = p_product_id
+    AND color = p_color
+    AND size = p_size
+  FOR UPDATE;
+
+  IF v_locked_qty IS NULL THEN
+    -- No row exists for this variant. The API treats an empty result
+    -- set the same as "out of stock".
+    RETURN;
+  END IF;
+
+  IF v_locked_qty < p_qty THEN
+    -- The row exists but doesn't have enough stock. The API treats an
+    -- empty result set the same as "out of stock".
+    RETURN;
   END IF;
 
   RETURN QUERY
@@ -174,7 +208,6 @@ BEGIN
   WHERE product_id = p_product_id
     AND color = p_color
     AND size = p_size
-    AND quantity >= p_qty
   RETURNING quantity;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
