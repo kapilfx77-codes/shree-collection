@@ -488,6 +488,38 @@
 
         .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
 
+        /* ---- Settings page (Security card) ---- */
+        .settings-banner {
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            margin-bottom: 16px;
+            border: 1px solid transparent;
+        }
+        .settings-banner.ok {
+            background: rgba(16,185,129,0.10);
+            color: #047857;
+            border-color: rgba(16,185,129,0.30);
+        }
+        .settings-banner.warn {
+            background: rgba(245,158,11,0.10);
+            color: #B45309;
+            border-color: rgba(245,158,11,0.30);
+        }
+        .settings-error {
+            padding: 10px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            margin-top: 10px;
+            background: rgba(220,38,38,0.10);
+            color: #B91C1C;
+            border: 1px solid rgba(220,38,38,0.30);
+        }
+        .form-hint {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
         /* ---- Search bar ---- */
         .toolbar {
             display: flex;
@@ -1015,6 +1047,12 @@
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
                     Inventory
                 </a></li>
+
+                <li class="admin-nav-divider">System</li>
+                <li><a data-page="settings">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.6 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.36.09.74.13 1.09.13a2 2 0 010 4H20.5a1.65 1.65 0 00-1.1 1.87z"/></svg>
+                    Settings
+                </a></li>
             </ul>
             <div class="admin-sidebar-foot">
                 <div>v1.0 &middot; Shree Collection</div>
@@ -1201,6 +1239,62 @@
                         <div id="customersList">
                             <div class="state-block" style="padding: 60px;"><div class="spinner"></div></div>
                         </div>
+                    </div>
+                </div>
+
+                <div class="admin-page" data-page="settings">
+                    <div class="page-header">
+                        <div>
+                            <h2>Settings</h2>
+                            <p>Manage your admin account</p>
+                        </div>
+                    </div>
+
+                    <!-- Security: change admin password -->
+                    <div class="card" id="settingsSecurityCard">
+                        <div class="card-head">
+                            <div>
+                                <h3>Security</h3>
+                                <div class="subtle">Change the password used to sign in to the admin dashboard</div>
+                            </div>
+                        </div>
+
+                        <!-- Live status line shown above the form after a successful change -->
+                        <div id="settingsSecurityStatus" class="settings-banner" hidden></div>
+
+                        <form id="changePasswordForm" autocomplete="off">
+                            <div class="form-field" style="margin-bottom: 14px;">
+                                <label for="cpCurrent">Current password</label>
+                                <input type="password" id="cpCurrent" name="currentPassword" required
+                                       autocomplete="current-password" autocapitalize="off" spellcheck="false">
+                                <div class="hint">Enter the password you currently use to sign in.</div>
+                            </div>
+
+                            <div class="form-field" style="margin-bottom: 14px;">
+                                <label for="cpNew">New password</label>
+                                <input type="password" id="cpNew" name="newPassword" required
+                                       autocomplete="new-password" autocapitalize="off" spellcheck="false"
+                                       minlength="12" maxlength="256">
+                                <div class="hint">At least 12 characters, with 3 of: lowercase, uppercase, digit, symbol.</div>
+                            </div>
+
+                            <div class="form-field" style="margin-bottom: 6px;">
+                                <label for="cpConfirm">Confirm new password</label>
+                                <input type="password" id="cpConfirm" name="confirmPassword" required
+                                       autocomplete="new-password" autocapitalize="off" spellcheck="false"
+                                       minlength="12" maxlength="256">
+                                <div class="hint">Re-enter the new password to confirm.</div>
+                            </div>
+
+                            <!-- Inline error message slot. Hidden by default. -->
+                            <div id="cpError" class="settings-error" hidden></div>
+
+                            <div style="display: flex; gap: 10px; align-items: center; margin-top: 18px;">
+                                <button type="submit" class="btn btn-primary" id="cpSubmit">Change password</button>
+                                <button type="button" class="btn btn-ghost" id="cpCancel">Clear</button>
+                                <span id="cpHint" class="form-hint" style="margin-left: auto;"></span>
+                            </div>
+                        </form>
                     </div>
                 </div>
 

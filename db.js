@@ -200,6 +200,17 @@ async function adminUploadImage({ filename, contentType, base64 }) {
     });
 }
 
+// Change the admin password. Sends the three required fields and returns
+// { success, token, message }. The response includes a fresh session
+// token signed with the (preserved) session secret, so the caller can
+// swap it into sessionStorage and avoid a forced re-login.
+async function adminChangePassword({ currentPassword, newPassword, confirmPassword }) {
+    return adminFetch('change-password', {
+        method: 'POST',
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+    });
+}
+
 // --- Legacy anon-write functions, kept as no-op stubs so the storefront
 // checkout still works. Admin code should use the admin* wrappers above. ---
 

@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearches();
     setupTopbar();
     setupProductModal();
+    setupSettings();
     setupMobileMenu();
 });
 
@@ -170,6 +171,7 @@ function routeToPage(page) {
         products: 'Products',
         inventory: 'Inventory',
         customers: 'Customers',
+        settings: 'Settings',
     };
     const t = document.getElementById('topbarTitle');
     if (t) t.textContent = titleMap[page] || 'Admin';
@@ -224,6 +226,130 @@ function setupSearches() {
 }
 
 // ==========================================================================
+// SETTINGS — change admin password
+// ==========================================================================
+//
+// The Settings page is purely a password-change form. The submit handler
+// posts to /api/admin/change-password via the adminChangePassword helper
+// (db.js) which carries the admin bearer token. On success, the response
+// includes a fresh session token; we replace the existing sessionStorage
+// token with it and clear the form. On failure we surface the server's
+// error message inline. We never log, print, or echo the new password.
+
+function setupSettings() {
+    const form = document.getElementById('changePasswordForm');
+    if (!form) return;
+    form.addEventListener('submit', handleChangePasswordSubmit);
+    const cancel = document.getElementById('cpCancel');
+    if (cancel) cancel.addEventListener('click', clearChangePasswordForm);
+    // Live-clear the inline error when the user types again.
+    ['cpCurrent', 'cpNew', 'cpConfirm'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('input', () => {
+            const err = document.getElementById('cpError');
+            if (err) err.hidden = true;
+        });
+    });
+}
+
+function loadSettings() {
+    // Reset the page state every time the user navigates to Settings so a
+    // stale "Password changed" banner doesn't linger between visits.
+    clearChangePasswordForm();
+    const banner = document.getElementById('settingsSecurityStatus');
+    if (banner) banner.hidden = true;
+}
+
+function clearChangePasswordForm() {
+    const form = document.getElementById('changePasswordForm');
+    if (form) form.reset();
+    const err = document.getElementById('cpError');
+    if (err) { err.hidden = true; err.textContent = ''; }
+    const hint = document.getElementById('cpHint');
+    if (hint) hint.textContent = '';
+}
+
+function showChangePasswordError(message) {
+    const err = document.getElementById('cpError');
+    if (!err) return;
+    err.textContent = message;
+    err.hidden = false;
+}
+
+async function handleChangePasswordSubmit(e) {
+    e.preventDefault();
+
+    const currentPassword = document.getElementById('cpCurrent').value;
+    const newPassword     = document.getElementById('cpNew').value;
+    const confirmPassword = document.getElementById('cpConfirm').value;
+
+    // ---- Client-side validation (server re-validates; this is a UX guard) ----
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showChangePasswordError('Please fill in all three fields.');
+        return;
+    }
+    if (newPassword.length < 12) {
+        showChangePasswordError('New password must be at least 12 characters.');
+        return;
+    }
+    if (newPassword !== confirmPassword) {
+        showChangePasswordError('New password and confirmation do not match.');
+        return;
+    }
+    if (newPassword === currentPassword) {
+        showChangePasswordError('New password must be different from the current password.');
+        return;
+    }
+
+    const btn = document.getElementById('cpSubmit');
+    const hint = document.getElementById('cpHint');
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    if (hint) hint.textContent = '';
+
+    try {
+        const res = await adminChangePassword({ currentPassword, newPassword, confirmPassword });
+        if (res && res.success && res.token) {
+            // Replace the session token so subsequent API calls use the
+            // refreshed credential. The server preserved the session
+            // secret, so other admin sessions on other devices remain
+            // valid (per product decision: don't rotate on change).
+            setAdminToken(res.token);
+            sessionStorage.setItem('shree_admin_auth', 'true');
+            clearChangePasswordForm();
+            // Refocus the first empty field so keyboard users can keep going.
+            const first = document.getElementById('cpCurrent');
+            if (first) first.focus();
+            const banner = document.getElementById('settingsSecurityStatus');
+            if (banner) {
+                banner.textContent = 'Password changed successfully. Use the new password next time you sign in.';
+                banner.className = 'settings-banner ok';
+                banner.hidden = false;
+            }
+            if (hint) hint.textContent = 'Done.';
+            showToast('Password changed', 'success');
+        } else {
+            const msg = (res && res.error) || 'Failed to change password.';
+            showChangePasswordError(msg);
+        }
+    } catch (err) {
+        // err.status === 401 means the session expired (token rejected).
+        // Anything else is a network/server error.
+        if (err && err.status === 401) {
+            showApiError(err); // 401 handler in showApiError will reload to re-login
+        } else {
+            showChangePasswordError((err && err.message) || 'Server error. Try again.');
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Change password';
+    }
+}
+
+
+
+// ==========================================================================
 // DATA LOADING
 // ==========================================================================
 
@@ -234,6 +360,7 @@ async function loadPageData(page) {
         else if (page === 'products') await loadProducts();
         else if (page === 'inventory') await loadInventory();
         else if (page === 'customers') await loadCustomers();
+        else if (page === 'settings') loadSettings();
     } catch (err) {
         console.error(`loadPageData(${page}) failed:`, err);
         showApiError(err);
