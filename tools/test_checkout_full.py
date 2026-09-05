@@ -156,24 +156,64 @@ async def main_async():
             # The catalog page itself does not surface in_stock status in the
             # DOM, so the page order is whatever Supabase returned. The cart
             # side does enforce in_stock at checkout time, so we ask the
-            # Supabase REST endpoint directly to pick the first in-stock
-            # product. If the network call fails, fall back to whatever the
-            # catalog has.
+            # Supabase REST endpoint directly to pick a product to test on.
+            # If none are in-stock, we try to flip one back to in-stock via
+            # the admin API so the test is self-contained. If admin auth
+            # isn't available, we accept the first product anyway and the
+            # test will reflect the real production state.
             supabase_url = await page.evaluate("() => (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || ''")
             supabase_key = await page.evaluate("() => (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || ''")
             in_stock_id = None
+            supabase_err = None
             if supabase_url and supabase_key:
                 try:
                     r = await page.request.get(
-                        f"{supabase_url}/rest/v1/products?select=id&in_stock=eq.true&order=id&limit=1",
+                        f"{supabase_url}/rest/v1/products?select=id,in_stock&order=id&limit=5",
                         headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
                     )
                     if r.status == 200:
                         rows = await r.json()
-                        if rows and isinstance(rows, list) and rows[0].get("id") is not None:
-                            in_stock_id = str(rows[0]["id"])
+                        # Prefer an in-stock product
+                        for row in (rows or []):
+                            if row.get("in_stock") is True:
+                                in_stock_id = str(row["id"])
+                                break
+                        if not in_stock_id and rows:
+                            # None in-stock; try to flip one to in-stock
+                            # via the admin API (requires ADMIN_PASSWORD)
+                            if args.admin_password:
+                                login = await page.request.post(
+                                    f"{base}/api/login",
+                                    headers={"Content-Type": "application/json"},
+                                    data={"password": args.admin_password},
+                                )
+                                if login.status == 200:
+                                    body = await login.json()
+                                    admin_token = (body or {}).get("token") or ""
+                                    if admin_token:
+                                        target = str(rows[0]["id"])
+                                        flip = await page.request.patch(
+                                            f"{base}/api/admin/products",
+                                            headers={"Content-Type": "application/json", "Authorization": f"Bearer {admin_token}"},
+                                            data={"id": int(target), "in_stock": True},
+                                        )
+                                        if flip.status < 400:
+                                            in_stock_id = target
+                                            # Remember to restore it later
+                                            cleanup_orders.append(("restore_in_stock", target))
+                                        else:
+                                            supabase_err = f"flip failed: {flip.status} {await flip.text()}"
+                                    else:
+                                        supabase_err = "admin login: no token"
+                                else:
+                                    supabase_err = f"admin login: {login.status}"
+                            else:
+                                supabase_err = "no in-stock products and no ADMIN_PASSWORD to flip one"
+                    else:
+                        supabase_err = f"status {r.status}: {await r.text()}"
                 except Exception as e:
-                    pass
+                    supabase_err = f"exception: {e}"
+            print(f"  T03: in_stock_id={in_stock_id!r} supabase_err={supabase_err!r}", flush=True)
             if in_stock_id:
                 product_id = in_stock_id
             else:
@@ -430,7 +470,7 @@ async def main_async():
             # public /api/orders/lookup endpoint.
             api_resp = await page.evaluate(f"""
                 async () => {{
-                    const r = await fetch('/api/orders/lookup?order_id={oid2}&phone={phone2}');
+                    const r = await fetch('/api/orders?action=lookup&order_id={oid2}&phone={phone2}');
                     return {{ status: r.status, body: await r.json() }};
                 }}
             """)
@@ -460,7 +500,7 @@ async def main_async():
                 else:
                     api_resp = await page.evaluate(f"""
                         async () => {{
-                            const r = await fetch('/api/orders/lookup?order_id={esewa_order_id}&phone={saved["phone"]}');
+                            const r = await fetch('/api/orders?action=lookup&order_id={esewa_order_id}&phone={saved["phone"]}');
                             return {{ status: r.status, body: await r.json() }};
                         }}
                     """)
@@ -611,7 +651,7 @@ async def main_async():
             # Look up the order — its total should NOT be 1 NPR
             api_resp = await page.evaluate(f"""
                 async () => {{
-                    const r = await fetch('/api/orders/lookup?order_id={tampered_order_id}&phone={phone3}');
+                    const r = await fetch('/api/orders?action=lookup&order_id={tampered_order_id}&phone={phone3}');
                     return {{ status: r.status, body: await r.json() }};
                 }}
             """)
@@ -732,6 +772,29 @@ async def main_async():
                         """)
             except Exception as e:
                 results["T18"] = (False, f"exception: {e}")
+
+        # --- Restore any in_stock flips we did for the test ---
+        for entry in cleanup_orders:
+            if isinstance(entry, tuple) and entry[0] == "restore_in_stock":
+                target_id = entry[1]
+                try:
+                    login = await page.request.post(
+                        f"{base}/api/login",
+                        headers={"Content-Type": "application/json"},
+                        data={"password": args.admin_password},
+                    )
+                    if login.status == 200:
+                        body = await login.json()
+                        admin_token = (body or {}).get("token") or ""
+                        if admin_token:
+                            await page.request.patch(
+                                f"{base}/api/admin/products",
+                                headers={"Content-Type": "application/json", "Authorization": f"Bearer {admin_token}"},
+                                data={"id": int(target_id), "in_stock": False},
+                            )
+                            print(f"  Restored in_stock=false for product {target_id}", flush=True)
+                except Exception as e:
+                    print(f"  Failed to restore in_stock for {target_id}: {e}", flush=True)
 
         await browser.close()
 
