@@ -39,10 +39,20 @@ def http(method, path, body=None, headers=None, expect_json=True):
     try:
         with urllib.request.urlopen(req) as r:
             txt = r.read().decode("utf-8", errors="replace")
-            return r.status, (json.loads(txt) if expect_json and txt else txt)
+            if expect_json and txt:
+                try:
+                    return r.status, json.loads(txt)
+                except Exception:
+                    return r.status, txt
+            return r.status, txt
     except urllib.error.HTTPError as e:
         txt = e.read().decode("utf-8", errors="replace")
-        return e.code, (json.loads(txt) if expect_json and txt else txt)
+        if expect_json and txt:
+            try:
+                return e.code, json.loads(txt)
+            except Exception:
+                return e.code, txt
+        return e.code, txt
 
 
 def phone():
@@ -75,6 +85,20 @@ def main() -> int:
     token = body["token"]
     admin_h = {"Authorization": f"Bearer {token}"}
     print(f"[setup] admin token issued ({len(token)} chars)")
+
+    # --- 1b. Seed variant stock so the order lines don't fail on OOS ---
+    # The test creates orders with item_id=1, size="M", color="Red".
+    # The variant inventory table now tracks stock per (product, color, size).
+    seed_status, seed = http(
+        "POST",
+        "/api/admin/inventory",
+        {"product_id": 1, "color": "Red", "size": "M", "quantity": 100},
+        headers=admin_h,
+    )
+    if seed_status in (200, 201):
+        print(f"[setup] seeded inventory: product=1 Red/M qty=100 (HTTP {seed_status})")
+    else:
+        print(f"[setup] WARNING: could not seed inventory: HTTP {seed_status} body={seed!r}")
 
     # --- 2. Create a fresh eSewa order ---
     s, body = http("POST", "/api/orders", make_order("esewa"))

@@ -93,7 +93,46 @@ async function handleCreate(req, res) {
         body: JSON.stringify(payload),
     });
     if (r.status >= 400) return res.status(r.status).json(r.data || { error: r.raw });
-    return res.status(201).json({ ok: true, product: (r.data || [])[0] });
+    const product = (r.data || [])[0];
+    if (!product) return res.status(500).json({ error: 'Product created but could not be retrieved' });
+
+    // Auto-create one inventory row per (color, size) combination.
+    // New products start at qty 0 so they are out of stock until the admin
+    // sets a positive stock level via the inventory screen.
+    const colors = Array.isArray(payload.colors) && payload.colors.length > 0
+        ? payload.colors
+        : ['Standard'];
+    const sizes = Array.isArray(payload.sizes) && payload.sizes.length > 0
+        ? payload.sizes
+        : ['Free Size'];
+    const invRows = [];
+    for (const c of colors) {
+        for (const s of sizes) {
+            invRows.push({
+                product_id: product.id,
+                color: String(c).trim(),
+                size: String(s).trim(),
+                quantity: 0,
+                reserved: 0,
+                last_updated: new Date().toISOString(),
+            });
+        }
+    }
+    let inventoryCreated = 0;
+    if (invRows.length > 0) {
+        const rInv = await sbFetch('inventory', {
+            method: 'POST',
+            headers: { Prefer: 'resolution=ignore-duplicates' },
+            body: JSON.stringify(invRows),
+        });
+        if (rInv.status >= 400) {
+            console.error('inventory auto-create failed:', rInv.status, rInv.data || rInv.raw);
+        } else {
+            inventoryCreated = invRows.length;
+        }
+    }
+
+    return res.status(201).json({ ok: true, product, inventory_created: inventoryCreated });
 }
 
 async function handlePatch(req, res) {
@@ -114,7 +153,57 @@ async function handlePatch(req, res) {
         body: JSON.stringify(payload),
     });
     if (r.status >= 400) return res.status(r.status).json(r.data || { error: r.raw });
-    return res.status(200).json({ ok: true, product: (r.data || [])[0] });
+    const product = (r.data || [])[0] || null;
+
+    // If colors or sizes were changed, add inventory rows for any
+    // new (color, size) combinations. Existing variants keep their
+    // stock; we never overwrite a row that already has quantity data.
+    let inventoryCreated = 0;
+    if (product && (Array.isArray(payload.colors) || Array.isArray(payload.sizes))) {
+        const existingRes = await sbFetch(
+            `inventory?product_id=eq.${encodeURIComponent(id)}&select=color,size`
+        );
+        const existing = Array.isArray(existingRes.data) ? existingRes.data : [];
+        const existingKeys = new Set(
+            existing.map((e) => `${String(e.color).trim()}|${String(e.size).trim()}`)
+        );
+        const colors = Array.isArray(product.colors) && product.colors.length > 0
+            ? product.colors
+            : ['Standard'];
+        const sizes = Array.isArray(product.sizes) && product.sizes.length > 0
+            ? product.sizes
+            : ['Free Size'];
+        const newRows = [];
+        for (const c of colors) {
+            for (const s of sizes) {
+                const key = `${String(c).trim()}|${String(s).trim()}`;
+                if (!existingKeys.has(key)) {
+                    newRows.push({
+                        product_id: Number(id),
+                        color: String(c).trim(),
+                        size: String(s).trim(),
+                        quantity: 0,
+                        reserved: 0,
+                        last_updated: new Date().toISOString(),
+                    });
+                }
+            }
+        }
+        if (newRows.length > 0) {
+            const rInv = await sbFetch('inventory', {
+                method: 'POST',
+                headers: { Prefer: 'resolution=ignore-duplicates' },
+                body: JSON.stringify(newRows),
+            });
+            if (rInv.status >= 400) {
+                console.error('inventory patch auto-create failed:', rInv.status, rInv.data || rInv.raw);
+            } else {
+                inventoryCreated = newRows.length;
+            }
+        }
+    }
+
+    return res.status(200).json({ ok: true, product, inventory_created: inventoryCreated });
 }
 
 async function handleSoftDelete(req, res) {

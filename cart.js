@@ -24,7 +24,13 @@ function saveCart() {
 }
 
 // Add item to cart with optional quantity
-async function addToCart(productId, size = null, color = null, quantity = 1) {
+// `available` is the per-variant stock count from the product page
+// (looked up from the inventory table). If the caller doesn't know,
+// the helper resolves it from the inventory table here, then falls
+// back to the server's MAX_PER_LINE cap if the variant isn't in the
+// table yet. The server is still the final authority on per-line
+// availability — the cap here is just a UX convenience.
+async function addToCart(productId, size = null, color = null, quantity = 1, available = null) {
     const product = await getProductById(productId);
     if (!product) {
         showToast('Product not found', 'error');
@@ -34,12 +40,42 @@ async function addToCart(productId, size = null, color = null, quantity = 1) {
     const selectedSize = size || (product.sizes && product.sizes[0]) || 'Free Size';
     const selectedColor = color || (product.colors && product.colors[0]) || 'Standard';
 
+    // Resolve the per-variant stock count. If the caller didn't pass
+    // one (e.g. "Quick Add" from a card), look it up from the inventory
+    // table. If the inventory table doesn't have a row for this variant
+    // yet, fall back to MAX_PER_LINE so the UX cap is generous until
+    // the server confirms/refuses at checkout.
+    let variantStock = null;
+    if (typeof available === 'number' && Number.isFinite(available) && available >= 0) {
+        variantStock = available;
+    } else if (typeof getInventoryVariant === 'function') {
+        const inv = await getInventoryVariant(productId, selectedColor, selectedSize);
+        if (inv && Number.isFinite(Number(inv.quantity))) {
+            variantStock = Number(inv.quantity);
+        }
+    }
+    const MAX_PER_LINE = 10; // mirrors server INVENTORY_PER_ITEM_CAP default
+    const stockCap = variantStock !== null
+        ? Math.min(MAX_PER_LINE, variantStock)
+        : MAX_PER_LINE;
+
     const existingIndex = cart.findIndex(
         item => item.id === product.id && item.size === selectedSize && item.color === selectedColor
     );
 
     if (existingIndex > -1) {
         cart[existingIndex].quantity += quantity;
+        // Re-evaluate the line cap so existing lines get the new
+        // inventory ceiling if it has shrunk since the line was added.
+        if (cart[existingIndex].quantity > stockCap) {
+            cart[existingIndex].quantity = stockCap;
+            if (stockCap === 0) {
+                showToast(`"${product.name}" (${selectedColor} / ${selectedSize}) just sold out.`, 'warning');
+            } else {
+                showToast(`Only ${stockCap} of "${product.name}" (${selectedColor} / ${selectedSize}) left in stock.`, 'warning');
+            }
+        }
+        cart[existingIndex].maxStock = stockCap;
     } else {
         cart.push({
             id: product.id,
@@ -50,10 +86,14 @@ async function addToCart(productId, size = null, color = null, quantity = 1) {
             size: selectedSize,
             color: selectedColor,
             quantity: quantity,
-            // The products table exposes `in_stock` (boolean), not a stock
-            // count. We cap per-line at a sane default; the server is the
-            // final authority on per-line availability.
-            maxStock: 10
+            // Per-variant stock cap. The inventory table is the
+            // source of truth; the server is the final authority on
+            // per-line availability at order creation.
+            maxStock: stockCap,
+            // Stash the raw variant stock count so the cart drawer can
+            // show "Only X left" badges and refuse to render the
+            // checkout button when any line is sold out.
+            stock: variantStock,
         });
     }
 
@@ -249,6 +289,64 @@ function openCartDrawer() {
     if (overlay) {
         overlay.classList.add('open');
     }
+    // Refresh live stock state every time the drawer opens so the
+    // customer sees "Only X left" / "Out of stock" badges reflecting the
+    // current database, not the value that was on the line when it was
+    // first added. Fire-and-forget; render continues with cached data.
+    refreshCartStockDisplay();
+}
+
+// Read live per-variant stock for every line in the cart and re-render
+// the drawer so the customer sees the current count. A line that has
+// gone out of stock since being added is flagged but kept in the cart
+// (the server is the final authority at checkout).
+async function refreshCartStockDisplay() {
+    if (!Array.isArray(cart) || cart.length === 0) return;
+    const updates = [];
+    for (let i = 0; i < cart.length; i += 1) {
+        const line = cart[i];
+        if (typeof getInventoryVariant !== 'function') continue;
+        // eslint-disable-next-line no-await-in-loop
+        const inv = await getInventoryVariant(line.id, line.color, line.size);
+        const stock = inv && Number.isFinite(Number(inv.quantity)) ? Number(inv.quantity) : null;
+        if (stock === null) continue;
+        line.stock = stock;
+        const MAX_PER_LINE = 10;
+        const newCap = Math.min(MAX_PER_LINE, stock);
+        line.maxStock = newCap;
+        if (line.quantity > newCap) {
+            line.quantity = newCap;
+            if (newCap === 0) {
+                showToast(`"${line.name}" (${line.color} / ${line.size}) just sold out.`, 'warning');
+            }
+        }
+        updates.push(i);
+    }
+    if (updates.length === 0) return;
+    saveCart();
+    // Re-evaluate checkout button state in case any line went OOS.
+    setCheckoutButtonState();
+}
+
+// Disable the checkout button when any line in the cart is sold out
+// (stock <= 0 or variant row missing). The server is still the final
+// authority — this is a UX courtesy, not a security control.
+function setCheckoutButtonState() {
+    const btn = document.getElementById('checkoutBtn') || document.querySelector('[data-checkout-button]');
+    if (!btn) return;
+    const anyOos = (cart || []).some((line) => {
+        const stock = Number(line.stock);
+        return !Number.isFinite(stock) || stock <= 0;
+    });
+    if (anyOos) {
+        btn.setAttribute('disabled', 'disabled');
+        btn.setAttribute('aria-disabled', 'true');
+        btn.classList.add('is-disabled');
+    } else {
+        btn.removeAttribute('disabled');
+        btn.removeAttribute('aria-disabled');
+        btn.classList.remove('is-disabled');
+    }
 }
 
 function closeCartDrawer() {
@@ -296,11 +394,12 @@ function clearPendingOrder() {
     localStorage.removeItem(PENDING_ORDER_KEY);
 }
 
-// Validate stock before checkout. The products table exposes a boolean
-// `in_stock` column (and historically a `stock` int via inventory), not
-// the `product.stock` key the old code read. We check `in_stock` and
-// cap at a sane per-line maximum; the authoritative recompute lives in
-// the server-side /api/orders endpoint.
+// Validate stock before checkout. The product table exposes a boolean
+// `in_stock` column (the master "sellable" flag) and the inventory
+// table exposes per-variant quantity. We read both here so the customer
+// gets a fast "out of stock" message before they hit the network. The
+// authoritative recompute lives in the server-side /api/orders
+// endpoint, which performs an atomic decrement after re-checking stock.
 async function validateCartStock() {
     const stockErrors = [];
     const MAX_PER_LINE = 10; // mirrors server INVENTORY_PER_ITEM_CAP default
@@ -308,27 +407,75 @@ async function validateCartStock() {
     for (const item of cart) {
         try {
             const product = await getProductById(item.id);
-            if (product) {
-                if (product.in_stock === false) {
-                    stockErrors.push({
-                        name: item.name,
-                        requested: item.quantity,
-                        available: 0,
-                        outOfStock: true
-                    });
-                    continue;
-                }
-                if (item.quantity > MAX_PER_LINE) {
-                    stockErrors.push({
-                        name: item.name,
-                        requested: item.quantity,
-                        available: MAX_PER_LINE,
-                        overCap: true
-                    });
+            if (product && product.in_stock === false) {
+                stockErrors.push({
+                    name: item.name,
+                    size: item.size,
+                    color: item.color,
+                    requested: item.quantity,
+                    available: 0,
+                    outOfStock: true,
+                });
+                continue;
+            }
+            // Per-variant lookup. If the inventory table is unreadable
+            // for any reason we fall back to the cached `item.stock`
+            // that `addToCart` stashed on the line. The server is the
+            // final authority either way.
+            let variantStock = null;
+            if (typeof getInventoryVariant === 'function') {
+                const inv = await getInventoryVariant(item.id, item.color, item.size);
+                if (inv && Number.isFinite(Number(inv.quantity))) {
+                    variantStock = Number(inv.quantity);
                 }
             }
+            if (variantStock === null && Number.isFinite(Number(item.stock))) {
+                variantStock = Number(item.stock);
+            }
+            if (variantStock !== null) {
+                if (variantStock <= 0) {
+                    stockErrors.push({
+                        name: item.name,
+                        size: item.size,
+                        color: item.color,
+                        requested: item.quantity,
+                        available: 0,
+                        outOfStock: true,
+                    });
+                } else if (item.quantity > variantStock) {
+                    stockErrors.push({
+                        name: item.name,
+                        size: item.size,
+                        color: item.color,
+                        requested: item.quantity,
+                        available: Math.min(variantStock, MAX_PER_LINE),
+                        overCap: true,
+                    });
+                } else if (item.quantity > MAX_PER_LINE) {
+                    stockErrors.push({
+                        name: item.name,
+                        size: item.size,
+                        color: item.color,
+                        requested: item.quantity,
+                        available: MAX_PER_LINE,
+                        overCap: true,
+                    });
+                }
+            } else if (item.quantity > MAX_PER_LINE) {
+                // Inventory unreadable AND the line exceeds the server
+                // cap. Surface this as an overCap error so we never
+                // let an excessive line through silently.
+                stockErrors.push({
+                    name: item.name,
+                    size: item.size,
+                    color: item.color,
+                    requested: item.quantity,
+                    available: MAX_PER_LINE,
+                    overCap: true,
+                });
+            }
         } catch (e) {
-            console.warn('Could not validate stock for item:', item.name);
+            console.warn('Could not validate stock for item:', item.name, e);
         }
     }
 

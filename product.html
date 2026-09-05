@@ -187,6 +187,47 @@
             border-color: var(--primary);
             background: #F8EFEF;
         }
+        /* Out-of-stock state on size/color pills. The server is the
+           final authority on availability; this is a UI courtesy. */
+        .size-pill[data-out-of-stock="true"],
+        .color-pill[data-out-of-stock="true"] {
+            opacity: 0.45;
+            text-decoration: line-through;
+            cursor: not-allowed;
+            position: relative;
+        }
+        .size-pill[data-out-of-stock="true"]::after,
+        .color-pill[data-out-of-stock="true"]::after {
+            content: "Out of stock";
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            color: var(--text-muted, #888);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .stock-badge {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .stock-badge.in-stock {
+            background: #E8F5E9;
+            color: #2E7D32;
+        }
+        .stock-badge.low-stock {
+            background: #FFF8E1;
+            color: #F57F17;
+        }
+        .stock-badge.out-of-stock {
+            background: #FFEBEE;
+            color: #C62828;
+        }
         .product-detail-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -635,6 +676,7 @@
                             ${originalPrice ? `<span class="product-price-strike">NPR ${originalPrice.toLocaleString('en-IN')}</span>` : ''}
                             ${discount > 0 ? `<span style="background: var(--gold); color: #FFF; font-size: 0.8rem; font-weight: 700; padding: 4px 8px; border-radius: 4px;">SAVE ${discount}%</span>` : ''}
                         </div>
+                        <div id="productStockBadge" class="stock-badge" data-stock-state="loading" style="display:none;"></div>
 
                         <p style="color: var(--text-muted); font-size: 1rem; line-height: 1.7;">
                             ${currentProduct.description}
@@ -648,7 +690,7 @@
                             </div>
                             <div class="size-pills">
                                 ${sizes.map((s, i) => `
-                                    <button class="size-pill ${i === 0 ? 'selected' : ''}" onclick="selectSize('${s}', this)">${s}</button>
+                                    <button class="size-pill ${i === 0 ? 'selected' : ''}" data-size-value="${s}" onclick="selectSize('${s}', this)">${s}</button>
                                 `).join('')}
                             </div>
                         </div>
@@ -661,7 +703,7 @@
                             </div>
                             <div class="color-pills">
                                 ${colors.map((c, i) => `
-                                    <button class="color-pill ${i === 0 ? 'selected' : ''}" onclick="selectColor('${c}', this)">
+                                    <button class="color-pill ${i === 0 ? 'selected' : ''}" data-color-value="${c}" onclick="selectColor('${c}', this)">
                                         <span class="color-dot" style="background-color: ${getColorHex(c)};"></span>
                                         <span>${c}</span>
                                     </button>
@@ -730,6 +772,90 @@
             loadRelatedProducts(currentProduct.id);
 
             initStickyBuyBar();
+            refreshProductStock();
+        }
+
+        /**
+         * Fetch variant-level inventory for the current product and decorate
+         * the size and color pills with out-of-stock state. Also updates
+         * the productStockBadge below the price and disables the Add to Cart
+         * button if the currently-selected variant is sold out.
+         */
+        async function refreshProductStock() {
+            if (!currentProduct) return;
+            // getInventory comes from db.js. It uses the anon Supabase client,
+            // which can read inventory thanks to the `inventory_anon_read` policy.
+            const inv = typeof getInventory === 'function'
+                ? await getInventory(currentProduct.id)
+                : [];
+            if (!Array.isArray(inv) || inv.length === 0) return;
+
+            // Build a quick lookup: key = "color|size", value = stock count.
+            const stockMap = new Map(
+                inv.map((r) => [
+                    `${String(r.color).trim()}|${String(r.size).trim()}`,
+                    Number.isFinite(Number(r.quantity)) ? Number(r.quantity) : 0,
+                ])
+            );
+
+            // 1. Mark size pills: a size is OOS for the current color if
+            // the (selectedColor, thatSize) variant has stock <= 0.
+            const sizes = Array.isArray(currentProduct.sizes) ? currentProduct.sizes : [];
+            const colors = Array.isArray(currentProduct.colors) ? currentProduct.colors : [];
+            for (const s of sizes) {
+                const pill = document.querySelector(`.size-pill[data-size-value="${s}"]`);
+                if (!pill) continue;
+                const oos = stockMap.get(`${selectedColor}|${s}`) <= 0;
+                pill.dataset.outOfStock = String(oos);
+                pill.disabled = oos;
+            }
+            // 2. Mark color pills: a color is OOS for the current size if
+            // the (thatColor, selectedSize) variant has stock <= 0.
+            for (const c of colors) {
+                const pill = document.querySelector(`.color-pill[data-color-value="${c}"]`);
+                if (!pill) continue;
+                const oos = stockMap.get(`${c}|${selectedSize}`) <= 0;
+                pill.dataset.outOfStock = String(oos);
+                pill.disabled = oos;
+            }
+
+            // 3. Update the stock badge below the price.
+            const badge = document.getElementById('productStockBadge');
+            if (badge) {
+                const variantStock = stockMap.get(`${selectedColor}|${selectedSize}`) ?? null;
+                badge.style.display = '';
+                if (variantStock === null || variantStock > 5) {
+                    badge.textContent = '';
+                    badge.className = 'stock-badge in-stock';
+                    badge.dataset.stockState = 'in-stock';
+                } else if (variantStock > 0) {
+                    badge.textContent = `Only ${variantStock} left in stock`;
+                    badge.className = 'stock-badge low-stock';
+                    badge.dataset.stockState = 'low-stock';
+                } else {
+                    badge.textContent = 'Out of stock';
+                    badge.className = 'stock-badge out-of-stock';
+                    badge.dataset.stockState = 'out-of-stock';
+                }
+            }
+
+            // 4. Disable Add to Cart if the selected variant is OOS.
+            const addBtn = document.querySelector('.btn-add-cart');
+            if (addBtn) {
+                const variantStock = stockMap.get(`${selectedColor}|${selectedSize}`) ?? null;
+                const isOos = variantStock !== null && variantStock <= 0;
+                addBtn.disabled = isOos;
+                if (isOos) {
+                    addBtn.textContent = 'Out of Stock';
+                    addBtn.style.opacity = '0.6';
+                    addBtn.style.cursor = 'not-allowed';
+                } else {
+                    addBtn.disabled = false;
+                    addBtn.textContent = 'Add to Cart';
+                    addBtn.style.opacity = '';
+                    addBtn.style.cursor = '';
+                }
+            }
         }
 
         /**
@@ -768,6 +894,10 @@
             document.getElementById('selectedSizeLabel').textContent = size;
             document.querySelectorAll('.size-pill').forEach(p => p.classList.remove('selected'));
             el.classList.add('selected');
+            // Re-evaluate OOS state for the new size selection.
+            if (typeof refreshProductStock === 'function') {
+                refreshProductStock();
+            }
         }
 
         function selectColor(color, el) {
@@ -775,12 +905,32 @@
             document.getElementById('selectedColorLabel').textContent = color;
             document.querySelectorAll('.color-pill').forEach(p => p.classList.remove('selected'));
             el.classList.add('selected');
+            // Re-evaluate OOS state for the new color selection.
+            if (typeof refreshProductStock === 'function') {
+                refreshProductStock();
+            }
         }
 
         function addCurrentProductToCart() {
             if (!currentProduct) return;
             const qty = parseInt(document.getElementById('productQuantity').value) || 1;
-            addToCart(currentProduct.id, selectedSize, selectedColor, qty);
+            // Resolve per-variant stock so the cart can cap the line qty
+            // at the true available count, not a hardcoded 10. We use
+            // getInventoryVariant (db.js) which reads from the anon
+            // SELECT-able inventory table.
+            const addWithStock = (stock) => {
+                const safe = Number.isFinite(Number(stock)) ? Number(stock) : 10;
+                if (typeof addToCart === 'function') {
+                    addToCart(currentProduct.id, selectedSize, selectedColor, qty, safe);
+                }
+            };
+            if (typeof getInventoryVariant === 'function') {
+                getInventoryVariant(currentProduct.id, selectedColor, selectedSize)
+                    .then((row) => addWithStock(row && row.quantity))
+                    .catch(() => addWithStock(10));
+            } else {
+                addWithStock(10);
+            }
         }
 
         function adjustQuantity(delta) {

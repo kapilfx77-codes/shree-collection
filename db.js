@@ -228,18 +228,84 @@ async function deleteProduct() {
 }
 
 // ==========================================================================
-// INVENTORY — read-only via anon is RLS-blocked. Admin uses service role
-// indirectly through /api/admin/* if needed in the future.
+// INVENTORY — variant-level (product_id, color, size)
 // ==========================================================================
+// The variant inventory table is publicly readable by anon (see
+// `inventory_anon_read` policy in sql/000_full_init.sql). The product page
+// and cart drawer use `getInventory(productId)` to colour sold-out pills
+// and show "Only X left" badges. Admin writes go through /api/admin/inventory
+// which uses the service role and the atomic decrement / restore RPCs.
 
-async function getInventory() {
-    // Inventory table is not readable by anon. Return null so the storefront
-    // falls back to product.in_stock (the boolean we already show on cards).
-    return null;
+let inventoryCache = new Map();
+const INV_CACHE_TTL = 30 * 1000; // 30s — shorter than product cache so stock changes surface
+
+async function getInventory(productId) {
+    if (!isSupabaseReady()) return [];
+    if (productId === undefined || productId === null) {
+        console.warn('getInventory(productId) requires a productId.');
+        return [];
+    }
+    const key = String(productId);
+    const now = Date.now();
+    const hit = inventoryCache.get(key);
+    if (hit && now < hit.expires) return hit.rows;
+    try {
+        const { data, error } = await supabaseClient
+            .from('inventory')
+            .select('product_id, color, size, quantity, reserved, available, last_updated')
+            .eq('product_id', productId)
+            .order('color', { ascending: true })
+            .order('size', { ascending: true });
+        if (error) throw error;
+        const rows = data || [];
+        inventoryCache.set(key, { rows, expires: now + INV_CACHE_TTL });
+        return rows;
+    } catch (err) {
+        console.error('Error fetching inventory:', err);
+        return [];
+    }
 }
 
+async function getInventoryVariant(productId, color, size) {
+    const rows = await getInventory(productId);
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    const c = String(color || '').trim();
+    const s = String(size || '').trim();
+    return rows.find((r) => String(r.color).trim() === c && String(r.size).trim() === s) || null;
+}
+
+function clearInventoryCache() {
+    inventoryCache = new Map();
+}
+
+// Admin wrappers — all require an active admin session token.
+async function adminListInventory(opts = {}) {
+    const qs = new URLSearchParams();
+    if (opts.product_id !== undefined && opts.product_id !== null) {
+        qs.set('product_id', String(opts.product_id));
+    }
+    const path = qs.toString() ? `inventory?${qs.toString()}` : 'inventory';
+    return adminFetch(path);
+}
+
+async function adminSetInventory({ product_id: productId, color, size, quantity }) {
+    return adminFetch('inventory', {
+        method: 'POST',
+        body: JSON.stringify({ product_id: productId, color, size, quantity }),
+    });
+}
+
+async function adminAdjustInventory({ product_id: productId, color, size, delta }) {
+    return adminFetch('inventory', {
+        method: 'PATCH',
+        body: JSON.stringify({ product_id: productId, color, size, delta }),
+    });
+}
+
+// Legacy stub kept so old callers don't break. Logs a warning and returns
+// false so the admin knows to use the new admin endpoints.
 async function updateInventory() {
-    console.warn('updateInventory must be done via /api/admin/* (not yet exposed).');
+    console.warn('updateInventory is admin-only. Use adminSetInventory()/adminAdjustInventory() via /api/admin/inventory.');
     return false;
 }
 

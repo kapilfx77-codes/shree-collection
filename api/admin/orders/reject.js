@@ -14,6 +14,12 @@
 //
 // Atomicity: same race-safety pattern as verify.js — pre-check + state
 // filter in the PATCH. Two concurrent rejects cannot both succeed.
+//
+// Inventory restore: when the PATCH succeeds, every line in the order is
+// restored to its variant's inventory row via the `restore_inventory` RPC.
+// Because the PATCH is filtered by `payment_rejected_at IS NULL` it can
+// only succeed once, so the restore can only run once. A second reject
+// returns 409 before the restore path is reached.
 // ==========================================================================
 
 import {
@@ -45,7 +51,7 @@ export default async function handler(req, res) {
         }
 
         const lookup = await sbFetch(
-            `orders?order_id=eq.${encodeURIComponent(orderId)}&select=order_id,payment_method,payment_status`
+            `orders?order_id=eq.${encodeURIComponent(orderId)}&select=order_id,payment_method,payment_status,items`
         );
         if (lookup.status >= 400) {
             return res.status(lookup.status).json(lookup.data || { error: lookup.raw });
@@ -67,6 +73,11 @@ export default async function handler(req, res) {
                 error: `This order cannot be rejected from state "${order.payment_status}".`,
             });
         }
+        if (order.payment_rejected_at) {
+            return res.status(409).json({
+                error: 'This order has already been rejected; inventory was already restored once.',
+            });
+        }
 
         const nowIso = new Date().toISOString();
         const adminSub = String((session && session.sub) || 'admin');
@@ -78,10 +89,15 @@ export default async function handler(req, res) {
             payment_rejection_reason: reason,
         };
 
-        // Race-safe update: only matches rows still in the expected state.
+        // Race-safe update: only matches rows still in the expected
+        // state. The `payment_rejected_at=is.null` filter is the second
+        // line of defence — even if another admin has flipped
+        // payment_status by hand, the rejection audit columns can only
+        // be written once.
         const r = await sbFetch(
             `orders?order_id=eq.${encodeURIComponent(orderId)}` +
-            `&payment_method=eq.esewa&payment_status=eq.pending`,
+            `&payment_method=eq.esewa&payment_status=eq.pending` +
+            `&payment_rejected_at=is.null`,
             {
                 method: 'PATCH',
                 headers: { Prefer: 'return=representation' },
@@ -95,7 +111,46 @@ export default async function handler(req, res) {
         if (rows.length === 0) {
             return res.status(409).json({ error: 'Order state changed before rejection could complete.' });
         }
-        return res.status(200).json({ ok: true, order: rows[0] });
+        const updated = rows[0];
+
+        // Restore inventory atomically per line. The PATCH above was
+        // idempotent — only one reject can succeed — so this block can
+        // only run once per order. We restore best-effort: if the RPC
+        // errors on a particular variant (e.g. legacy row without
+        // color/size), we log it and continue. The order is already
+        // marked failed; the admin can re-adjust stock via the
+        // inventory screen if needed.
+        const items = Array.isArray(updated.items) ? updated.items : (Array.isArray(order.items) ? order.items : []);
+        const restoreReport = { attempted: 0, restored: 0, errors: [] };
+        for (const line of items) {
+            const pid = Number(line && line.id);
+            const color = String((line && line.color) || '').trim();
+            const size = String((line && line.size) || '').trim();
+            const qty = Math.floor(Number(line && line.quantity));
+            if (!Number.isInteger(pid) || pid <= 0 || !color || !size || !Number.isInteger(qty) || qty <= 0) {
+                continue;
+            }
+            restoreReport.attempted += 1;
+            // eslint-disable-next-line no-await-in-loop
+            const rInv = await sbFetch('rpc/restore_inventory', {
+                method: 'POST',
+                headers: { Prefer: 'return=representation' },
+                body: JSON.stringify({
+                    p_product_id: pid,
+                    p_color: color,
+                    p_size: size,
+                    p_qty: qty,
+                }),
+            });
+            if (rInv.status >= 400) {
+                console.error('restore_inventory error:', rInv.status, rInv.data || rInv.raw);
+                restoreReport.errors.push({ pid, color, size, qty, status: rInv.status, detail: rInv.data || rInv.raw });
+            } else {
+                restoreReport.restored += 1;
+            }
+        }
+
+        return res.status(200).json({ ok: true, order: updated, inventory_restore: restoreReport });
     } catch (err) {
         console.error('admin/orders/reject error:', err);
         return res.status(500).json({

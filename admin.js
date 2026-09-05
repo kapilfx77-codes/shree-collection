@@ -15,6 +15,7 @@ let currentPage = 'dashboard';
 let productsCacheList = [];
 let ordersCacheList = [];
 let customersCacheList = [];
+let inventoryCacheList = []; // full inventory rows from /api/admin/inventory
 
 // Local edit-state
 let editingProductId = null;
@@ -399,10 +400,71 @@ async function loadProducts() {
 }
 
 async function loadInventory() {
-    document.getElementById('inventoryList').innerHTML = '<div class="state-block" style="padding: 60px;"><div class="spinner"></div></div>';
-    const res = await adminListProducts({ pageSize: 500 });
-    productsCacheList = res.products || [];
-    renderInventory();
+    const target = document.getElementById('inventoryList');
+    if (target) target.innerHTML = '<div class="state-block" style="padding: 60px;"><div class="spinner"></div></div>';
+    try {
+        // Fetch the per-variant inventory joined with product names. The
+        // endpoint requires an admin session; adminListInventory handles
+        // the bearer token via adminFetch.
+        const inv = await adminListInventory();
+        inventoryCacheList = Array.isArray(inv && inv.inventory) ? inv.inventory : [];
+        // Also pull the full product list so we can show variants for
+        // products that haven't been stocked yet (a product with no
+        // inventory rows should still show its N×M grid at 0).
+        const res = await adminListProducts({ pageSize: 500 });
+        productsCacheList = res.products || [];
+        renderInventory();
+    } catch (err) {
+        if (typeof showApiError === 'function') showApiError(err);
+        if (target) {
+            target.innerHTML = `<div class="state-block" style="padding: 60px; color: var(--text-muted);">Could not load inventory: ${escapeHtml(err.message || String(err))}</div>`;
+        }
+    }
+}
+
+// Adjust a single variant's stock by a delta (positive or negative).
+// Used by the +/- buttons in the inventory matrix. Wraps the
+// admin/inventory PATCH endpoint which uses the atomic RPCs.
+async function adjustInventory(productId, color, size, delta) {
+    try {
+        await adminAdjustInventory({
+            product_id: productId,
+            color,
+            size,
+            delta: Number(delta),
+        });
+        if (typeof clearInventoryCache === 'function') clearInventoryCache();
+        // Reload the inventory page to reflect the new state.
+        await loadInventory();
+    } catch (err) {
+        if (typeof showToast === 'function') {
+            showToast(err.message || 'Could not adjust stock.', 'error');
+        } else {
+            alert(err.message || 'Could not adjust stock.');
+        }
+    }
+}
+
+// Set a variant's stock to an exact value (used by the "Save" button
+// next to each input in the inventory matrix). Wraps the
+// admin/inventory POST endpoint which UPSERTs the row.
+async function setInventory(productId, color, size, quantity) {
+    try {
+        await adminSetInventory({
+            product_id: productId,
+            color,
+            size,
+            quantity: Number(quantity),
+        });
+        if (typeof clearInventoryCache === 'function') clearInventoryCache();
+        await loadInventory();
+    } catch (err) {
+        if (typeof showToast === 'function') {
+            showToast(err.message || 'Could not set stock.', 'error');
+        } else {
+            alert(err.message || 'Could not set stock.');
+        }
+    }
 }
 
 async function loadCustomers() {
@@ -1097,11 +1159,21 @@ function renderInventory() {
         target.innerHTML = renderEmptyState('No products', 'Add products to see their variant matrix.');
         return;
     }
+    // Build a quick lookup from the inventory cache so we know each
+    // (product_id, color, size) variant's quantity.
+    const stockMap = new Map();
+    for (const r of inventoryCacheList) {
+        const key = `${r.product_id}|${String(r.color).trim()}|${String(r.size).trim()}`;
+        stockMap.set(key, Number(r.quantity) || 0);
+    }
     target.innerHTML = productsCacheList.map(p => {
-        const sizes = p.sizes || [];
-        const colors = p.colors || [];
+        const sizes = Array.isArray(p.sizes) ? p.sizes : [];
+        const colors = Array.isArray(p.colors) ? p.colors : [];
         const inStock = isInStock(p);
-        const variantCount = sizes.length * colors.length;
+        const variantCount = Math.max(sizes.length * colors.length, 1);
+        const totalStock = inventoryCacheList
+            .filter((r) => Number(r.product_id) === Number(p.id))
+            .reduce((s, r) => s + (Number(r.quantity) || 0), 0);
         return `
             <div class="card">
                 <div class="card-head">
@@ -1109,11 +1181,11 @@ function renderInventory() {
                         <img src="${(p.images && p.images[0]) || PLACEHOLDER_IMAGE}" alt="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
                         <div>
                             <h3 style="margin: 0;">${escapeHtml(p.name)}</h3>
-                            <div class="subtle">${variantCount} variant${variantCount === 1 ? '' : 's'} · NPR ${Number(p.price || 0).toLocaleString('en-IN')}</div>
+                            <div class="subtle">${variantCount} variant${variantCount === 1 ? '' : 's'} · Total stock: <strong>${totalStock}</strong> · NPR ${Number(p.price || 0).toLocaleString('en-IN')}</div>
                         </div>
                     </div>
                     <div>
-                        ${inStock ? '<span class="badge badge-green">In Stock</span>' : '<span class="badge badge-red">Out of Stock</span>'}
+                        ${inStock ? '<span class="badge badge-green">Selling</span>' : '<span class="badge badge-red">Hidden</span>'}
                         <button class="btn btn-ghost btn-sm" style="margin-left: 8px;" onclick="openProductModal(${p.id})">Edit</button>
                     </div>
                 </div>
@@ -1133,8 +1205,26 @@ function renderInventory() {
                                     <tr>
                                         <td style="font-weight: 600; color: var(--text-dark);">${escapeHtml(c)}</td>
                                         ${sizes.map(s => {
-                                            const status = inStock ? 'available' : 'oos';
-                                            return `<td style="text-align: center;"><span class="badge ${inStock ? 'badge-green' : 'badge-red'}">${inStock ? 'Available' : 'OOS'}</span></td>`;
+                                            const key = `${p.id}|${String(c).trim()}|${String(s).trim()}`;
+                                            const qty = stockMap.has(key) ? stockMap.get(key) : 0;
+                                            const cEsc = escapeHtml(String(c).replace(/"/g, '&quot;'));
+                                            const sEsc = escapeHtml(String(s).replace(/"/g, '&quot;'));
+                                            const badge = qty > 5
+                                                ? `<span class="badge badge-green">${qty}</span>`
+                                                : (qty > 0
+                                                    ? `<span class="badge badge-amber">${qty}</span>`
+                                                    : `<span class="badge badge-red">OOS</span>`);
+                                            return `<td style="text-align: center;">
+                                                <div style="display: inline-flex; align-items: center; gap: 4px;">
+                                                    <button class="btn btn-ghost btn-sm" title="Decrement 1" onclick="adjustInventory(${p.id}, '${cEsc}', '${sEsc}', -1)">−</button>
+                                                    ${badge}
+                                                    <button class="btn btn-ghost btn-sm" title="Increment 1" onclick="adjustInventory(${p.id}, '${cEsc}', '${sEsc}', 1)">+</button>
+                                                </div>
+                                                <div style="margin-top: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                                                    <input id="inv-${p.id}-${sEsc}-${cEsc}" type="number" min="0" value="${qty}" style="width: 64px; padding: 4px 6px; font-size: 0.8rem; border: 1px solid var(--border); border-radius: 4px;" />
+                                                    <button class="btn btn-secondary btn-sm" onclick="setInventory(${p.id}, '${cEsc}', '${sEsc}', document.getElementById('inv-${p.id}-${sEsc}-${cEsc}').value)">Set</button>
+                                                </div>
+                                            </td>`;
                                         }).join('')}
                                     </tr>
                                 `).join('')}

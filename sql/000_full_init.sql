@@ -3,12 +3,13 @@
 -- ============================================================================
 -- Run this ONCE in the Supabase SQL Editor (Project → SQL → New query).
 -- It creates the three tables the app needs, the indexes, the auto-update
--- trigger, the admin columns, and the hardened RLS policies in a single
+-- trigger, the admin columns, the hardened RLS policies, the variant-level
+-- inventory table, and the atomic decrement/restore RPCs in a single
 -- transaction-friendly script.
 --
 -- Re-running is safe: every CREATE uses IF NOT EXISTS, every ALTER uses
--- ADD COLUMN IF NOT EXISTS, and DROP POLICY IF EXISTS makes policies
--- idempotent.
+-- ADD COLUMN IF NOT EXISTS, DROP POLICY IF EXISTS makes policies
+-- idempotent, and the RPCs use CREATE OR REPLACE.
 -- ============================================================================
 
 -- ---------------------------------------------------------------------------
@@ -89,18 +90,49 @@ CREATE TRIGGER trg_orders_updated_at
   FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(updated_at);
 
 -- ---------------------------------------------------------------------------
--- 3. INVENTORY
+-- 3. INVENTORY — variant-level (product_id, color, size)
 -- ---------------------------------------------------------------------------
+-- One row per (product, color, size) combination. Composite primary key
+-- enforces the logical key. CHECK constraints guarantee quantity never
+-- goes negative. `available` is a generated column; the storefront and
+-- cart read it directly. The decrement / restore RPCs in section 9
+-- keep the table consistent under concurrent order creation.
 CREATE TABLE IF NOT EXISTS public.inventory (
-  product_id    BIGINT PRIMARY KEY REFERENCES public.products (id) ON DELETE CASCADE,
-  quantity      INT NOT NULL DEFAULT 0,
-  reserved      INT NOT NULL DEFAULT 0,
+  product_id    BIGINT NOT NULL REFERENCES public.products (id) ON DELETE CASCADE,
+  color         TEXT   NOT NULL,
+  size          TEXT   NOT NULL,
+  quantity      INT    NOT NULL DEFAULT 0,
+  reserved      INT    NOT NULL DEFAULT 0,
   available     INT GENERATED ALWAYS AS (quantity - reserved) STORED,
-  last_updated  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  last_updated  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (product_id, color, size)
 );
 
+-- Non-negative stock guarantees. Without these, a buggy decrement could
+-- silently drive `quantity` below zero and the storefront would think
+-- negative stock is available.
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_quantity_nonneg') THEN
+    ALTER TABLE public.inventory ADD CONSTRAINT inventory_quantity_nonneg CHECK (quantity >= 0);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'inventory_reserved_nonneg') THEN
+    ALTER TABLE public.inventory ADD CONSTRAINT inventory_reserved_nonneg CHECK (reserved >= 0);
+  END IF;
+END $$;
+
+-- Prefix-only inventory lookups (per-product variant list) skip the
+-- composite PK so this small index helps.
+CREATE INDEX IF NOT EXISTS idx_inventory_product
+  ON public.inventory (product_id);
+
+-- Auto-update last_updated on row changes.
+DROP TRIGGER IF EXISTS trg_inventory_updated_at ON public.inventory;
+CREATE TRIGGER trg_inventory_updated_at
+  BEFORE UPDATE ON public.inventory
+  FOR EACH ROW EXECUTE FUNCTION extensions.moddatetime(last_updated);
+
 -- ---------------------------------------------------------------------------
--- 4. RLS — anon key can only read public products, never write anything.
+-- 4. RLS — anon can read products and inventory; insert orders; nothing else.
 -- ---------------------------------------------------------------------------
 -- Important Supabase gotcha: `service_role` is NOT a superuser. RLS policies
 -- only restrict; the underlying table-level GRANT to the role is also needed
@@ -108,8 +140,8 @@ CREATE TABLE IF NOT EXISTS public.inventory (
 -- the GRANTs at the end of this section, /api/admin/* POST/PATCH/DELETE all
 -- 403 even though the RLS policies would have allowed them.
 -- ---------------------------------------------------------------------------
-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.orders   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
 
 -- products: anon can read everything
@@ -123,7 +155,13 @@ DROP POLICY IF EXISTS orders_anon_insert ON public.orders;
 CREATE POLICY orders_anon_insert ON public.orders
   FOR INSERT TO anon WITH CHECK (true);
 
--- inventory: anon has no access at all (no policy = blocked).
+-- inventory: anon can SELECT (product page and cart draw stock badges) but
+-- cannot INSERT/UPDATE/DELETE. The decrement/restore RPCs in section 9
+-- are SECURITY DEFINER — anon callers can mutate stock only through them,
+-- not via direct table writes.
+DROP POLICY IF EXISTS inventory_anon_read ON public.inventory;
+CREATE POLICY inventory_anon_read ON public.inventory
+  FOR SELECT TO anon USING (true);
 
 -- Service role gets full read+write on all three admin-managed tables.
 -- (The same fix lives in sql/007_admin_table_grants.sql for projects
@@ -133,7 +171,75 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.orders   TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.inventory TO service_role;
 
 -- ---------------------------------------------------------------------------
--- 5. STORAGE — create the product-images bucket if it does not exist
+-- 5. ATOMIC INVENTORY RPCs — variant-level decrement and restore
+-- ---------------------------------------------------------------------------
+-- The order pipeline calls these instead of writing to `inventory` directly
+-- so two concurrent orders for the last unit cannot both succeed. The
+-- `WHERE quantity >= p_qty` filter is the race-safety net: Postgres
+-- serializes row-level updates, so two concurrent UPDATEs targeting the
+-- same row resolve to exactly one match.
+--
+-- `decrement_inventory` returns the new quantity on success and an empty
+-- result set if the variant row is missing or stock is insufficient. The
+-- application interprets an empty result as "out of stock" and rolls back
+-- the order.
+--
+-- `restore_inventory` is the inverse and is used by the admin reject-
+-- payment path. The CHECK (quantity >= 0) constraint still applies, so
+-- we never silently inflate past reality.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.decrement_inventory(
+  p_product_id BIGINT,
+  p_color TEXT,
+  p_size TEXT,
+  p_qty INT
+)
+RETURNS TABLE (new_quantity INT) AS $$
+BEGIN
+  IF p_qty IS NULL OR p_qty <= 0 THEN
+    RAISE EXCEPTION 'decrement_inventory requires a positive qty (got %)', p_qty
+      USING ERRCODE = '22023';
+  END IF;
+  RETURN QUERY
+  UPDATE public.inventory
+  SET quantity = quantity - p_qty
+  WHERE product_id = p_product_id
+    AND color = p_color
+    AND size = p_size
+    AND quantity >= p_qty
+  RETURNING quantity;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION public.restore_inventory(
+  p_product_id BIGINT,
+  p_color TEXT,
+  p_size TEXT,
+  p_qty INT
+)
+RETURNS TABLE (new_quantity INT) AS $$
+BEGIN
+  IF p_qty IS NULL OR p_qty <= 0 THEN
+    RAISE EXCEPTION 'restore_inventory requires a positive qty (got %)', p_qty
+      USING ERRCODE = '22023';
+  END IF;
+  RETURN QUERY
+  UPDATE public.inventory
+  SET quantity = quantity + p_qty
+  WHERE product_id = p_product_id
+    AND color = p_color
+    AND size = p_size
+  RETURNING quantity;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.decrement_inventory(BIGINT, TEXT, TEXT, INT)
+  TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.restore_inventory(BIGINT, TEXT, TEXT, INT)
+  TO anon, authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 6. STORAGE — create the product-images bucket if it does not exist
 -- ---------------------------------------------------------------------------
 INSERT INTO storage.buckets (id, name, public)
 VALUES ('product-images', 'product-images', TRUE)
@@ -146,4 +252,7 @@ ON CONFLICT (id) DO NOTHING;
 -- SELECT * FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;
 -- SELECT column_name, data_type FROM information_schema.columns
 --   WHERE table_name = 'orders' ORDER BY ordinal_position;
+-- \d public.inventory
+-- SELECT proname FROM pg_proc WHERE proname IN
+--   ('decrement_inventory','restore_inventory');
 -- ============================================================================

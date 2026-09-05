@@ -6,7 +6,10 @@
 // key so it can:
 //   1. Re-read every product the customer claims to be ordering,
 //   2. Re-validate stock and recompute the total from the live DB prices,
-//   3. Insert the resulting order with a server-issued order_id.
+//   3. Insert the resulting order with a server-issued order_id,
+//   4. Atomically decrement per-variant inventory via the
+//      `decrement_inventory` RPC so two concurrent orders for the last
+//      unit cannot both succeed.
 //
 // The browser's `total` is treated as advisory: the server's recomputed
 // value always wins. A drift > 0.5% is reported in the response so the
@@ -44,6 +47,13 @@ function genOrderId() {
 
 function stripPhone(p) {
   return String(p || '').replace(/\D/g, '').slice(-10);
+}
+
+// Normalise a color or size string for inventory key matching. We don't
+// transform meaning — just collapse whitespace so "Red " and "Red" both
+// match the same row. The DB stores these trimmed too.
+function colorKey(v) {
+  return String(v || '').trim();
 }
 
 function badRequest(res, message, code = 'invalid_request') {
@@ -192,6 +202,56 @@ async function handleCreate(req, res) {
     });
   }
 
+  // 4b. Variant-level inventory check. Every (product, color, size) the
+  // customer wants must have a row in the inventory table with at
+  // least the requested quantity. This is the soft pre-check; the
+  // authoritative decrement happens after the order insert.
+  const invKeys = items.map((i) => `${i.id}|${colorKey(i.color)}|${colorKey(i.size)}`);
+  const invUnique = Array.from(new Set(invKeys));
+  const inv = await sbFetch(
+    `inventory?select=product_id,color,size,quantity,available` +
+    `&or=${invUnique.map((k) => {
+      const [pid, c, s] = k.split('|');
+      return `(and(product_id.eq.${pid},color.eq.${encodeURIComponent(c)},size.eq.${encodeURIComponent(s)}))`;
+    }).join(',')}`
+  );
+  if (inv.status >= 400) {
+    return res.status(inv.status).json({ error: 'Could not load inventory', detail: inv.data || inv.raw });
+  }
+  const invRows = Array.isArray(inv.data) ? inv.data : [];
+  const invIndex = new Map(
+    invRows.map((r) => [`${r.product_id}|${colorKey(r.color)}|${colorKey(r.size)}`, r])
+  );
+  for (const line of items) {
+    const key = `${line.id}|${colorKey(line.color)}|${colorKey(line.size)}`;
+    const row = invIndex.get(key);
+    const p = byId.get(line.id);
+    if (!row) {
+      return res.status(409).json({
+        error: `Sorry, "${p.name}" (${line.color} / ${line.size}) is currently out of stock.`,
+        code: 'out_of_stock',
+        product_id: line.id,
+        color: line.color,
+        size: line.size,
+      });
+    }
+    const onHand = Number(row.quantity || 0);
+    if (onHand < line.quantity) {
+      return res.status(409).json({
+        error:
+          onHand === 0
+            ? `Sorry, "${p.name}" (${line.color} / ${line.size}) is currently out of stock.`
+            : `Only ${onHand} of "${p.name}" (${line.color} / ${line.size}) left in stock. Please reduce the quantity.`,
+        code: 'insufficient_stock',
+        product_id: line.id,
+        color: line.color,
+        size: line.size,
+        available: onHand,
+        requested: line.quantity,
+      });
+    }
+  }
+
   // 5. Compare against the browser's claimed total. Drift > 0.5% is
   // logged via the response flag (caller can record it; admin sees
   // nothing special here because server total always wins).
@@ -247,6 +307,92 @@ async function handleCreate(req, res) {
     return res.status(ins.status).json({ error: 'Could not save order', detail: ins.data || ins.raw });
   }
   const row = (Array.isArray(ins.data) && ins.data[0]) || null;
+
+  // 7b. Atomic per-line inventory decrement. The RPC performs
+  //     `UPDATE inventory SET quantity = quantity - p_qty
+  //      WHERE quantity >= p_qty`, so two concurrent orders for the
+  //     last unit resolve to exactly one success at the row level.
+  //
+  // If any line fails (race lost, stock depleted, or RPC error) we
+  // soft-cancel the order so the customer gets an honest 409 and the
+  // audit trail reflects what happened. Cancellation here is internal
+  // to this request — no partial stock decrements linger.
+  const decrementFailures = [];
+  for (const line of items) {
+    // eslint-disable-next-line no-await-in-loop
+    const dec = await sbFetch('rpc/decrement_inventory', {
+      method: 'POST',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify({
+        p_product_id: line.id,
+        p_color: colorKey(line.color),
+        p_size: colorKey(line.size),
+        p_qty: line.quantity,
+      }),
+    });
+    if (dec.status >= 400) {
+      console.error('decrement_inventory error:', dec.status, dec.data || dec.raw);
+      decrementFailures.push({ line, reason: 'rpc_error', detail: dec.data || dec.raw });
+      break;
+    }
+    const decRows = Array.isArray(dec.data) ? dec.data : [];
+    if (decRows.length === 0) {
+      // Another order won the race for this variant between the
+      // pre-check and the decrement. Treat the same as a stock failure.
+      decrementFailures.push({ line, reason: 'insufficient_stock' });
+      break;
+    }
+  }
+
+  if (decrementFailures.length > 0) {
+    // Restore any lines that DID succeed so a failed order doesn't
+    // permanently remove stock. Reverse order is not necessary — the
+    // restore_inventory RPC is additive.
+    for (const line of items) {
+      // eslint-disable-next-line no-await-in-loop
+      await sbFetch('rpc/restore_inventory', {
+        method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({
+          p_product_id: line.id,
+          p_color: colorKey(line.color),
+          p_size: colorKey(line.size),
+          p_qty: line.quantity,
+        }),
+      });
+    }
+    // Soft-cancel the order row so the admin sees a coherent record.
+    // We mark status='cancelled' and payment_status='failed' so the
+    // orders page can hide it; the audit trail (order_id, items,
+    // payment_method) is preserved.
+    if (row && row.order_id) {
+      // eslint-disable-next-line no-await-in-loop
+      await sbFetch(
+        `orders?order_id=eq.${encodeURIComponent(row.order_id)}`,
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify({
+            status: 'cancelled',
+            payment_status: 'failed',
+            payment_rejection_reason: 'Inventory was no longer available at order finalisation.',
+          }),
+        }
+      );
+    }
+    const f = decrementFailures[0];
+    const p = byId.get(f.line.id);
+    return res.status(409).json({
+      error:
+        f.reason === 'insufficient_stock'
+          ? `Sorry, "${p ? p.name : 'an item'}" (${f.line.color} / ${f.line.size}) is no longer available in the requested quantity.`
+          : 'Inventory system error. Please try again.',
+      code: f.reason === 'insufficient_stock' ? 'insufficient_stock' : 'inventory_error',
+      product_id: f.line.id,
+      color: f.line.color,
+      size: f.line.size,
+    });
+  }
 
   return res.status(201).json({
     ok: true,
