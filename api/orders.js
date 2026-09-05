@@ -27,7 +27,7 @@
 // can use a plain fetch() without a body.
 // ==========================================================================
 
-import { sbFetch, requireServiceKey, ALLOWED_PAYMENT_METHODS } from '../lib/admin-auth.js';
+import { sbFetch, requireServiceKey, ALLOWED_PAYMENT_METHODS, SUPABASE_URL } from '../lib/admin-auth.js';
 
 const MAX_PER_LINE = Number(process.env.INVENTORY_PER_ITEM_CAP || 10);
 const MAX_ITEMS = Number(process.env.ORDER_MAX_ITEMS || 50);
@@ -318,6 +318,7 @@ async function handleCreate(req, res) {
   // audit trail reflects what happened. Cancellation here is internal
   // to this request — no partial stock decrements linger.
   const decrementFailures = [];
+  console.log('[DIAG-V16] env', JSON.stringify({ SUPABASE_URL, items_len: items.length, order_id: row && row.order_id }));
   for (const line of items) {
     // eslint-disable-next-line no-await-in-loop
     const dec = await sbFetch('rpc/decrement_inventory', {
