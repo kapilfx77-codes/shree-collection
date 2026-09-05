@@ -280,34 +280,82 @@ button {
 /* --------------------------------------------------------------------------
    Announcement Bar
    -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   Announcement Bar / Ticker
+   -------------------------------------------------------------------------- */
 .announcement-bar {
     background: var(--primary);
     color: var(--gold-light);
     font-size: 0.8125rem;
     font-weight: 500;
     text-align: center;
-    padding: 10px 16px;
+    padding: 10px 0;
     letter-spacing: 0.3px;
+    overflow: hidden;
+    position: relative;
+}
+
+.announcement-bar::before,
+.announcement-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 32px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.announcement-bar::before {
+    left: 0;
+    background: linear-gradient(to right, var(--primary), transparent);
+}
+
+.announcement-bar::after {
+    right: 0;
+    background: linear-gradient(to left, var(--primary), transparent);
+}
+
+.announcement-track {
+    display: flex;
+    width: max-content;
+    animation: announcementScroll 28s linear infinite;
+}
+
+.announcement-track:hover {
+    animation-play-state: paused;
+}
+
+@keyframes announcementScroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
 }
 
 .announcement-bar .announcement-content {
     display: flex;
-    justify-content: center;
     align-items: center;
-    gap: var(--space-lg);
-    flex-wrap: wrap;
+    gap: 0;
 }
 
-.announcement-bar .announcement-item {
+.announcement-item {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    padding: 0 var(--space-2xl);
+    white-space: nowrap;
 }
 
-.announcement-bar .announcement-item svg {
+.announcement-item svg {
     width: 16px;
     height: 16px;
     opacity: 0.8;
+    flex-shrink: 0;
+}
+
+.announcement-sep {
+    color: var(--gold);
+    opacity: 0.5;
+    padding: 0 var(--space-lg);
 }
 
 /* --------------------------------------------------------------------------
@@ -2494,10 +2542,15 @@ button {
     }
 
     .nav-container {
-        gap: var(--space-md);
+        gap: var(--space-sm);
+        padding: 0 var(--space-md);
     }
 
-    .nav-actions .admin-badge {
+    .admin-badge-btn {
+        display: none;
+    }
+
+    .nav-search {
         display: none;
     }
 
