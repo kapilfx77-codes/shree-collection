@@ -6,14 +6,14 @@
     <title>Admin Dashboard - Shree Collection</title>
     <!-- Private tooling: keep out of search results and link graphs -->
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#2D2320">
+    <meta name="theme-color" content="#18181B">
     <link rel="icon" href="assets/favicon.ico" sizes="32x32">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <!-- Supabase (for cloud database) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -58,7 +58,7 @@
             border-bottom: 1px solid rgba(255,255,255,0.06);
         }
         .admin-sidebar-brand .brand-name {
-            font-family: var(--font-serif);
+            font-family: var(--font-heading);
             font-size: 1.25rem;
             letter-spacing: 1.2px;
             color: var(--gold-light);
@@ -155,9 +155,9 @@
             .admin-topbar { z-index: 1; }
         }
         .admin-topbar h1 {
-            font-family: var(--font-serif);
+            font-family: var(--font-heading);
             font-size: 1.25rem;
-            color: var(--text-dark);
+            color: var(--text-ink);
             font-weight: 600;
         }
         .admin-topbar-actions {
@@ -204,7 +204,7 @@
         }
         .btn-icon:hover {
             background: var(--bg-subtle);
-            color: var(--text-dark);
+            color: var(--text-ink);
             border-color: var(--text-muted);
         }
         .btn-icon.btn-danger {
@@ -234,9 +234,9 @@
             gap: 12px;
         }
         .page-header h2 {
-            font-family: var(--font-serif);
+            font-family: var(--font-heading);
             font-size: 1.75rem;
-            color: var(--text-dark);
+            color: var(--text-ink);
             font-weight: 600;
         }
         .page-header p {
@@ -276,10 +276,10 @@
             font-weight: 600;
         }
         .stat-card .stat-value {
-            font-family: var(--font-serif);
+            font-family: var(--font-heading);
             font-size: 2rem;
             font-weight: 600;
-            color: var(--text-dark);
+            color: var(--text-ink);
             margin-top: 6px;
             line-height: 1.1;
         }
@@ -329,10 +329,10 @@
             gap: 12px;
         }
         .card-head h3 {
-            font-family: var(--font-serif);
+            font-family: var(--font-heading);
             font-size: 1.15rem;
             font-weight: 600;
-            color: var(--text-dark);
+            color: var(--text-ink);
         }
         .card-head .subtle {
             font-size: 0.85rem;
@@ -393,7 +393,7 @@
         .form-field label {
             font-size: 0.85rem;
             font-weight: 600;
-            color: var(--text-dark);
+            color: var(--text-ink);
         }
         .form-field .hint { font-size: 0.78rem; color: var(--text-muted); }
         .form-field input,
@@ -407,7 +407,7 @@
             font-size: 0.9rem;
             font-family: inherit;
             background: #FFFFFF;
-            color: var(--text-dark);
+            color: var(--text-ink);
             outline: none;
             transition: var(--transition-fast);
         }
@@ -434,7 +434,7 @@
             align-items: center;
             gap: 8px;
             font-size: 0.9rem;
-            color: var(--text-dark);
+            color: var(--text-ink);
         }
         .checkbox-row input { width: 16px; height: 16px; }
 
@@ -477,7 +477,7 @@
             color: var(--text-medium);
             border-color: var(--border);
         }
-        .btn-ghost:hover { background: var(--bg-subtle); color: var(--text-dark); }
+        .btn-ghost:hover { background: var(--bg-subtle); color: var(--text-ink); }
 
         .btn-danger {
             background: #DC2626;
@@ -588,7 +588,7 @@
             opacity: 0.4;
         }
         .state-block .state-title {
-            font-family: var(--font-serif);
+            font-family: var(--font-heading);
             font-size: 1.15rem;
             color: var(--text-medium);
             margin-bottom: 6px;
@@ -609,7 +609,7 @@
         /* ---- Login overlay ---- */
         .admin-login-overlay {
             position: fixed; inset: 0;
-            background: linear-gradient(135deg, rgba(28, 19, 21, 0.96), rgba(45,35,32,0.96));
+            background: linear-gradient(135deg, rgba(24, 24, 27, 0.96), rgba(39, 39, 42, 0.96));
             z-index: 9999;
             display: flex;
             align-items: center;
@@ -635,8 +635,8 @@
             margin: 0 auto 18px;
         }
         .admin-login-box h2 {
-            font-family: var(--font-serif);
-            color: var(--text-dark);
+            font-family: var(--font-heading);
+            color: var(--text-ink);
             font-size: 1.6rem;
             margin-bottom: 6px;
             font-weight: 600;
@@ -720,9 +720,9 @@
             align-items: center;
         }
         .modal-backdrop .modal-head h3 {
-            font-family: var(--font-serif);
+            font-family: var(--font-heading);
             font-size: 1.25rem;
-            color: var(--text-dark);
+            color: var(--text-ink);
             font-weight: 600;
         }
         .modal-backdrop .modal-head .close {
@@ -884,7 +884,7 @@
         /* ---- Order detail rows ---- */
         .kv-list { display: grid; grid-template-columns: 140px 1fr; gap: 8px 14px; }
         .kv-list dt { color: var(--text-muted); font-size: 0.82rem; }
-        .kv-list dd { color: var(--text-dark); font-size: 0.9rem; margin: 0; }
+        .kv-list dd { color: var(--text-ink); font-size: 0.9rem; margin: 0; }
 
         .item-line {
             display: flex;

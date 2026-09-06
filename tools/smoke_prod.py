@@ -107,23 +107,31 @@ async def main():
             await page.wait_for_timeout(300)
 
         # T5: add to cart via localStorage + drawer
-        # Make sure cart.js has loaded by trying multiple times
-        for _ in range(3):
-            ok = await page.evaluate("""
-                async () => {
-                    try {
-                        if (typeof addToCart === 'function') {
-                            await addToCart(1, 'M', 'Red', 1);
-                            return true;
-                        }
-                    } catch (e) {}
-                    return false;
-                }
-            """)
-            if ok:
+        # Navigate to catalog to populate allProducts, then call addToCart with a
+        # real product ID so getProductById succeeds inside addToCart.
+        await page.goto(f"{BASE}/catalog.html", wait_until="networkidle")
+        await wait_supabase(page)
+        for _ in range(5):
+            pid = await page.evaluate("() => allProducts && allProducts[0] && allProducts[0].id")
+            if pid:
                 break
             await page.wait_for_timeout(800)
-        await page.wait_for_timeout(300)
+        if pid:
+            for _ in range(3):
+                ok = await page.evaluate(f"""
+                    async () => {{
+                        try {{
+                            const p = allProducts[0];
+                            await addToCart(p.id, null, null, 1);
+                            return true;
+                        }} catch (e) {{ console.error('addToCart:', e.message); }}
+                        return false;
+                    }}
+                """)
+                if ok:
+                    break
+                await page.wait_for_timeout(800)
+        await page.wait_for_timeout(500)
         cart = await page.evaluate("() => JSON.parse(localStorage.getItem('shree_collection_cart') || '[]')")
         log("T5_add_to_cart", len(cart) >= 1, f"items: {len(cart)}")
 

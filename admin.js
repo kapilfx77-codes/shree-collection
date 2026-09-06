@@ -700,7 +700,7 @@ function renderDashRecentOrders(orders) {
             <tbody>
                 ${recent.map(o => `
                     <tr style="cursor: pointer;" onclick="openOrderModal('${escapeHtml(o.order_id)}')">
-                        <td><code style="font-size: 0.82rem; color: var(--text-dark);">${escapeHtml(o.order_id)}</code></td>
+                        <td><code style="font-size: 0.82rem; color: var(--text-ink);">${escapeHtml(o.order_id)}</code></td>
                         <td>${escapeHtml(o.name || '—')}</td>
                         <td>${statusBadge(o.status)}</td>
                         <td class="col-num" style="text-align: right; font-weight: 600;">NPR ${Number(o.total || 0).toLocaleString('en-IN')}</td>
@@ -732,7 +732,7 @@ function renderDashLowStock(products) {
         <div style="display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border-subtle);">
             <img src="${(p.images && p.images[0]) || PLACEHOLDER_IMAGE}" alt="" style="width: 36px; height: 36px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
             <div style="flex: 1; min-width: 0;">
-                <div style="font-size: 0.88rem; font-weight: 600; color: var(--text-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(p.name)}</div>
+                <div style="font-size: 0.88rem; font-weight: 600; color: var(--text-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(p.name)}</div>
                 <div style="font-size: 0.78rem; color: var(--text-muted);">NPR ${Number(p.price || 0).toLocaleString('en-IN')}</div>
             </div>
             <span class="badge badge-red">Out</span>
@@ -875,7 +875,7 @@ function openOrderModal(orderId) {
             ${paymentBadge(order.payment_status, order.payment_method)}
         </div>
 
-        <h4 style="font-family: var(--font-serif); margin-bottom: 10px;">Customer</h4>
+        <h4 style="font-family: var(--font-heading); margin-bottom: 10px;">Customer</h4>
         <dl class="kv-list" style="margin-bottom: 18px;">
             <dt>Name</dt><dd>${escapeHtml(order.name || '—')}</dd>
             <dt>Phone</dt><dd>${escapeHtml(order.phone || '—')}</dd>
@@ -883,7 +883,7 @@ function openOrderModal(orderId) {
             <dt>Address</dt><dd>${escapeHtml(order.address || '—')}</dd>
         </dl>
 
-        <h4 style="font-family: var(--font-serif); margin-bottom: 10px;">Items</h4>
+        <h4 style="font-family: var(--font-heading); margin-bottom: 10px;">Items</h4>
         <div style="margin-bottom: 18px;">${itemsHtml}</div>
 
         <div style="display: flex; justify-content: space-between; padding-top: 12px; border-top: 2px solid var(--border); font-weight: 600; font-size: 1.05rem;">
@@ -907,7 +907,7 @@ function openOrderModal(orderId) {
         </div>
 
         <div style="margin-top: 18px;">
-            <h4 style="font-family: var(--font-serif); margin-bottom: 10px;">Update Status</h4>
+            <h4 style="font-family: var(--font-heading); margin-bottom: 10px;">Update Status</h4>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 ${['pending', 'processing', 'shipped', 'delivered', 'cancelled'].map(s => `
                     <button class="btn btn-ghost btn-sm" onclick="updateOrderStatus('${escapeHtml(order.order_id)}', '${s}')" ${order.status === s ? 'disabled' : ''}>${capitalize(s)}</button>
@@ -916,7 +916,7 @@ function openOrderModal(orderId) {
         </div>
 
         <div style="margin-top: 14px;">
-            <h4 style="font-family: var(--font-serif); margin-bottom: 10px;">Update Payment</h4>
+            <h4 style="font-family: var(--font-heading); margin-bottom: 10px;">Update Payment</h4>
             <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 ${['pending', 'paid', 'failed', 'refunded'].map(s => `
                     <button class="btn btn-ghost btn-sm" onclick="updatePaymentStatus('${escapeHtml(order.order_id)}', '${s}')" ${order.payment_status === s ? 'disabled' : ''}>${capitalize(s)}</button>
@@ -926,7 +926,7 @@ function openOrderModal(orderId) {
 
         ${order.payment_method === 'esewa' && order.payment_status === 'pending' ? `
         <div style="margin-top: 18px; padding: 16px; background: rgba(176, 141, 87, 0.06); border: 1px solid rgba(176, 141, 87, 0.3); border-radius: var(--radius-md);">
-            <h4 style="font-family: var(--font-serif); margin-bottom: 8px; color: var(--primary);">eSewa Payment Verification</h4>
+            <h4 style="font-family: var(--font-heading); margin-bottom: 8px; color: var(--primary);">eSewa Payment Verification</h4>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
                 Verify or reject the customer's eSewa payment. The transaction reference on record is:
                 <code style="font-family: ui-monospace, monospace; background: var(--bg-card); padding: 1px 6px; border-radius: 3px;">${escapeHtml(order.txn || 'none')}</code>
@@ -1479,7 +1479,7 @@ function renderInventory() {
                             <tbody>
                                 ${colors.map(c => `
                                     <tr>
-                                        <td style="font-weight: 600; color: var(--text-dark);">${escapeHtml(c)}</td>
+                                        <td style="font-weight: 600; color: var(--text-ink);">${escapeHtml(c)}</td>
                                         ${sizes.map(s => {
                                             const key = `${p.id}|${String(c).trim()}|${String(s).trim()}`;
                                             const qty = stockMap.has(key) ? stockMap.get(key) : 0;
