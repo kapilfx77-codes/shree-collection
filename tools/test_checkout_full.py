@@ -246,8 +246,27 @@ async def main_async():
                                         )
                                         if flip.status < 400:
                                             in_stock_id = target
-                                            # Remember to restore it later
+                                            # Seed inventory for this product so Add to Cart works
+                                            # We'll delete these seeded rows on cleanup
+                                            seed_color = (rows[0].get("colors") or ["Red"])[0]
+                                            seed_size = (rows[0].get("sizes") or ["M"])[0]
+                                            seed_resp = await page.request.post(
+                                                f"{supabase_url}/rest/v1/inventory",
+                                                headers={
+                                                    "apikey": supabase_key,
+                                                    "Authorization": f"Bearer {supabase_key}",
+                                                    "Prefer": "resolution=merge-duplicates",
+                                                },
+                                                data={
+                                                    "product_id": int(target),
+                                                    "color": seed_color,
+                                                    "size": seed_size,
+                                                    "quantity": 10,
+                                                },
+                                            )
+                                            # Remember to restore state on cleanup
                                             cleanup_orders.append(("restore_in_stock", target))
+                                            cleanup_orders.append(("delete_inventory", target, seed_color, seed_size))
                                         else:
                                             supabase_err = f"flip failed: {flip.status} {await flip.text()}"
                                     else:
@@ -289,10 +308,19 @@ async def main_async():
                 raise RuntimeError("no product id from T03")
             # Make sure we're on the product page
             await page.goto(f"{base}/product.html?id={product_id}", wait_until="networkidle")
-            await page.wait_for_timeout(1000)
-            # The product page has an "Add to Cart" button that calls addCurrentProductToCart()
-            # which uses selectedSize + selectedColor (auto-defaulted to first values).
-            await page.click("#addToCartBtn, .product-detail-actions .btn-add-cart, button.btn-add-cart:not([disabled])")
+            await page.wait_for_timeout(2000)
+            # The product page defaults to the first size/color; if that variant has 0 stock,
+            # the button stays disabled. Try the first available (non-disabled) size pill.
+            try:
+                await page.wait_for_selector("#addToCartBtn:not([disabled])", timeout=5000)
+            except Exception:
+                # Fallback: click the first non-disabled size pill (skips sizes with 0 stock)
+                avail = page.locator(".size-pill:not([disabled])")
+                count = await avail.count()
+                if count > 0:
+                    await avail.nth(0).click()
+                    await page.wait_for_timeout(1000)
+            await page.click("#addToCartBtn")
             await page.wait_for_timeout(1500)
             # The cart drawer should open; check that a cart item is visible OR that
             # localStorage now has at least one item.
@@ -443,7 +471,12 @@ async def main_async():
             # Set up a fresh cart with one item
             await page.goto(f"{base}/product.html?id={product_id}", wait_until="networkidle")
             await page.wait_for_timeout(800)
-            await page.click("button.btn-add-cart, button:has-text('Add to Cart')")
+            # Select an available (non-disabled) size pill before clicking Add to Cart.
+            avail = page.locator(".size-pill:not([disabled])")
+            if await avail.count() > 0:
+                await avail.nth(0).click()
+                await page.wait_for_timeout(500)
+            await page.click("#addToCartBtn")
             await page.wait_for_timeout(800)
             # Go to checkout
             await page.evaluate(CLOSE_DRAWER_JS)
@@ -561,7 +594,12 @@ async def main_async():
             await page.evaluate(CLEAR_CART_AND_DRAWER_JS)
             await page.goto(f"{base}/product.html?id={product_id}", wait_until="networkidle")
             await page.wait_for_timeout(800)
-            await page.click("button.btn-add-cart, button:has-text('Add to Cart')")
+            # Select an available (non-disabled) size pill before clicking Add to Cart.
+            avail = page.locator(".size-pill:not([disabled])")
+            if await avail.count() > 0:
+                await avail.nth(0).click()
+                await page.wait_for_timeout(500)
+            await page.click("#addToCartBtn")
             await page.wait_for_timeout(500)
             # Add-to-cart auto-opens the drawer; close it before clicking
             # the cart icon (so we don't have to deal with both states).
@@ -634,7 +672,12 @@ async def main_async():
             await page.evaluate("() => localStorage.removeItem('shree_collection_cart')")
             await page.goto(f"{base}/product.html?id={product_id}", wait_until="networkidle")
             await page.wait_for_timeout(800)
-            await page.click("button.btn-add-cart, button:has-text('Add to Cart')")
+            # Select an available (non-disabled) size pill before clicking Add to Cart.
+            avail = page.locator(".size-pill:not([disabled])")
+            if await avail.count() > 0:
+                await avail.nth(0).click()
+                await page.wait_for_timeout(500)
+            await page.click("#addToCartBtn")
             await page.wait_for_timeout(500)
             # Tamper the cart's stored price to 1 NPR
             await page.evaluate("""
@@ -785,7 +828,7 @@ async def main_async():
             except Exception as e:
                 results["T18"] = (False, f"exception: {e}")
 
-        # --- Restore any in_stock flips we did for the test ---
+        # --- Restore any in_stock flips and seeded inventory we did for the test ---
         for entry in cleanup_orders:
             if isinstance(entry, tuple) and entry[0] == "restore_in_stock":
                 target_id = entry[1]
@@ -807,6 +850,20 @@ async def main_async():
                             print(f"  Restored in_stock=false for product {target_id}", flush=True)
                 except Exception as e:
                     print(f"  Failed to restore in_stock for {target_id}: {e}", flush=True)
+            elif isinstance(entry, tuple) and entry[0] == "delete_inventory":
+                # entry = ("delete_inventory", product_id, color, size)
+                _, pid, color, size = entry
+                try:
+                    supabase_url = await page.evaluate("() => (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.url) || ''")
+                    supabase_key = await page.evaluate("() => (window.SUPABASE_CONFIG && window.SUPABASE_CONFIG.anonKey) || ''")
+                    if supabase_url and supabase_key:
+                        await page.request.delete(
+                            f"{supabase_url}/rest/v1/inventory?product_id=eq.{pid}&color=eq.{color}&size=eq.{size}",
+                            headers={"apikey": supabase_key, "Authorization": f"Bearer {supabase_key}"},
+                        )
+                        print(f"  Deleted seeded inventory for product {pid} ({color}/{size})", flush=True)
+                except Exception as e:
+                    print(f"  Failed to delete seeded inventory for {pid}: {e}", flush=True)
 
         await browser.close()
 

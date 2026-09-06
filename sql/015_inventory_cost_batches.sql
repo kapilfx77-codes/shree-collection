@@ -78,7 +78,7 @@ BEGIN
 
   -- Lock batches in FIFO order (oldest first) then consume.
   FOR v_batch IN
-    SELECT id, remaining_quantity, unit_cost
+    SELECT id, remaining_quantity, inventory_cost_batches.unit_cost
     FROM   public.inventory_cost_batches
     WHERE  product_id = p_product_id
       AND  color      = p_color
