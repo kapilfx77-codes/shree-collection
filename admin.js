@@ -559,7 +559,9 @@ async function openAddStockModal(productId, productName, color, size) {
     document.getElementById('addStockModalTitle').textContent =
         `Add Stock with Cost — ${escapeHtml(productName || String(productId))} · ${escapeHtml(color)} · ${escapeHtml(size)}`;
     document.getElementById('addStockQty').value = '';
-    document.getElementById('addStockCost').value = '';
+    const product = productsCacheList.find(p => Number(p.id) === Number(productId));
+    document.getElementById('addStockCost').value =
+        (product && product.cost_price != null && product.cost_price !== '') ? product.cost_price : '';
     document.getElementById('addStockError').textContent = '';
     modal.classList.add('open');
 }
@@ -1270,6 +1272,7 @@ function openProductModal(productId) {
         document.getElementById('productName').value = p.name || '';
         document.getElementById('productPrice').value = p.price || '';
         document.getElementById('productOriginalPrice').value = p.original_price || '';
+        document.getElementById('productCostPrice').value = (p.cost_price != null && p.cost_price !== '') ? p.cost_price : '';
         document.getElementById('productDescription').value = p.description || '';
         document.getElementById('productSizes').value = (p.sizes || []).join(', ');
         document.getElementById('productColors').value = (p.colors || []).join(', ');
@@ -1380,6 +1383,8 @@ async function handleProductSubmit(e) {
         };
         const origPrice = document.getElementById('productOriginalPrice').value;
         if (origPrice) payload.original_price = Number(origPrice) || null;
+        const costPrice = document.getElementById('productCostPrice').value;
+        if (costPrice !== '') payload.cost_price = Number(costPrice);
 
         if (editingProductId) {
             // Status (in_stock) may not exist in old schema

@@ -11,7 +11,7 @@
 
 import { requireAdmin, sbFetch, requireServiceKey } from '../../lib/admin-auth.js';
 
-const PRODUCT_FIELDS = ['name', 'price', 'original_price', 'description', 'colors', 'sizes',
+const PRODUCT_FIELDS = ['name', 'price', 'cost_price', 'original_price', 'description', 'colors', 'sizes',
     'images', 'featured', 'in_stock', 'instock'];
 
 function pickFields(body) {
@@ -77,6 +77,14 @@ async function handleCreate(req, res) {
     if (!body.name || typeof body.price !== 'number') {
         return res.status(400).json({ error: 'name and price are required' });
     }
+    // Validate cost_price if provided
+    if (body.cost_price !== undefined && body.cost_price !== null) {
+        const cp = parseFloat(body.cost_price);
+        if (isNaN(cp) || cp < 0) {
+            return res.status(400).json({ error: 'cost_price must be a non-negative number' });
+        }
+        body.cost_price = cp;
+    }
     const payload = pickFields(body);
     if (Object.keys(payload).length === 0) {
         return res.status(400).json({ error: 'No product fields supplied' });
@@ -141,6 +149,14 @@ async function handlePatch(req, res) {
         return res.status(400).json({ error: 'id is required' });
     }
     const id = body.id || body.id_eq;
+    // Validate cost_price if provided
+    if (body.cost_price !== undefined && body.cost_price !== null) {
+        const cp = parseFloat(body.cost_price);
+        if (isNaN(cp) || cp < 0) {
+            return res.status(400).json({ error: 'cost_price must be a non-negative number' });
+        }
+        body.cost_price = cp;
+    }
     const payload = pickFields(body);
     if (Object.keys(payload).length === 0) {
         return res.status(400).json({ error: 'No fields to update' });

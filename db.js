@@ -109,7 +109,7 @@ async function getProducts(bypassCache = false) {
     try {
         const { data, error } = await supabaseClient
             .from('products')
-            .select('*')
+            .select('id,name,price,original_price,description,colors,sizes,images,featured,in_stock,instock')
             .order('id', { ascending: true });
         if (error) throw error;
         productsCache = data || [];
@@ -130,7 +130,7 @@ async function getProductById(productId) {
     try {
         const { data, error } = await supabaseClient
             .from('products')
-            .select('*')
+            .select('id,name,price,original_price,description,colors,sizes,images,featured,in_stock,instock')
             .eq('id', productId)
             .single();
         if (error) throw error;
@@ -149,7 +149,7 @@ async function getFeaturedProducts() {
     try {
         const { data, error } = await supabaseClient
             .from('products')
-            .select('*')
+            .select('id,name,price,original_price,description,colors,sizes,images,featured,in_stock,instock')
             .eq('featured', true)
             .order('id', { ascending: true });
         if (error) throw error;

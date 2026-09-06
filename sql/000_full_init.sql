@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS public.products (
   in_stock      BOOLEAN NOT NULL DEFAULT TRUE,
   -- Legacy column kept for compatibility with older admin clients
   instock       BOOLEAN,
+  cost_price    NUMERIC(12,2) CHECK (cost_price IS NULL OR cost_price >= 0),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
