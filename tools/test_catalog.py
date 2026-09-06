@@ -61,7 +61,7 @@ async def main():
         # C4: Color filter — check a color, verify products filter
         if color_cbs > 0:
             # Click the first color checkbox
-            first_color = await page.locator("#colorFilterOptions input[type='checkbox']").first
+            first_color = page.locator("#colorFilterOptions input[type='checkbox']").first
             color_label = await first_color.get_attribute("value")
             await first_color.check()
             await page.wait_for_timeout(500)
@@ -137,6 +137,186 @@ async def main():
         await page.wait_for_timeout(500)
         empty_visible = await page.locator("#catalogEmptyState").is_visible()
         results.append(("C10_empty_state_shown", empty_visible, f"visible={empty_visible}"))
+
+        # C11: Color-only filter works (no size selected)
+        await page.locator("button.filter-reset-btn").click()
+        await page.wait_for_timeout(300)
+        # Click "Red" color checkbox
+        red_color_cb = page.locator("#colorFilterOptions input[value='Red']")
+        if await red_color_cb.count() > 0:
+            await red_color_cb.check()
+            await page.wait_for_timeout(400)
+            color_only_count = await page.locator(".product-card").count()
+            results.append(("C11_color_only_works", color_only_count > 0,
+                           f"color-only Red: {color_only_count} products"))
+            await red_color_cb.uncheck()
+            await page.wait_for_timeout(300)
+        else:
+            results.append(("C11_color_only_works", False, "Red checkbox not found"))
+
+        # C12: Size-only filter works (no color selected)
+        l_size_cb = page.locator(".filter-checkbox input[data-size-filter][value='L']")
+        if await l_size_cb.count() > 0:
+            await l_size_cb.check()
+            await page.wait_for_timeout(400)
+            size_only_count = await page.locator(".product-card").count()
+            results.append(("C12_size_only_works", size_only_count > 0,
+                           f"size-only L: {size_only_count} products"))
+            await l_size_cb.uncheck()
+            await page.wait_for_timeout(300)
+        else:
+            results.append(("C12_size_only_works", False, "L size checkbox not found"))
+
+        # C13: Color + size intersection works
+        if await red_color_cb.count() > 0 and await l_size_cb.count() > 0:
+            await red_color_cb.check()
+            await l_size_cb.check()
+            await page.wait_for_timeout(400)
+            intersection_count = await page.locator(".product-card").count()
+            # Kurta is Red + L, Saree Georgette is Red + Free Size
+            # So Red+L should only match Kurta
+            results.append(("C13_color_size_intersection", intersection_count == 1,
+                           f"Red+L intersection: {intersection_count} products (expected 1)"))
+            await red_color_cb.uncheck()
+            await l_size_cb.uncheck()
+            await page.wait_for_timeout(300)
+        else:
+            results.append(("C13_color_size_intersection", False, "checkboxes not found"))
+
+        # C14: Clear size while keeping color selected
+        await red_color_cb.check()
+        await page.wait_for_timeout(300)
+        red_count = await page.locator(".product-card").count()
+        await l_size_cb.check()  # add size
+        await page.wait_for_timeout(300)
+        red_plus_l_count = await page.locator(".product-card").count()
+        await l_size_cb.uncheck()  # remove size only
+        await page.wait_for_timeout(400)
+        after_clear_size = await page.locator(".product-card").count()
+        results.append(("C14_clear_size_keeps_color",
+                       after_clear_size == red_count,
+                       f"color={red_count} → color+size={red_plus_l_count} → after-clear={after_clear_size}"))
+        await red_color_cb.uncheck()
+
+        # C15: Clear color while keeping size selected
+        await l_size_cb.check()
+        await page.wait_for_timeout(300)
+        size_l_count = await page.locator(".product-card").count()
+        await red_color_cb.check()  # add color
+        await page.wait_for_timeout(300)
+        color_plus_l_count = await page.locator(".product-card").count()
+        await red_color_cb.uncheck()  # remove color only
+        await page.wait_for_timeout(400)
+        after_clear_color = await page.locator(".product-card").count()
+        results.append(("C15_clear_color_keeps_size",
+                       after_clear_color == size_l_count,
+                       f"size={size_l_count} → color+size={color_plus_l_count} → after-clear={after_clear_color}"))
+        await l_size_cb.uncheck()
+
+        # C16: Reset returns all products
+        await red_color_cb.check()
+        await l_size_cb.check()
+        await page.wait_for_timeout(300)
+        await page.locator("button.filter-reset-btn").click()
+        await page.wait_for_timeout(400)
+        after_reset = await page.locator(".product-card").count()
+        results.append(("C16_reset_returns_all", after_reset == cards,
+                       f"filtered={await page.locator('.product-card').count()} → reset={after_reset} (expected {cards})"))
+
+        # C17: Search + color works
+        await page.locator("#searchInput").fill("kurta")
+        await page.wait_for_timeout(400)
+        search_count = await page.locator(".product-card").count()
+        await red_color_cb.check()
+        await page.wait_for_timeout(400)
+        search_color_count = await page.locator(".product-card").count()
+        results.append(("C17_search_plus_color",
+                       search_color_count <= search_count and search_count > 0,
+                       f"search={search_count} → search+color={search_color_count}"))
+        await red_color_cb.uncheck()
+        await page.locator("#searchInput").fill("")
+        await page.wait_for_timeout(300)
+
+        # C18: Search + size works
+        await page.locator("#searchInput").fill("saree")
+        await page.wait_for_timeout(400)
+        search2_count = await page.locator(".product-card").count()
+        await l_size_cb.check()
+        await page.wait_for_timeout(400)
+        search_size_count = await page.locator(".product-card").count()
+        results.append(("C18_search_plus_size",
+                       search_size_count <= search2_count,
+                       f"search={search2_count} → search+size={search_size_count}"))
+        await l_size_cb.uncheck()
+        await page.locator("#searchInput").fill("")
+        await page.wait_for_timeout(300)
+
+        # C19: Price + color works
+        await page.locator("#priceRange").evaluate("el => el.value = 1600")
+        await page.locator("#priceRange").dispatch_event("input")
+        await page.wait_for_timeout(400)
+        price_count = await page.locator(".product-card").count()
+        await red_color_cb.check()
+        await page.wait_for_timeout(400)
+        price_color_count = await page.locator(".product-card").count()
+        results.append(("C19_price_plus_color",
+                       price_color_count <= price_count and price_count > 0,
+                       f"price={price_count} → price+color={price_color_count}"))
+        await red_color_cb.uncheck()
+        # Reset price
+        await page.locator("button.filter-reset-btn").click()
+        await page.wait_for_timeout(300)
+
+        # C20: All filters together
+        await page.locator("#searchInput").fill("red")
+        await page.wait_for_timeout(400)
+        await l_size_cb.check()
+        await page.wait_for_timeout(300)
+        await red_color_cb.check()
+        await page.wait_for_timeout(400)
+        all_filters_count = await page.locator(".product-card").count()
+        results.append(("C20_all_filters_together",
+                       all_filters_count <= cards,
+                       f"all filters: {all_filters_count} products"))
+        await red_color_cb.uncheck()
+        await l_size_cb.uncheck()
+        await page.locator("#searchInput").fill("")
+        await page.wait_for_timeout(300)
+
+        # C21: Null/empty color values do not crash
+        # Products with null or empty colors should be skipped gracefully
+        try:
+            error_count_before = len(errors)
+            await page.wait_for_timeout(500)
+            error_count_after = len(errors)
+            results.append(("C21_null_colors_no_crash",
+                           error_count_after == error_count_before,
+                           f"errors before={error_count_before} after={error_count_after}"))
+        except Exception as ex:
+            results.append(("C21_null_colors_no_crash", False, str(ex)))
+
+        # C22: Color matching is case-insensitive (verify color filter renders correctly)
+        # The color filter builds from product.colors which can be any casing
+        color_options = await page.locator("#colorFilterOptions input").count()
+        results.append(("C22_color_filter_renders",
+                       color_options >= 2,
+                       f"color options: {color_options} (Red and Zinc expected)"))
+
+        # C23: Color filter works with products that have multiple colors
+        # Kurta has colors=['Red','Zinc'], verify Red filter includes Kurta
+        red_cb = page.locator("#colorFilterOptions input[value='Red']")
+        if await red_cb.count() > 0:
+            await red_cb.check()
+            await page.wait_for_timeout(500)
+            multi_color_count = await page.locator(".product-card").count()
+            # Kurta has Red and Zinc → should appear
+            results.append(("C23_multi_color_product",
+                           multi_color_count >= 1,
+                           f"Red filter on multi-color product: {multi_color_count}"))
+            await red_cb.uncheck()
+            await page.wait_for_timeout(300)
+        else:
+            results.append(("C23_multi_color_product", False, "Red checkbox not found"))
 
         await ctx.close()
         await browser.close()

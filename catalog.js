@@ -78,9 +78,10 @@ function applyFilters() {
     const maxPrice = parseInt(document.getElementById('priceRange')?.value || 40000);
     const sortMethod = document.getElementById('sortSelect')?.value || 'default';
 
-    // Get selected sizes
-    const selectedSizes = Array.from(document.querySelectorAll('.filter-checkbox input[type="checkbox"]:checked'))
-        .map(cb => cb.value);
+    // Get selected sizes (only checkboxes with data-size-filter attribute)
+    const selectedSizes = Array.from(
+        document.querySelectorAll('.filter-checkbox input[data-size-filter][type="checkbox"]:checked')
+    ).map(cb => cb.value);
 
     // Get selected colors (exclude any non-color checkboxes by checking data-color-filter)
     const selectedColors = Array.from(
@@ -211,8 +212,8 @@ function resetFilters() {
         updatePriceLabel();
     }
 
-    // Reset size checkboxes
-    document.querySelectorAll('.filter-checkbox input[type="checkbox"]').forEach(cb => {
+    // Reset size checkboxes (only those with data-size-filter)
+    document.querySelectorAll('.filter-checkbox input[data-size-filter][type="checkbox"]').forEach(cb => {
         cb.checked = false;
     });
 
@@ -220,7 +221,7 @@ function resetFilters() {
     const sortSelect = document.getElementById('sortSelect');
     if (sortSelect) sortSelect.value = 'default';
 
-    // Reset color checkboxes (they have data-color-filter, other checkboxes don't)
+    // Reset color checkboxes (those with data-color-filter)
     document.querySelectorAll('.filter-checkbox input[data-color-filter][type="checkbox"]').forEach(cb => {
         cb.checked = false;
     });
