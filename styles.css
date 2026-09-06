@@ -1175,6 +1175,18 @@ button {
     transform: scale(1.15);
 }
 
+/* Inline color dot inside a checkbox label (catalog sidebar filter) */
+.color-dot-inline {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 2px;
+}
+
 /* --------------------------------------------------------------------------
    About / Story Section
    -------------------------------------------------------------------------- */

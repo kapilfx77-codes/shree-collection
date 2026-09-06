@@ -112,7 +112,7 @@ function getColorHex(colorName) {
         'green': '#008000',
         'orange': '#FFA500'
     };
-    return colorMap[colorName.toLowerCase()] || '#CCCCCC';
+    return colorMap[(colorName || '').toLowerCase()] || '#CCCCCC';
 }
 
 // Mobile Menu Toggle
