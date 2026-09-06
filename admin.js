@@ -467,6 +467,146 @@ async function setInventory(productId, color, size, quantity) {
     }
 }
 
+// --- FIFO batch UI ---
+
+// Open the batch viewer modal for a specific (product_id, color, size) variant.
+async function openBatchesModal(productId, productName, color, size) {
+    const modal = document.getElementById('batchModal');
+    if (!modal) return;
+    document.getElementById('batchModalTitle').textContent =
+        `Batches — ${escapeHtml(productName || String(productId))} · ${escapeHtml(color)} · ${escapeHtml(size)}`;
+    document.getElementById('batchModalBody').innerHTML = '<div class="spinner"></div>';
+
+    // Save current selection in data attributes for add-stock form
+    modal.dataset.productId = productId;
+    modal.dataset.color = color;
+    modal.dataset.size = size;
+
+    modal.classList.add('open');
+
+    try {
+        const res = await adminListBatches({ product_id: productId, color, size });
+        const batches = Array.isArray(res.batches) ? res.batches : [];
+        const inventory = Array.isArray(res.inventory) ? res.inventory : [];
+
+        if (batches.length === 0) {
+            document.getElementById('batchModalBody').innerHTML = `
+                <p style="color: var(--text-muted); font-size: 0.9rem;">No cost batches for this variant yet. Add stock with a unit cost to create the first batch.</p>
+            `;
+            return;
+        }
+
+        // FIFO = oldest first; show running total and cost.
+        let runningQty = 0;
+        let runningCost = 0;
+        const rows = batches.map((b, i) => {
+            runningQty += Number(b.remaining_quantity) || 0;
+            runningCost += (Number(b.unit_cost) || 0) * Number(b.remaining_quantity);
+            const avgCost = Number(b.remaining_quantity) > 0
+                ? ((Number(b.unit_cost) || 0).toFixed(2))
+                : '—';
+            return `
+                <tr>
+                    <td style="font-family: ui-monospace, monospace; color: var(--text-muted);">${i + 1}</td>
+                    <td><strong>${Number(b.remaining_quantity)}</strong></td>
+                    <td>${Number(b.original_quantity)}</td>
+                    <td>${b.unit_cost !== null ? 'NPR ' + Number(b.unit_cost).toLocaleString('en-IN') : '—'}</td>
+                    <td>${b.unit_cost !== null ? 'NPR ' + (Number(b.unit_cost) * Number(b.remaining_quantity)).toLocaleString('en-IN') : '—'}</td>
+                    <td>${avgCost !== '—' ? 'NPR ' + avgCost : '—'}</td>
+                    <td>${formatDate(b.created_at)}</td>
+                </tr>
+            `;
+        }).join('');
+
+        const totalQty = inventory[0] ? Number(inventory[0].quantity) : runningQty;
+        const avgUnit = totalQty > 0 && runningQty > 0
+            ? 'NPR ' + (runningCost / runningQty).toFixed(2)
+            : '—';
+
+        document.getElementById('batchModalBody').innerHTML = `
+            <table class="data-table" style="font-size: 0.85rem;">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Remaining</th>
+                        <th>Original</th>
+                        <th>Unit Cost</th>
+                        <th>Batch Value</th>
+                        <th>Avg Unit Cost</th>
+                        <th>Added</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div style="margin-top: 12px; font-size: 0.85rem; color: var(--text-muted);">
+                <strong>Total in stock:</strong> ${totalQty} &nbsp;|&nbsp;
+                <strong>Weighted avg unit cost:</strong> ${avgUnit}
+            </div>
+        `;
+    } catch (err) {
+        document.getElementById('batchModalBody').innerHTML =
+            `<p style="color: var(--text-muted);">Could not load batches: ${escapeHtml(err.message)}</p>`;
+    }
+}
+
+// Open the add-stock-with-cost form, pre-filled for a variant.
+async function openAddStockModal(productId, productName, color, size) {
+    const modal = document.getElementById('addStockModal');
+    if (!modal) return;
+    modal.dataset.productId = productId;
+    modal.dataset.color = color;
+    modal.dataset.size = size;
+    document.getElementById('addStockModalTitle').textContent =
+        `Add Stock with Cost — ${escapeHtml(productName || String(productId))} · ${escapeHtml(color)} · ${escapeHtml(size)}`;
+    document.getElementById('addStockQty').value = '';
+    document.getElementById('addStockCost').value = '';
+    document.getElementById('addStockError').textContent = '';
+    modal.classList.add('open');
+}
+
+// Submit add-stock-with-cost form.
+async function submitAddStockWithCost() {
+    const modal = document.getElementById('addStockModal');
+    if (!modal) return;
+    const productId = Number(modal.dataset.productId);
+    const color = modal.dataset.color;
+    const size = modal.dataset.size;
+    const qty = Math.floor(Number(document.getElementById('addStockQty').value));
+    const cost = parseFloat(document.getElementById('addStockCost').value);
+    const errEl = document.getElementById('addStockError');
+
+    if (!Number.isInteger(qty) || qty <= 0) {
+        errEl.textContent = 'Quantity must be a positive integer.';
+        return;
+    }
+    if (isNaN(cost) || cost < 0) {
+        errEl.textContent = 'Unit cost must be a non-negative number.';
+        return;
+    }
+
+    errEl.textContent = '';
+    try {
+        const result = await adminAddStockWithCost({
+            product_id: productId,
+            color,
+            size,
+            quantity: qty,
+            unit_cost: cost,
+        });
+        if (result && result.ok) {
+            if (typeof closeAddStockModal === 'function') closeAddStockModal();
+            else modal.classList.remove('open');
+            if (typeof clearInventoryCache === 'function') clearInventoryCache();
+            showToast(`Batch created: ${qty} units at NPR ${cost} each. Total available now: ${result.total_available}`, 'success');
+            await loadInventory();
+        } else {
+            errEl.textContent = (result && result.error) || 'Failed to add stock.';
+        }
+    } catch (err) {
+        errEl.textContent = err.message || 'Could not add stock.';
+    }
+}
+
 async function loadCustomers() {
     document.getElementById('customersList').innerHTML = '<div class="state-block" style="padding: 60px;"><div class="spinner"></div></div>';
     const res = await adminListOrders({ pageSize: 500 });
@@ -749,6 +889,17 @@ function openOrderModal(orderId) {
             <span style="font-variant-numeric: tabular-nums;">NPR ${Number(order.total || 0).toLocaleString('en-IN')}</span>
         </div>
 
+        ${order.total_cost != null ? `
+        <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 0.9rem; color: var(--text-muted);">
+            <span>FIFO Cost</span>
+            <span style="font-variant-numeric: tabular-nums;">NPR ${Number(order.total_cost).toLocaleString('en-IN')}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.9rem; color: ${(Number(order.total) - Number(order.total_cost)) >= 0 ? '#047857' : '#B91C1C'};">
+            <span>Profit</span>
+            <span style="font-variant-numeric: tabular-nums; font-weight: 600;">NPR ${(Number(order.total) - Number(order.total_cost)).toLocaleString('en-IN')}</span>
+        </div>
+        ` : ''}
+
         <div style="margin-top: 18px; padding: 12px 16px; background: var(--bg-subtle); border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--text-muted);">
             <strong>Payment Reference:</strong> <code>${escapeHtml(order.txn || '—')}</code>
         </div>
@@ -806,6 +957,124 @@ function openOrderModal(orderId) {
 
 function closeOrderModal() {
     document.getElementById('orderModal').classList.remove('open');
+}
+
+function closeBatchModal() {
+    document.getElementById('batchModal').classList.remove('open');
+}
+
+function closeAddStockModal() {
+    document.getElementById('addStockModal').classList.remove('open');
+}
+
+// openProductBatchesModal: shows a picker to select color+size before opening the batch viewer.
+async function openProductBatchesModal(productId) {
+    const p = productsCacheList.find(x => Number(x.id) === Number(productId));
+    if (!p) { showToast('Product not found', 'error'); return; }
+    const sizes = Array.isArray(p.sizes) ? p.sizes : [];
+    const colors = Array.isArray(p.colors) ? p.colors : [];
+
+    if (sizes.length === 0 && colors.length === 0) {
+        // No variants — view all batches for the product directly.
+        await openBatchesModal(productId, p.name, '', '');
+        return;
+    }
+
+    // Build a simple color×size picker.
+    const modal = document.getElementById('batchPickerModal');
+    if (!modal) return;
+    document.getElementById('batchPickerTitle').textContent = `Select Variant — ${escapeHtml(p.name)}`;
+    document.getElementById('batchPickerBody').innerHTML = `
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 14px;">Choose a color and size to view its batch history.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
+            <div>
+                <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Color</label>
+                <select id="batchPickerColor" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); min-width: 120px;">
+                    ${colors.map(c => `<option value="${escapeHtml(String(c).replace(/"/g, '&quot;'))}">${escapeHtml(c)}</option>`).join('')}
+                ${colors.length === 0 ? '<option value="">—</option>' : ''}
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Size</label>
+                <select id="batchPickerSize" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); min-width: 100px;">
+                    ${sizes.map(s => `<option value="${escapeHtml(String(s).replace(/"/g, '&quot;'))}">${escapeHtml(s)}</option>`).join('')}
+                ${sizes.length === 0 ? '<option value="">—</option>' : ''}
+                </select>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary btn-sm" onclick="doOpenBatchesModal(${p.id})">View Batches</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeBatchPickerModal()">Cancel</button>
+        </div>
+    `;
+    modal.classList.add('open');
+}
+
+async function doOpenBatchesModal(productId) {
+    const p = productsCacheList.find(x => Number(x.id) === Number(productId));
+    const color = document.getElementById('batchPickerColor')?.value || '';
+    const size = document.getElementById('batchPickerSize')?.value || '';
+    closeBatchPickerModal();
+    await openBatchesModal(productId, p ? p.name : '', color, size);
+}
+
+function closeBatchPickerModal() {
+    const m = document.getElementById('batchPickerModal');
+    if (m) m.classList.remove('open');
+}
+
+// openAddStockForProduct: same picker flow, opens the add-stock-with-cost form.
+async function openAddStockForProduct(productId) {
+    const p = productsCacheList.find(x => Number(x.id) === Number(productId));
+    if (!p) { showToast('Product not found', 'error'); return; }
+    const sizes = Array.isArray(p.sizes) ? p.sizes : [];
+    const colors = Array.isArray(p.colors) ? p.colors : [];
+
+    if (sizes.length === 0 && colors.length === 0) {
+        await openAddStockModal(productId, p.name, '', '');
+        return;
+    }
+
+    const modal = document.getElementById('stockPickerModal');
+    if (!modal) return;
+    document.getElementById('stockPickerTitle').textContent = `Select Variant — ${escapeHtml(p.name)}`;
+    document.getElementById('stockPickerBody').innerHTML = `
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 14px;">Choose a color and size to add stock with a unit cost.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
+            <div>
+                <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Color</label>
+                <select id="stockPickerColor" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); min-width: 120px;">
+                    ${colors.map(c => `<option value="${escapeHtml(String(c).replace(/"/g, '&quot;'))}">${escapeHtml(c)}</option>`).join('')}
+                ${colors.length === 0 ? '<option value="">—</option>' : ''}
+                </select>
+            </div>
+            <div>
+                <label style="font-size: 0.8rem; font-weight: 600; display: block; margin-bottom: 4px;">Size</label>
+                <select id="stockPickerSize" style="padding: 6px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); min-width: 100px;">
+                    ${sizes.map(s => `<option value="${escapeHtml(String(s).replace(/"/g, '&quot;'))}">${escapeHtml(s)}</option>`).join('')}
+                ${sizes.length === 0 ? '<option value="">—</option>' : ''}
+                </select>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn btn-primary btn-sm" onclick="doOpenAddStockModal(${p.id})">Next</button>
+            <button class="btn btn-ghost btn-sm" onclick="closeStockPickerModal()">Cancel</button>
+        </div>
+    `;
+    modal.classList.add('open');
+}
+
+async function doOpenAddStockModal(productId) {
+    const p = productsCacheList.find(x => Number(x.id) === Number(productId));
+    const color = document.getElementById('stockPickerColor')?.value || '';
+    const size = document.getElementById('stockPickerSize')?.value || '';
+    closeStockPickerModal();
+    await openAddStockModal(productId, p ? p.name : '', color, size);
+}
+
+function closeStockPickerModal() {
+    const m = document.getElementById('stockPickerModal');
+    if (m) m.classList.remove('open');
 }
 
 async function updateOrderStatus(orderId, status) {
@@ -1187,6 +1456,8 @@ function renderInventory() {
                     <div>
                         ${inStock ? '<span class="badge badge-green">Selling</span>' : '<span class="badge badge-red">Hidden</span>'}
                         <button class="btn btn-ghost btn-sm" style="margin-left: 8px;" onclick="openProductModal(${p.id})">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="margin-left: 4px;" onclick="openProductBatchesModal(${p.id})">Batches</button>
+                        <button class="btn btn-ghost btn-sm" style="margin-left: 4px;" onclick="openAddStockForProduct(${p.id})">+Stock</button>
                     </div>
                 </div>
                 ${sizes.length === 0 || colors.length === 0 ? `

@@ -256,13 +256,239 @@ VALUES ('product-images', 'product-images', TRUE)
 ON CONFLICT (id) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
--- Verify
+-- 7. INVENTORY COST BATCHES — FIFO batch-level costing
 -- ---------------------------------------------------------------------------
--- SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename;
--- SELECT * FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;
--- SELECT column_name, data_type FROM information_schema.columns
---   WHERE table_name = 'orders' ORDER BY ordinal_position;
--- \d public.inventory
--- SELECT proname FROM pg_proc WHERE proname IN
---   ('decrement_inventory','restore_inventory');
+-- One row per stock purchase batch. unit_cost = NULL means "pre-FIFO unknown
+-- cost" — these batches still participate in FIFO but show as "unknown" in reports.
+CREATE TABLE IF NOT EXISTS public.inventory_cost_batches (
+  id                  BIGSERIAL PRIMARY KEY,
+  product_id          BIGINT    NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+  color               TEXT      NOT NULL,
+  size                TEXT      NOT NULL,
+  original_quantity   INT       NOT NULL CHECK (original_quantity > 0),
+  remaining_quantity  INT       NOT NULL CHECK (remaining_quantity >= 0),
+  unit_cost           DECIMAL(10,2) CHECK (unit_cost IS NULL OR unit_cost >= 0),
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_batches_fifo
+  ON public.inventory_cost_batches (product_id, color, size, created_at ASC)
+  WHERE remaining_quantity > 0;
+CREATE INDEX IF NOT EXISTS idx_batches_product
+  ON public.inventory_cost_batches (product_id, color, size);
+
+-- Grant service_role read access (batches table is blocked by RLS for anon)
+GRANT SELECT ON public.inventory_cost_batches TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 8. FIFO RPCs (SECURITY DEFINER — service_role only)
+-- ---------------------------------------------------------------------------
+-- consume_fifo_batches: atomically consume stock from oldest batches first.
+-- Returns rows per batch consumed + total_cost in last row; -1 sentinel if OOS.
+CREATE OR REPLACE FUNCTION public.consume_fifo_batches(
+  p_product_id  BIGINT,
+  p_color       TEXT,
+  p_size        TEXT,
+  p_qty         INT
+)
+RETURNS TABLE (
+  batch_id      BIGINT,
+  allocated_qty INT,
+  unit_cost     DECIMAL(10,2),
+  batch_cost    DECIMAL(12,2),
+  total_cost    DECIMAL(14,2)
+) AS $$
+DECLARE
+  v_needed       INT := p_qty;
+  v_batch        RECORD;
+  v_consumed     INT;
+  v_cost         DECIMAL(12,2);
+  v_running_cost DECIMAL(14,2) := 0;
+BEGIN
+  IF p_product_id IS NULL OR p_color IS NULL OR p_size IS NULL THEN
+    RAISE EXCEPTION 'consume_fifo_batches: all arguments required' USING ERRCODE='22023';
+  END IF;
+  IF p_qty IS NULL OR p_qty <= 0 THEN
+    RAISE EXCEPTION 'consume_fifo_batches: p_qty must be > 0' USING ERRCODE='22023';
+  END IF;
+
+  FOR v_batch IN
+    SELECT id, remaining_quantity, unit_cost
+    FROM   public.inventory_cost_batches
+    WHERE  product_id = p_product_id
+      AND  color      = p_color
+      AND  size       = p_size
+      AND  remaining_quantity > 0
+    ORDER BY created_at ASC
+    FOR UPDATE
+  LOOP
+    EXIT WHEN v_needed <= 0;
+    v_consumed := LEAST(v_batch.remaining_quantity, v_needed);
+
+    UPDATE public.inventory_cost_batches
+    SET    remaining_quantity = remaining_quantity - v_consumed
+    WHERE  id = v_batch.id;
+
+    UPDATE public.inventory
+    SET    quantity = quantity - v_consumed
+    WHERE  product_id = p_product_id AND color = p_color AND size = p_size;
+
+    v_cost := COALESCE(v_batch.unit_cost, 0) * v_consumed;
+    v_running_cost := v_running_cost + v_cost;
+
+    batch_id      := v_batch.id;
+    allocated_qty := v_consumed;
+    unit_cost     := v_batch.unit_cost;
+    batch_cost    := v_cost;
+    total_cost    := CASE WHEN v_needed - v_consumed <= 0 THEN v_running_cost ELSE NULL END;
+    RETURN NEXT;
+
+    v_needed := v_needed - v_consumed;
+  END LOOP;
+
+  IF v_needed > 0 THEN
+    -- Insufficient stock: restore what we just consumed (reverse FIFO)
+    DECLARE
+      v_rest RECORD;
+      v_r INT := p_qty - v_needed;
+    BEGIN
+      FOR v_rest IN
+      SELECT id, LEAST(remaining_quantity, v_r) AS amt
+      FROM public.inventory_cost_batches
+      WHERE product_id = p_product_id AND color = p_color AND size = p_size
+        AND remaining_quantity > 0
+      ORDER BY created_at DESC
+      FOR UPDATE
+      LOOP
+        EXIT WHEN v_r <= 0;
+        UPDATE public.inventory_cost_batches
+        SET    remaining_quantity = remaining_quantity + v_rest.amt
+        WHERE  id = v_rest.id;
+        UPDATE public.inventory
+        SET    quantity = quantity + v_rest.amt
+        WHERE  product_id = p_product_id AND color = p_color AND size = p_size;
+        v_r := v_r - v_rest.amt;
+      END LOOP;
+    END;
+    batch_id := NULL; allocated_qty := NULL; unit_cost := NULL;
+    batch_cost := NULL; total_cost := -1; -- sentinel
+    RETURN NEXT;
+  END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- restore_fifo_batches: restores quantities to exact batches from a prior consume.
+-- Idempotent: restoring the same allocation twice is a no-op after the first.
+CREATE OR REPLACE FUNCTION public.restore_fifo_batches(p_allocations JSONB)
+RETURNS TABLE (batch_id BIGINT, restored_qty INT) AS $$
+DECLARE
+  v_alloc   JSONB;
+  v_bid     BIGINT;
+  v_qty     INT;
+  v_prod_id BIGINT;
+  v_col     TEXT;
+  v_sz      TEXT;
+BEGIN
+  IF p_allocations IS NULL OR jsonb_array_length(p_allocations) = 0 THEN
+    RETURN;
+  END IF;
+
+  FOR v_alloc IN SELECT jsonb_array_elements(p_allocations) LOOP
+    v_bid := (v_alloc->>'batch_id')::BIGINT;
+    v_qty := (v_alloc->>'allocated_qty')::INT;
+
+    IF v_bid IS NULL OR v_qty IS NULL OR v_qty <= 0 THEN
+      CONTINUE;
+    END IF;
+
+    -- Look up the batch's FK values so we can sync the inventory row.
+    SELECT product_id, color, size
+    INTO   v_prod_id, v_col, v_sz
+    FROM   public.inventory_cost_batches
+    WHERE  id = v_bid;
+
+    IF NOT FOUND THEN
+      CONTINUE;
+    END IF;
+
+    -- Restore batch (capped at original_quantity).
+    UPDATE public.inventory_cost_batches
+    SET    remaining_quantity = LEAST(remaining_quantity + v_qty, original_quantity)
+    WHERE  id = v_bid
+    RETURNING remaining_quantity INTO v_qty;
+
+    -- Restore the variant-level inventory quantity.
+    UPDATE public.inventory
+    SET    quantity = quantity + v_qty
+    WHERE  product_id = v_prod_id AND color = v_col AND size = v_sz;
+
+    batch_id     := v_bid;
+    restored_qty := v_qty;
+    RETURN NEXT;
+  END LOOP;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- add_inventory_batch: add stock with a known unit cost, creates a new FIFO batch.
+CREATE OR REPLACE FUNCTION public.add_inventory_batch(
+  p_product_id BIGINT, p_color TEXT, p_size TEXT,
+  p_qty INT, p_unit_cost DECIMAL(10,2)
+)
+RETURNS TABLE (batch_id BIGINT, total_available INT) AS $$
+BEGIN
+  IF p_product_id IS NULL OR p_color IS NULL OR p_size IS NULL THEN
+    RAISE EXCEPTION 'add_inventory_batch: product_id, color, size required' USING ERRCODE='22023';
+  END IF;
+  IF p_qty IS NULL OR p_qty <= 0 THEN
+    RAISE EXCEPTION 'add_inventory_batch: p_qty must be > 0' USING ERRCODE='22023';
+  END IF;
+  IF p_unit_cost IS NOT NULL AND p_unit_cost < 0 THEN
+    RAISE EXCEPTION 'add_inventory_batch: unit_cost >= 0 required' USING ERRCODE='22023';
+  END IF;
+
+  INSERT INTO public.inventory_cost_batches
+    (product_id, color, size, original_quantity, remaining_quantity, unit_cost)
+  VALUES (p_product_id, p_color, p_size, p_qty, p_qty, p_unit_cost)
+  RETURNING id INTO batch_id;
+
+  INSERT INTO public.inventory (product_id, color, size, quantity)
+  VALUES (p_product_id, p_color, p_size, p_qty)
+  ON CONFLICT (product_id, color, size)
+  DO UPDATE SET quantity = inventory.quantity + p_qty, last_updated = NOW();
+
+  SELECT COALESCE(SUM(remaining_quantity), 0)
+  INTO total_available
+  FROM public.inventory_cost_batches
+  WHERE product_id = p_product_id AND color = p_color AND size = p_size;
+
+  RETURN NEXT;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grants
+REVOKE EXECUTE ON FUNCTION public.consume_fifo_batches(BIGINT, TEXT, TEXT, INT)
+  FROM PUBLIC, anon, authenticated;
+GRANT  EXECUTE ON FUNCTION public.consume_fifo_batches(BIGINT, TEXT, TEXT, INT)
+  TO service_role;
+
+REVOKE EXECUTE ON FUNCTION public.restore_fifo_batches(JSONB)
+  FROM PUBLIC, anon, authenticated;
+GRANT  EXECUTE ON FUNCTION public.restore_fifo_batches(JSONB)
+  TO service_role;
+
+REVOKE EXECUTE ON FUNCTION public.add_inventory_batch(BIGINT, TEXT, TEXT, INT, DECIMAL)
+  FROM PUBLIC, anon, authenticated;
+GRANT  EXECUTE ON FUNCTION public.add_inventory_batch(BIGINT, TEXT, TEXT, INT, DECIMAL)
+  TO service_role;
+
+-- ---------------------------------------------------------------------------
+-- 9. VERIFY
+-- ---------------------------------------------------------------------------
+-- SELECT table_name FROM information_schema.tables
+--   WHERE table_name IN ('products','orders','inventory','inventory_cost_batches');
+-- SELECT proname FROM pg_proc
+--   WHERE proname IN ('consume_fifo_batches','restore_fifo_batches','add_inventory_batch');
+-- SELECT schemaname, rolname, proname, privilege_type FROM information_schema.routine_privileges
+--   WHERE proname IN ('consume_fifo_batches','restore_fifo_batches','add_inventory_batch')
+--   ORDER BY proname, rolname;
 -- ============================================================================

@@ -1,0 +1,40 @@
+== Target: https://shree-collection-opal.vercel.app ==
+[test_env] cleaned child env: stripped 10 vars (BASE_URL, NEXT_PUBLIC_BASE_URL, ANTHROPIC_BASE_URL, ENABLE_SOCKS5_PROXY, NEXT_PUBLIC_ENABLE_SOCKS5_PROXY, MACHINE_ID_SALT, INSPECTOR_HTTP_PROXY_PORT, INSPECTOR_HTTP_PROXY_AUTOSTART, INSPECTOR_SYSTEM_PROXY_GUARD_MINUTES, OMNIROUTE_USE_TURBOPACK)
+  T03: in_stock_id='1' supabase_err=None
+  Restored in_stock=false for product 1
+
+======================================================================
+CHECKOUT VERIFICATION MATRIX
+======================================================================
+[PASS] T01: title='Shree Collection - Premium Women's Ethnic Wear | Butwal, Nepal' status=200
+[PASS] T02: 2 product card(s) visible
+[PASS] T03: loaded product id=1, status=200
+[PASS] T04: cart now has 1 item(s)
+[PASS] T05: before=1 after=1
+[PASS] T06: lineSum=1500 fnTotal=1500
+[PASS] T07: page.url = https://shree-collection-opal.vercel.app/checkout
+[PASS] T08: 1 summary line(s), total='NPR 1,500'
+[PASS] T09: section=True txn=True check=True notice=True
+[PASS] T10: button label = 'Submit Payment Details'
+[PASS] T11: order id = 'SHREE-MTOD530L-OMALMZ'
+[PASS] T12: order_id=SHREE-MTOD5A1R-6M6CGD lookup status=200
+[PASS] T13: payment_status='pending' method='esewa'
+[PASS] T14: title='Payment Submitted — Verification Pending' pending panel=1
+[FAIL] T15: title='Order Received!' order_id='SHREE-MTOD5JSW-OA8S54'
+[PASS] T16: cart count after order = 0
+[PASS] T17: server total = 1500 NPR (client attempted 1 NPR)
+[PASS] T18: toast: '✗Sorry, "Kurta" is currently out of stock. Please remove it from your cart.'
+
+Total: 17/18 passed
+Orders created during this run (for cleanup if needed): [('restore_in_stock', '1'), 'SHREE-MTOD530L-OMALMZ', 'SHREE-MTOD5A1R-6M6CGD', 'SHREE-MTOD5JSW-OA8S54', 'SHREE-MTOD5O8H-J1IR1R']
+
+Console errors observed (4):
+  [error] Failed to load resource: the server responded with a status of 404 ()
+  [error] Failed to load resource: the server responded with a status of 409 ()
+  [error] createOrder failed: Error: Sorry, "Kurta" is currently out of stock. Please remove it from your cart.
+    at callOrdersApi (https://shree-collection-opal.vercel.app/db.js:331:21)
+    at async createOrder (https://shree-collection-opal.vercel.app/db.js:345:24)
+    at async submitOrder (https://shree-collection-opal.vercel.app/cart.js:429:24)
+    at async handleCheckoutSubmit (https://shree-collection-opal.vercel.app/checkout:511:32)
+  [error] Checkout submit failed: Error: Order could not be created.
+    at handleCheckoutSubmit (https://shree-collection-opal.vercel.app/checkout:530:23)

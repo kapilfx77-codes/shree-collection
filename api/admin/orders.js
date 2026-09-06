@@ -128,6 +128,28 @@ async function handleCancel(req, res) {
     const body = req.body || {};
     if (!body.order_id) return res.status(400).json({ error: 'order_id is required' });
 
+    // Load the order to restore FIFO batch allocations if present.
+    const lookup = await sbFetch(
+        `orders?order_id=eq.${encodeURIComponent(body.order_id)}&select=batch_allocations,status,payment_status`
+    );
+    if (lookup.status >= 400) return res.status(lookup.status).json(lookup.data || { error: lookup.raw });
+    if (!Array.isArray(lookup.data) || lookup.data.length === 0) {
+        return res.status(404).json({ error: 'Order not found' });
+    }
+    const order = lookup.data[0];
+
+    // Restore FIFO batches if this order consumed inventory.
+    if (Array.isArray(order.batch_allocations) && order.batch_allocations.length > 0) {
+        const rest = await sbFetch('rpc/restore_fifo_batches', {
+            method: 'POST',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify(order.batch_allocations),
+        });
+        if (rest.status >= 400) {
+            console.error('restore_fifo_batches failed during cancel:', rest.status, rest.data || rest.raw);
+        }
+    }
+
     // Soft cancel: never DELETE. Preserve order history.
     const r = await sbFetch(
         `orders?order_id=eq.${encodeURIComponent(body.order_id)}`,
@@ -210,6 +232,18 @@ async function handleReject(req, res, session) {
     }
     if (order.payment_status === 'paid') {
         return res.status(409).json({ error: 'This order is already marked as paid and cannot be rejected.' });
+    }
+
+    // Restore FIFO batches so stock returns to the exact batches it came from.
+    if (Array.isArray(order.batch_allocations) && order.batch_allocations.length > 0) {
+        const rest = await sbFetch('rpc/restore_fifo_batches', {
+            method: 'POST',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify(order.batch_allocations),
+        });
+        if (rest.status >= 400) {
+            console.error('restore_fifo_batches failed during reject:', rest.status, rest.data || rest.raw);
+        }
     }
 
     const updates = {

@@ -308,26 +308,25 @@ async function handleCreate(req, res) {
   }
   const row = (Array.isArray(ins.data) && ins.data[0]) || null;
 
-  // 7b. Atomic per-line inventory decrement. The RPC performs
-  //     `UPDATE inventory SET quantity = quantity - p_qty
-  //      WHERE quantity >= p_qty`, so two concurrent orders for the
-  //     last unit resolve to exactly one success at the row level.
+  // 7b. Atomic FIFO batch consumption. Instead of decrementing the raw
+  //     inventory quantity, we allocate from cost batches in FIFO order
+  //     (oldest batch first). The RPC returns per-batch allocation details
+  //     which we store with the order so exact costs are known for
+  //     reporting and can be restored on payment rejection/cancellation.
   //
-  // If any line fails (race lost, stock depleted, or RPC error) we
-  // soft-cancel the order so the customer gets an honest 409 and the
-  // audit trail reflects what happened. Cancellation here is internal
-  // to this request — no partial stock decrements linger.
-  const decrementFailures = [];
-  // Track which lines were actually decremented so we can restore ONLY
-  // those on failure. A previous version iterated over `items` in the
-  // restore loop, which inflated stock for lines that were never
-  // decremented (because the loop `break`s at the first failure) — this
-  // is the root cause of the V16 race-test seeing 6-7 successes against
-  // a stock of 5.
-  const decrementedLines = [];
+  //     consume_fifo_batches returns rows per batch consumed + total_cost
+  //     in the last row. A single row with total_cost = -1 means
+  //     insufficient stock (all updates already rolled back by the RPC).
+  //
+  //     If any line fails we soft-cancel the order and restore the
+  //     batch allocations already recorded for earlier lines.
+  const batchAllocations = [];   // { batch_id, allocated_qty } per consumed batch
+  const consumptionFailures = [];
+  let orderTotalCost = 0;
+
   for (const line of items) {
     // eslint-disable-next-line no-await-in-loop
-    const dec = await sbFetch('rpc/decrement_inventory', {
+    const rc = await sbFetch('rpc/consume_fifo_batches', {
       method: 'POST',
       headers: { Prefer: 'return=representation' },
       body: JSON.stringify({
@@ -337,44 +336,52 @@ async function handleCreate(req, res) {
         p_qty: line.quantity,
       }),
     });
-    if (dec.status >= 400) {
-      console.error('decrement_inventory error:', dec.status, dec.data || dec.raw);
-      decrementFailures.push({ line, reason: 'rpc_error', detail: dec.data || dec.raw });
+
+    if (rc.status >= 400) {
+      console.error('consume_fifo_batches error:', rc.status, rc.data || rc.raw);
+      consumptionFailures.push({ line, reason: 'rpc_error', detail: rc.data || rc.raw });
       break;
     }
-    const decRows = Array.isArray(dec.data) ? dec.data : [];
-    if (decRows.length === 0) {
-      // Another order won the race for this variant between the
-      // pre-check and the decrement. Treat the same as a stock failure.
-      decrementFailures.push({ line, reason: 'insufficient_stock' });
+
+    const rows = Array.isArray(rc.data) ? rc.data : [];
+
+    if (rows.length === 0) {
+      consumptionFailures.push({ line, reason: 'insufficient_stock' });
       break;
     }
-    // Line was decremented successfully — record it so we can restore on
-    // a later-line failure.
-    decrementedLines.push(line);
+
+    // Sentinel: total_cost = -1 means the RPC rolled back all updates.
+    const lastRow = rows[rows.length - 1];
+    if (lastRow && lastRow.total_cost === -1) {
+      consumptionFailures.push({ line, reason: 'insufficient_stock' });
+      break;
+    }
+
+    // Collect batch allocations for later restore + store with order.
+    // Also compute the line's cost from the FIFO allocation.
+    let lineCost = 0;
+    for (const r of rows) {
+      if (r.batch_id != null) {
+        batchAllocations.push({ batch_id: r.batch_id, allocated_qty: r.allocated_qty });
+      }
+      if (r.total_cost != null) {
+        lineCost = Number(r.total_cost) || 0;
+      }
+    }
+    orderTotalCost += lineCost;
   }
 
-  if (decrementFailures.length > 0) {
-    // Restore ONLY the lines that were actually decremented above. Lines
-    // after the failure point were never touched, so restoring them
-    // would over-credit stock and re-introduce the V16 race.
-    for (const line of decrementedLines) {
+  if (consumptionFailures.length > 0) {
+    // Restore only the allocations that were actually consumed above.
+    if (batchAllocations.length > 0) {
       // eslint-disable-next-line no-await-in-loop
-      await sbFetch('rpc/restore_inventory', {
+      await sbFetch('rpc/restore_fifo_batches', {
         method: 'POST',
         headers: { Prefer: 'return=representation' },
-        body: JSON.stringify({
-          p_product_id: line.id,
-          p_color: colorKey(line.color),
-          p_size: colorKey(line.size),
-          p_qty: line.quantity,
-        }),
+        body: JSON.stringify(batchAllocations),
       });
     }
-    // Soft-cancel the order row so the admin sees a coherent record.
-    // We mark status='cancelled' and payment_status='failed' so the
-    // orders page can hide it; the audit trail (order_id, items,
-    // payment_method) is preserved.
+    // Soft-cancel the order so the admin sees a coherent record.
     if (row && row.order_id) {
       // eslint-disable-next-line no-await-in-loop
       await sbFetch(
@@ -390,7 +397,7 @@ async function handleCreate(req, res) {
         }
       );
     }
-    const f = decrementFailures[0];
+    const f = consumptionFailures[0];
     const p = byId.get(f.line.id);
     return res.status(409).json({
       error:
@@ -404,10 +411,29 @@ async function handleCreate(req, res) {
     });
   }
 
+  // 7c. Attach the FIFO batch allocations and total cost to the order row so:
+  //     - Payment rejection / order cancellation can restore exact batches.
+  //     - Reporting can compute actual COGS without re-running FIFO.
+  if (row && row.order_id && batchAllocations.length > 0) {
+    // eslint-disable-next-line no-await-in-loop
+    await sbFetch(
+      `orders?order_id=eq.${encodeURIComponent(row.order_id)}`,
+      {
+        method: 'PATCH',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({
+          batch_allocations: batchAllocations,
+          total_cost: orderTotalCost,
+        }),
+      }
+    );
+  }
+
   return res.status(201).json({
     ok: true,
     order_id: orderId,
     total: serverTotal,
+    total_cost: orderTotalCost,
     client_total_mismatch: clientTotalMismatch,
     payment_method: paymentMethod,
     payment_status: 'pending',

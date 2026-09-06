@@ -309,6 +309,27 @@ async function updateInventory() {
     return false;
 }
 
+// --- FIFO batch helpers ---
+
+// adminListBatches: list FIFO cost batches for a variant or product.
+// Without color/size → all batches for that product; without product_id → all batches.
+async function adminListBatches({ product_id: productId, color, size } = {}) {
+    const qs = new URLSearchParams();
+    if (productId !== undefined && productId !== null) qs.set('product_id', String(productId));
+    if (color) qs.set('color', color);
+    if (size)  qs.set('size', size);
+    return adminFetch(`batches?${qs.toString()}`);
+}
+
+// adminAddStockWithCost: add stock with a known unit cost, creating a new FIFO batch.
+// Does NOT touch existing batches — each add creates a new batch.
+async function adminAddStockWithCost({ product_id: productId, color, size, quantity, unit_cost: unitCost }) {
+    return adminFetch('inventory/cost', {
+        method: 'POST',
+        body: JSON.stringify({ product_id: productId, color, size, quantity, unit_cost: unitCost }),
+    });
+}
+
 // ==========================================================================
 // ORDERS — storefront CREATE only. Admin reads/updates via /api/admin/orders.
 // ==========================================================================

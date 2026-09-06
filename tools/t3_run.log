@@ -1,0 +1,72 @@
+== Target: https://shree-collection-opal.vercel.app ==
+[test_env] cleaned child env: stripped 10 vars (BASE_URL, NEXT_PUBLIC_BASE_URL, ANTHROPIC_BASE_URL, ENABLE_SOCKS5_PROXY, NEXT_PUBLIC_ENABLE_SOCKS5_PROXY, MACHINE_ID_SALT, INSPECTOR_HTTP_PROXY_PORT, INSPECTOR_HTTP_PROXY_AUTOSTART, INSPECTOR_SYSTEM_PROXY_GUARD_MINUTES, OMNIROUTE_USE_TURBOPACK)
+  T03: in_stock_id='1' supabase_err=None
+  Restored in_stock=false for product 1
+
+======================================================================
+CHECKOUT VERIFICATION MATRIX
+======================================================================
+[PASS] T01: title='Shree Collection - Premium Women's Ethnic Wear | Butwal, Nepal' status=200
+[PASS] T02: 2 product card(s) visible
+[PASS] T03: loaded product id=1, status=200
+[PASS] T04: cart now has 1 item(s)
+[PASS] T05: before=1 after=1
+[PASS] T06: lineSum=1500 fnTotal=1500
+[PASS] T07: page.url = https://shree-collection-opal.vercel.app/checkout
+[PASS] T08: 1 summary line(s), total='NPR 1,500'
+[PASS] T09: section=True txn=True check=True notice=True
+[PASS] T10: button label = 'Submit Payment Details'
+[PASS] T11: order id = 'SHREE-MTOCMYXB-X00VGD'
+[PASS] T12: order_id=SHREE-MTOCN43P-B1IWRY lookup status=200
+[FAIL] T13: payment_status=None method=None
+[FAIL] T14: title='Order Not Found' pending panel=0
+[FAIL] T15: exception: Page.click: Timeout 15000ms exceeded.
+Call log:
+  - waiting for locator("#cartBtn, [data-cart-btn], .cart-btn")
+    - locator resolved to <a href="#" id="cartBtn" class="cart-icon" title="View Cart" aria-label="View cart">…</a>
+  - attempting click action
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <svg width="20" height="20" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">…</svg> from <div id="cartDrawer" class="cart-drawer open">…</div> subtree intercepts pointer events
+    - retrying click action
+    - waiting 20ms
+    2 × waiting for element to be visible, enabled and stable
+      - element is visible, enabled and stable
+      - scrolling into view if needed
+      - done scrolling
+      - <svg width="20" height="20" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">…</svg> from <div id="cartDrawer" class="cart-drawer open">…</div> subtree intercepts pointer events
+    - retrying click action
+      - waiting 100ms
+    27 × waiting for element to be visible, enabled and stable
+       - element is visible, enabled and stable
+       - scrolling into view if needed
+       - done scrolling
+       - <svg width="20" height="20" fill="none" stroke-width="2" viewBox="0 0 24 24" stroke="currentColor">…</svg> from <div id="cartDrawer" class="cart-drawer open">…</div> subtree intercepts pointer events
+     - retrying click action
+       - waiting 500ms
+
+[FAIL] T16: cart count after order = 1
+[PASS] T17: server total = 1500 NPR (client attempted 1 NPR)
+[PASS] T18: toast: '✗Sorry, "Kurta" is currently out of stock. Please remove it from your cart.'
+
+Total: 14/18 passed
+Orders created during this run (for cleanup if needed): [('restore_in_stock', '1'), 'SHREE-MTOCMYXB-X00VGD', 'SHREE-MTOCN43P-B1IWRY', 'SHREE-MTOCNRYF-V0IGQD']
+
+Console errors observed (7):
+  [error] Failed to load resource: the server responded with a status of 404 ()
+  [error] Failed to load resource: the server responded with a status of 404 ()
+  [error] lookupOrder failed: Error: Order not found
+    at callOrdersApi (https://shree-collection-opal.vercel.app/db.js:331:21)
+    at async lookupOrder (https://shree-collection-opal.vercel.app/db.js:418:24)
+    at async HTMLDocument.<anonymous> (https://shree-collection-opal.vercel.app/checkout-success?order=SHREE-MTOCMYXB-X00VGD:204:33)
+  [error] Failed to load resource: the server responded with a status of 404 ()
+  [error] Failed to load resource: the server responded with a status of 409 ()
+  [error] createOrder failed: Error: Sorry, "Kurta" is currently out of stock. Please remove it from your cart.
+    at callOrdersApi (https://shree-collection-opal.vercel.app/db.js:331:21)
+    at async createOrder (https://shree-collection-opal.vercel.app/db.js:345:24)
+    at async submitOrder (https://shree-collection-opal.vercel.app/cart.js:429:24)
+    at async handleCheckoutSubmit (https://shree-collection-opal.vercel.app/checkout:511:32)
+  [error] Checkout submit failed: Error: Order could not be created.
+    at handleCheckoutSubmit (https://shree-collection-opal.vercel.app/checkout:530:23)

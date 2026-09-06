@@ -937,6 +937,70 @@
         </div>
     </div>
 
+    <!-- Batch viewer modal -->
+    <div class="modal-backdrop" id="batchModal">
+        <div class="modal" style="max-width: 720px;">
+            <div class="modal-head">
+                <h3 id="batchModalTitle">FIFO Batches</h3>
+                <button class="close" onclick="closeBatchModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="batchModalBody"></div>
+            <div class="modal-foot">
+                <button class="btn btn-primary" onclick="closeBatchModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add stock with cost modal -->
+    <div class="modal-backdrop" id="addStockModal">
+        <div class="modal" style="max-width: 480px;">
+            <div class="modal-head">
+                <h3 id="addStockModalTitle">Add Stock with Cost</h3>
+                <button class="close" onclick="closeAddStockModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="addStockDesc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;"></p>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="addStockQty">Quantity *</label>
+                        <input type="number" id="addStockQty" min="1" step="1" placeholder="e.g. 10" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="addStockCost">Unit Cost (NPR) *</label>
+                        <input type="number" id="addStockCost" min="0" step="0.01" placeholder="e.g. 850.00" required>
+                    </div>
+                </div>
+                <p id="addStockError" style="color: var(--danger); font-size: 0.85rem; margin-top: 8px;"></p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-ghost" onclick="closeAddStockModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitAddStockWithCost()">Add Stock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Variant picker for batch viewer -->
+    <div class="modal-backdrop" id="batchPickerModal">
+        <div class="modal" style="max-width: 440px;">
+            <div class="modal-head">
+                <h3 id="batchPickerTitle">Select Variant</h3>
+                <button class="close" onclick="closeBatchPickerModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="batchPickerBody"></div>
+        </div>
+    </div>
+
+    <!-- Variant picker for add stock with cost -->
+    <div class="modal-backdrop" id="stockPickerModal">
+        <div class="modal" style="max-width: 440px;">
+            <div class="modal-head">
+                <h3 id="stockPickerTitle">Select Variant</h3>
+                <button class="close" onclick="closeStockPickerModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="stockPickerBody"></div>
+        </div>
+    </div>
+
     <!-- Product editor modal -->
     <div class="modal-backdrop" id="productModal">
         <div class="modal" style="max-width: 800px;">

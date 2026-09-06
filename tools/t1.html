@@ -89,21 +89,44 @@
     </script>
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    <div class="scroll-progress" id="scrollProgress" style="width: 0%;"></div>
     <!-- Announcement Bar -->
     <div class="announcement-bar">
-        <div class="announcement-content">
-            <span class="announcement-item">
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
-                Festive &amp; Wedding Collection Available
-            </span>
-            <span class="announcement-item">
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
-                Delivery All Over Nepal
-            </span>
-            <span class="announcement-item">
-                <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
-                Direct WhatsApp &amp; QR Payment: <strong data-config="primary-phone">9841735450</strong>
-            </span>
+        <div class="announcement-track">
+            <div class="announcement-content">
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                    Festive &amp; Wedding Collection Available
+                </span>
+                <span class="announcement-sep">•</span>
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    Delivery All Over Nepal
+                </span>
+                <span class="announcement-sep">•</span>
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    Direct WhatsApp &amp; QR Payment: <strong data-config="primary-phone">9841735450</strong>
+                </span>
+                <span class="announcement-sep">•</span>
+                <!-- Duplicate set for seamless loop -->
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                    Festive &amp; Wedding Collection Available
+                </span>
+                <span class="announcement-sep">•</span>
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"></path></svg>
+                    Delivery All Over Nepal
+                </span>
+                <span class="announcement-sep">•</span>
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                    Direct WhatsApp &amp; QR Payment: <strong data-config="primary-phone">9841735450</strong>
+                </span>
+                <span class="announcement-sep">•</span>
+            </div>
         </div>
     </div>
 
@@ -148,7 +171,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero" id="main-content">
         <div class="hero-bg-pattern"></div>
         <div class="hero-bg-image"></div>
         <div class="hero-overlay"></div>
@@ -265,7 +288,91 @@
                 <h2 class="section-title">Featured Collection</h2>
                 <p class="section-subtitle">Our most loved pieces, curated for elegance</p>
             </div>
-            <div class="products-grid" id="featuredProducts"><p style="text-align: center; color: var(--text-muted);">No featured products available</p></div>
+            <div class="products-grid" id="featuredProducts">
+        <div class="product-card">
+            <div class="product-image-wrap">
+                <a href="product.html?id=1" style="display: block; cursor: pointer;" aria-label="View Kurta details">
+                    <img src="https://xztfoauqecnmznszghcj.supabase.co/storage/v1/object/public/product-images/admin/1788599125811-g4pwfvai7-DSC5024_0045efab-3485-4de4-bd33-993d1f446a33.jpg.jpg" alt="Kurta" loading="lazy" style="cursor: pointer;">
+                </a>
+                <div class="product-badge">Featured</div>
+                <div class="product-discount-badge">-32%</div>
+                <a href="product.html?id=1" class="product-quick-view-btn" style="text-decoration: none; display: inline-block;">
+                    View Details
+                </a>
+            </div>
+            <div class="product-info">
+                <a href="product.html?id=1" class="product-title">Kurta</a>
+                <div class="product-prices">
+                    <span class="current-price">NPR 1,500</span>
+                    <span class="original-price">NPR 2,200</span>
+                </div>
+                <div class="product-colors">
+                    
+                        <span class="color-dot" style="background-color: #DC143C;" title="Red"></span>
+                    
+                        <span class="color-dot" style="background-color: #CCCCCC;" title="Zinc"></span>
+                    
+                </div>
+                <div class="product-actions">
+                    <button class="btn-add-cart" onclick="addToCart(1)">
+                        <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                        Add to Cart
+                    </button>
+                    <a href="https://wa.me/9779841735450?text=Hi!%20I%20want%20to%20buy%3A%20Kurta" class="btn-whatsapp-buy" target="_blank" title="Order via WhatsApp">
+                        <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"></path>
+                        </svg>
+                        <span>WhatsApp</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    
+        <div class="product-card">
+            <div class="product-image-wrap">
+                <a href="product.html?id=2" style="display: block; cursor: pointer;" aria-label="View Saree Georgette details">
+                    <img src="https://xztfoauqecnmznszghcj.supabase.co/storage/v1/object/public/product-images/admin/1788600497616-3ens3cjha-nepal-georgette-heavy-foil-work-saree-528.jpg.jpg" alt="Saree Georgette" loading="lazy" style="cursor: pointer;">
+                </a>
+                <div class="product-badge">Featured</div>
+                <div class="product-discount-badge">-32%</div>
+                <a href="product.html?id=2" class="product-quick-view-btn" style="text-decoration: none; display: inline-block;">
+                    View Details
+                </a>
+            </div>
+            <div class="product-info">
+                <a href="product.html?id=2" class="product-title">Saree Georgette</a>
+                <div class="product-prices">
+                    <span class="current-price">NPR 1,900</span>
+                    <span class="original-price">NPR 2,800</span>
+                </div>
+                <div class="product-colors">
+                    
+                        <span class="color-dot" style="background-color: #DC143C;" title="Red"></span>
+                    
+                </div>
+                <div class="product-actions">
+                    <button class="btn-add-cart" onclick="addToCart(2)">
+                        <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                        Add to Cart
+                    </button>
+                    <a href="https://wa.me/9779841735450?text=Hi!%20I%20want%20to%20buy%3A%20Saree%20Georgette" class="btn-whatsapp-buy" target="_blank" title="Order via WhatsApp">
+                        <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"></path>
+                        </svg>
+                        <span>WhatsApp</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
             <div style="text-align: center; margin-top: 48px;">
                 <a href="catalog.html" class="btn btn-primary">
                     View All Products
@@ -410,13 +517,29 @@
 
     <!-- Floating WhatsApp -->
     <a href="https://wa.me/9779841735450?text=Namaste%20Shree%20Collection!%20I%20have%20an%20inquiry%20about%20your%20products." class="floating-whatsapp" data-config="whatsapp-float" target="_blank" title="Chat with us on WhatsApp" aria-label="Chat with us on WhatsApp">
-        <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"></path></svg>
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766.001-3.187-2.575-5.77-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.299.045-.677.063-1.092-.069-.252-.08-.575-.187-.988-.365-1.739-.751-2.874-2.502-2.961-2.617-.087-.116-.708-.94-.708-1.793s.448-1.273.607-1.446c.159-.173.346-.217.462-.217l.332.007c.106.005.249-.04.39.298.144.347.491 1.2.534 1.287.043.087.072.188.014.304-.058.116-.087.188-.173.289l-.26.304c-.087.086-.177.18-.076.354.101.174.449.741.964 1.201.662.591 1.221.774 1.394.86s.275.072.376-.043c.101-.116.433-.506.549-.68.116-.173.231-.145.39-.087s1.011.477 1.184.564.289.13.332.202c.043.073.043.419-.101.824z"></path></svg>
+        <span class="floating-whatsapp-label">WhatsApp</span>
     </a>
 
     <script src="config.js"></script>
     <script src="db.js"></script>
     <script src="cart.js"></script>
     <script src="main.js"></script>
+    <script>
+        // Scroll progress bar
+        (function() {
+            var bar = document.getElementById('scrollProgress');
+            if (!bar) return;
+            function update() {
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                var pct = docHeight > 0 ? (scrollTop / docHeight * 100) : 0;
+                bar.style.width = pct + '%';
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            update();
+        })();
+    </script>
 
 
 </body></html>
