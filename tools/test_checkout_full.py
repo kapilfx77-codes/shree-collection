@@ -292,7 +292,7 @@ async def main_async():
             await page.wait_for_timeout(1000)
             # The product page has an "Add to Cart" button that calls addCurrentProductToCart()
             # which uses selectedSize + selectedColor (auto-defaulted to first values).
-            await page.click("button.btn-add-cart, button:has-text('Add to Cart'), button:has-text('Add to cart')")
+            await page.click("#addToCartBtn, .product-detail-actions .btn-add-cart, button.btn-add-cart:not([disabled])")
             await page.wait_for_timeout(1500)
             # The cart drawer should open; check that a cart item is visible OR that
             # localStorage now has at least one item.
