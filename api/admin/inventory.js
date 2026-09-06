@@ -81,8 +81,6 @@ async function handleSet(req, res, session) {
     if (!Number.isInteger(productId) || productId <= 0) {
         return res.status(400).json({ error: 'product_id is required and must be a positive integer' });
     }
-    if (!color) return res.status(400).json({ error: 'color is required' });
-    if (!size) return res.status(400).json({ error: 'size is required' });
     if (!Number.isInteger(quantity) || quantity < 0) {
         return res.status(400).json({ error: 'quantity must be a non-negative integer' });
     }
