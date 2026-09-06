@@ -148,6 +148,8 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    <div class="scroll-progress" id="scrollProgress"></div>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
@@ -181,7 +183,7 @@
     </nav>
 
     <!-- Contact Hero -->
-    <section class="contact-hero">
+    <section class="contact-hero" id="main-content">
         <div class="container">
             <span class="section-tag">Get In Touch</span>
             <h1 class="section-title">We're Here to Help</h1>
@@ -441,6 +443,20 @@
     <script src="db.js"></script>
     <script src="cart.js"></script>
     <script src="main.js"></script>
+    <script>
+        (function() {
+            var bar = document.getElementById('scrollProgress');
+            if (!bar) return;
+            function update() {
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                var pct = docHeight > 0 ? (scrollTop / docHeight * 100) : 0;
+                bar.style.width = pct + '%';
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            update();
+        })();
+    </script>
 </body>
 </html>
 

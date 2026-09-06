@@ -87,6 +87,8 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    <div class="scroll-progress" id="scrollProgress"></div>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
@@ -98,7 +100,7 @@
     </nav>
 
     <!-- Success Page -->
-    <main class="checkout-success-page">
+    <main class="checkout-success-page" id="main-content">
         <div class="checkout-success-container">
             <div id="successIcon" class="success-icon paid-icon">
                 <svg id="successIconSvg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -160,6 +162,20 @@
 
     <script src="config.js"></script>
     <script src="db.js"></script>
+    <script>
+        (function() {
+            var bar = document.getElementById('scrollProgress');
+            if (!bar) return;
+            function update() {
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                var pct = docHeight > 0 ? (scrollTop / docHeight * 100) : 0;
+                bar.style.width = pct + '%';
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            update();
+        })();
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             // Read order_id from the URL and the order+phone pair we

@@ -46,6 +46,8 @@
     </script>
 </head>
 <body>
+    <a href="#catalog-main" class="skip-to-content">Skip to main content</a>
+    <div class="scroll-progress" id="scrollProgress"></div>
     <!-- Announcement Bar -->
     <div class="announcement-bar">
         <div class="announcement-content">
@@ -174,7 +176,7 @@
             </aside>
 
             <!-- Main Catalog Grid -->
-            <main class="catalog-main">
+            <main class="catalog-main" id="catalog-main">
                 <div class="catalog-toolbar">
                     <div class="catalog-count">
                         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
@@ -305,5 +307,19 @@
     <script src="cart.js"></script>
     <script src="main.js"></script>
     <script src="catalog.js"></script>
+    <script>
+        (function() {
+            var bar = document.getElementById('scrollProgress');
+            if (!bar) return;
+            function update() {
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                var pct = docHeight > 0 ? (scrollTop / docHeight * 100) : 0;
+                bar.style.width = pct + '%';
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            update();
+        })();
+    </script>
 </body>
 </html>

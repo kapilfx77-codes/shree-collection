@@ -91,6 +91,8 @@
     </script>
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    <div class="scroll-progress" id="scrollProgress"></div>
     <!-- Announcement Bar -->
     <div class="announcement-bar">
         <div class="announcement-track">
@@ -171,7 +173,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero">
+    <section class="hero" id="main-content">
         <div class="hero-bg-pattern"></div>
         <div class="hero-bg-image"></div>
         <div class="hero-overlay"></div>
@@ -443,5 +445,20 @@
     <script src="db.js"></script>
     <script src="cart.js"></script>
     <script src="main.js"></script>
+    <script>
+        // Scroll progress bar
+        (function() {
+            var bar = document.getElementById('scrollProgress');
+            if (!bar) return;
+            function update() {
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                var pct = docHeight > 0 ? (scrollTop / docHeight * 100) : 0;
+                bar.style.width = pct + '%';
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            update();
+        })();
+    </script>
 </body>
 </html>

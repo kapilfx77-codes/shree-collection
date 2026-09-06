@@ -69,6 +69,31 @@
     --transition: 0.3s ease;
     --transition-slow: 0.5s ease;
 
+    /* Semantic: System / Status */
+    --color-success: #10B981;
+    --color-success-bg: #D1FAE5;
+    --color-success-text: #065F46;
+    --color-danger: #EF4444;
+    --color-danger-bg: #FEE2E2;
+    --color-danger-text: #991B1B;
+    --color-warning: #F59E0B;
+    --color-warning-bg: #FEF3C7;
+    --color-warning-text: #92400E;
+    --color-info: #3B82F6;
+    --color-info-bg: #DBEAFE;
+    --color-info-text: #1E40AF;
+
+    /* Semantic: Brand */
+    --color-whatsapp: #25D366;
+    --color-whatsapp-hover: #1DA851;
+    --color-whatsapp-shadow: rgba(37, 211, 102, 0.25);
+
+    /* Overlay / Scrim (dark tones at varying opacity) */
+    --overlay-light: rgba(255, 255, 255, 0.6);
+    --overlay-medium: rgba(255, 255, 255, 0.3);
+    --overlay-dark: rgba(30, 23, 21, 0.6);
+    --overlay-backdrop: rgba(30, 23, 21, 0.5);
+
     /* Container */
     --container-max: 1280px;
     --container-padding: 24px;
@@ -147,8 +172,19 @@ button {
 }
 
 .section-header {
+    position: relative;
     text-align: center;
     margin-bottom: var(--space-2xl);
+    padding-bottom: var(--space-lg);
+}
+.section-header::after {
+    content: '';
+    display: block;
+    width: 48px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--gold), var(--gold-light));
+    margin: var(--space-md) auto 0;
+    border-radius: var(--radius-full);
 }
 
 .section-tag {
@@ -1749,7 +1785,23 @@ button {
     background: rgba(45, 35, 32, 0.05);
 }
 
+.product-price-save {
+    background: var(--gold);
+    color: var(--primary-dark);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: var(--radius-xs);
+}
+
 .product-detail-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-md);
+}
+
+/* product-actions is used by the admin panel product preview */
+.product-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-md);
@@ -1771,135 +1823,6 @@ button {
     gap: var(--space-sm);
     font-size: 0.875rem;
     color: var(--text-medium);
-}
-
-.product-meta-section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-lg);
-}
-
-.product-title {
-    font-family: var(--font-serif);
-    font-size: 2rem;
-    color: var(--text-dark);
-}
-
-.product-price-row {
-    display: flex;
-    align-items: baseline;
-    gap: var(--space-md);
-}
-
-.product-price-large {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--primary);
-}
-
-.product-price-strike {
-    font-size: 1.25rem;
-    color: var(--text-light);
-    text-decoration: line-through;
-}
-
-.product-price-save {
-    background: var(--gold);
-    color: var(--primary-dark);
-    font-size: 0.75rem;
-    font-weight: 700;
-    padding: 4px 10px;
-    border-radius: var(--radius-xs);
-}
-
-.product-description {
-    font-size: 1.0625rem;
-    color: var(--text-medium);
-    line-height: 1.8;
-}
-
-.option-group {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-}
-
-.option-label {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--text-dark);
-}
-
-.option-label span {
-    color: var(--gold-dark);
-    font-weight: 500;
-}
-
-.size-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-}
-
-.size-pill {
-    padding: 10px 20px;
-    border: 1.5px solid var(--border);
-    background: var(--bg-card);
-    border-radius: var(--radius-sm);
-    font-size: 0.9375rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.size-pill:hover {
-    border-color: var(--primary);
-}
-
-.size-pill.selected {
-    background: var(--primary);
-    color: #FFFFFF;
-    border-color: var(--primary);
-}
-
-.color-pills {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
-}
-
-.color-pill {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border: 1.5px solid var(--border);
-    background: var(--bg-card);
-    border-radius: var(--radius-full);
-    font-size: 0.875rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-}
-
-.color-pill:hover {
-    border-color: var(--primary);
-}
-
-.color-pill.selected {
-    border-color: var(--primary);
-    background: rgba(45, 35, 32, 0.05);
-}
-
-.product-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-md);
-    margin-top: auto;
-    padding-top: var(--space-md);
 }
 
 /* --------------------------------------------------------------------------
@@ -1962,20 +1885,20 @@ button {
     font-weight: 600;
     line-height: 1.2;
     color: #FFFFFF;
-    background: #25D366;
-    border: 1.5px solid #25D366;
+    background: var(--color-whatsapp);
+    border: 1.5px solid var(--color-whatsapp);
     border-radius: var(--radius-sm);
     cursor: pointer;
     text-decoration: none;
     white-space: nowrap;
     transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 6px rgba(37, 211, 102, 0.25);
+    box-shadow: 0 2px 6px var(--color-whatsapp-shadow);
     width: 100%;
 }
 
 .btn-whatsapp-buy:hover {
-    background: #1DA851;
-    border-color: #1DA851;
+    background: var(--color-whatsapp-hover);
+    border-color: var(--color-whatsapp-hover);
     transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(37, 211, 102, 0.4);
     color: #FFFFFF;
@@ -2364,19 +2287,19 @@ button {
 }
 
 .toast.toast-success {
-    background: linear-gradient(135deg, #10B981, #059669);
+    background: linear-gradient(135deg, var(--color-success), #059669);
 }
 
 .toast.toast-error {
-    background: linear-gradient(135deg, #EF4444, #DC2626);
+    background: linear-gradient(135deg, var(--color-danger), #DC2626);
 }
 
 .toast.toast-warning {
-    background: linear-gradient(135deg, #F59E0B, #D97706);
+    background: linear-gradient(135deg, var(--color-warning), #D97706);
 }
 
 .toast.toast-info {
-    background: linear-gradient(135deg, #3B82F6, #2563EB);
+    background: linear-gradient(135deg, var(--color-info), #2563EB);
 }
 
 /* Loading Button State */
@@ -2622,6 +2545,16 @@ button {
 
     .catalog-sidebar {
         position: static;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+    }
+
+    .filter-group {
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-sm);
+        padding: var(--space-md);
+        background: var(--bg-card);
     }
 
     .product-detail-layout {
@@ -3625,7 +3558,7 @@ button {
     align-items: flex-start;
     gap: var(--space-sm);
     font-size: 0.9rem;
-    color: var(--text);
+    color: var(--text-medium);
     cursor: pointer;
     line-height: 1.4;
 }
@@ -3634,7 +3567,7 @@ button {
     margin-top: 4px;
     width: 18px;
     height: 18px;
-    accent-color: var(--gold, #B08D57);
+    accent-color: var(--gold);
     cursor: pointer;
     flex-shrink: 0;
 }
@@ -3644,18 +3577,18 @@ button {
     align-items: flex-start;
     gap: var(--space-sm);
     background: rgba(176, 141, 87, 0.08);
-    border-left: 3px solid var(--gold, #B08D57);
+    border-left: 3px solid var(--gold);
     padding: var(--space-sm) var(--space-md);
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
-    color: var(--text);
+    color: var(--text-medium);
     line-height: 1.45;
 }
 
 .esewa-pending-notice svg {
     flex-shrink: 0;
     margin-top: 2px;
-    color: var(--gold, #B08D57);
+    color: var(--gold);
 }
 
 .form-hint {
@@ -4063,15 +3996,15 @@ button {
 }
 
 .cart-toast-success {
-    background: #059669;
+    background: var(--color-success);
 }
 
 .cart-toast-error {
-    background: #DC2626;
+    background: var(--color-danger);
 }
 
 .cart-toast-warning {
-    background: #D97706;
+    background: var(--color-warning);
 }
 
 .cart-toast-info {
@@ -4313,8 +4246,157 @@ button {
     outline-offset: 2px;
 }
 
+/* Skip-to-content link — visible only on keyboard focus (WCAG 2.4.1) */
+.skip-to-content {
+    position: absolute;
+    top: -100%;
+    left: var(--space-md);
+    z-index: 9999;
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--primary);
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: top 0.15s ease;
+}
+.skip-to-content:focus {
+    top: var(--space-md);
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+}
+
 /* Selection styling */
 ::selection {
     background: var(--gold);
     color: var(--primary-dark);
+}
+
+/* ==========================================================================
+   Visual Polish: Scroll Progress Bar
+   A thin gold line at the top of the page signals premium care
+   ========================================================================== */
+.scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light));
+    z-index: 10000;
+    transition: width 0.1s linear;
+    pointer-events: none;
+}
+
+/* ==========================================================================
+   Visual Polish: Product Card Refinements
+   ========================================================================== */
+
+/* Smooth image reveal on card load */
+.product-image-wrap img {
+    opacity: 0;
+    transition: opacity 0.4s ease, transform 0.6s ease;
+}
+.product-image-wrap img[src],
+.product-image-wrap img.loaded {
+    opacity: 1;
+}
+
+/* Better price block typography - compact gap for card layout */
+.product-price-row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   Visual Polish: Trust Banner Icon Glow
+   ========================================================================== */
+.trust-icon {
+    position: relative;
+}
+.trust-icon::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    background: radial-gradient(circle, rgba(201, 160, 80, 0.15) 0%, transparent 70%);
+    border-radius: var(--radius-md);
+    z-index: -1;
+}
+
+/* ==========================================================================
+   Visual Polish: Footer Enhancement
+   ========================================================================== */
+.footer {
+    background: var(--primary-dark);
+    color: rgba(255, 255, 255, 0.75);
+}
+.footer a {
+    color: var(--gold-light);
+    transition: color var(--transition-fast);
+}
+.footer a:hover {
+    color: var(--gold);
+}
+
+/* ==========================================================================
+   Visual Polish: Enhanced Focus States (Accessibility + Polish)
+   ========================================================================== */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    border-radius: var(--radius-xs);
+}
+
+/* ==========================================================================
+   Visual Polish: Sticky buy bar (product page) - subtle frosted glass effect
+   ========================================================================== */
+.sticky-buy-bar {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    background: rgba(250, 245, 238, 0.92);
+    border-top: 1px solid var(--border);
+}
+
+/* ==========================================================================
+   Visual Polish: Announcement bar polish
+   ========================================================================== */
+.announcement-bar {
+    background: var(--primary);
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    overflow: hidden;
+    position: relative;
+    z-index: 100;
+}
+.announcement-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+.announcement-item svg {
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* ==========================================================================
+   Accessibility: Reduced Motion
+   Respects users who prefer minimal animation (WCAG 2.3.2)
+   ========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }

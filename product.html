@@ -71,124 +71,23 @@
         };
     </script>
     <style>
-        .product-detail-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 50px;
-            margin: 50px auto;
-        }
-        .gallery-main-img {
-            width: 100%;
-            height: 520px;
-            object-fit: cover;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow-sm);
-        }
-        .gallery-thumbs {
-            display: flex;
-            gap: 12px;
-            margin-top: 14px;
-        }
-        /* Real <button> rather than a click-handled <img>, so the thumbs are
-           reachable by keyboard and announced as controls. */
-        .gallery-thumb {
-            width: 80px;
-            height: 95px;
-            padding: 0;
-            overflow: hidden;
-            line-height: 0;
-            flex: 0 0 auto;
-            background: none;
-            border-radius: var(--radius-sm);
-            border: 2px solid transparent;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .gallery-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
-        .gallery-thumb.active {
-            border-color: var(--primary);
-        }
-        .product-meta-section {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .product-price-row {
-            display: flex;
-            align-items: baseline;
-            gap: 16px;
-        }
-        .product-price-large {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
-        }
-        .product-price-strike {
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            text-decoration: line-through;
-        }
-        .option-group {
-            margin-bottom: 16px;
-        }
-        .option-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .size-pills {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .size-pill {
-            padding: 8px 18px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-card);
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .size-pill.selected {
-            background: var(--primary);
-            color: #FFF;
-            border-color: var(--primary);
-        }
-        .color-pills {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-        .color-pill {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 14px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-card);
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-        .color-pill.selected {
-            border-color: var(--primary);
-            background: #F8EFEF;
-        }
-        /* Out-of-stock state on size/color pills. The server is the
-           final authority on availability; this is a UI courtesy. */
+        /*
+         * Product detail — inline styles.
+         *
+         * IMPORTANT: Styles.css loads first and defines base rules for
+         * product-detail-layout, gallery-*, product-meta-section, size-pill,
+         * color-pill, product-detail-actions, and product-features-box.
+         * Only add rules here that are genuinely unique to product.html:
+         *   • OOS tooltip and disabled states
+         *   • Stock badge variants
+         *   • Mobile sticky buy bar (desktop-hidden, not in styles.css)
+         *   • Responsive overrides specific to this page
+         *
+         * Do NOT duplicate rules from styles.css with different values —
+         * that creates inconsistencies. Add to styles.css instead.
+         */
+
+        /* Out-of-stock state on size/color pills. */
         .size-pill[data-out-of-stock="true"],
         .color-pill[data-out-of-stock="true"] {
             opacity: 0.45;
@@ -204,57 +103,44 @@
             left: 50%;
             transform: translateX(-50%);
             font-size: 0.7rem;
-            color: var(--text-muted, #888);
+            color: var(--text-muted);
             text-decoration: none;
             white-space: nowrap;
         }
+
+        /* Stock badge variants — uses semantic color tokens from styles.css */
         .stock-badge {
             display: inline-block;
             margin-top: 8px;
             padding: 4px 10px;
-            border-radius: 4px;
+            border-radius: var(--radius-xs);
             font-size: 0.8rem;
             font-weight: 600;
         }
         .stock-badge.in-stock {
-            background: #E8F5E9;
-            color: #2E7D32;
+            background: var(--color-success-bg);
+            color: var(--color-success-text);
         }
         .stock-badge.low-stock {
-            background: #FFF8E1;
-            color: #F57F17;
+            background: var(--color-warning-bg);
+            color: var(--color-warning-text);
         }
         .stock-badge.out-of-stock {
-            background: #FFEBEE;
-            color: #C62828;
+            background: var(--color-danger-bg);
+            color: var(--color-danger-text);
         }
+
+        /* Product detail action buttons — top margin unique to this page */
         .product-detail-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-            margin-top: 20px;
+            margin-top: var(--space-md);
         }
+
+        /* Product features box — top margin unique to this page */
         .product-features-box {
-            background: var(--bg-cream);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 20px;
-            margin-top: 24px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
+            margin-top: var(--space-xl);
         }
-        .feature-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.88rem;
-            color: var(--text-dark);
-        }
-        /* Sticky mobile buy bar. On a phone the price and the two buy actions
-           scroll away well before the features and related products, so this
-           keeps them reachable. Hidden entirely on desktop, where the real
-           action buttons stay in view beside the gallery. */
+
+        /* Sticky mobile buy bar — hidden on desktop, revealed via JS on mobile */
         .sticky-buy-bar {
             display: none;
         }
@@ -272,7 +158,7 @@
                 background: rgba(255, 255, 255, 0.97);
                 backdrop-filter: blur(10px);
                 -webkit-backdrop-filter: blur(10px);
-                border-top: 1px solid var(--border-color);
+                border-top: 1px solid var(--border);
                 box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.1);
                 transform: translateY(115%);
                 transition: transform 0.28s cubic-bezier(0.25, 1, 0.5, 1);
@@ -292,12 +178,9 @@
                 font-size: 0.9rem;
                 white-space: nowrap;
             }
-            /* The bar carries its own WhatsApp action, so the float would be
-               both redundant and sitting on top of it. */
             body.sticky-buy-visible .floating-whatsapp {
                 display: none;
             }
-            /* Stop the bar from covering the last row of footer content */
             body.sticky-buy-visible {
                 padding-bottom: 68px;
             }
@@ -318,7 +201,6 @@
             .gallery-main-img {
                 height: 340px;
             }
-            /* Four 80px thumbs plus gaps exceed the viewport, so scroll them */
             .gallery-thumbs {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
@@ -335,6 +217,8 @@
     </style>
 </head>
 <body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    <div class="scroll-progress" id="scrollProgress"></div>
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
@@ -509,6 +393,20 @@
     <script src="cart.js"></script>
     <script src="main.js"></script>
     <script>
+        (function() {
+            var bar = document.getElementById('scrollProgress');
+            if (!bar) return;
+            function update() {
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                var pct = docHeight > 0 ? (scrollTop / docHeight * 100) : 0;
+                bar.style.width = pct + '%';
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            update();
+        })();
+    </script>
+    <script>
         // Absolute origin is required for canonical/og:url/og:image - WhatsApp and
         // Facebook will not render a preview from a relative image path, and WhatsApp
         // is the primary order channel for this shop.
@@ -654,7 +552,7 @@
                 : 0;
 
             container.innerHTML = `
-                <div class="product-detail-layout">
+                <div class="product-detail-layout" id="main-content">
                     <!-- Gallery -->
                     <div class="product-gallery">
                         <img src="${images[0]}" alt="${currentProduct.name}" id="mainProductImg" class="gallery-main-img">
@@ -674,7 +572,7 @@
                         <div class="product-price-row">
                             <span class="product-price-large">NPR ${currentProduct.price.toLocaleString('en-IN')}</span>
                             ${originalPrice ? `<span class="product-price-strike">NPR ${originalPrice.toLocaleString('en-IN')}</span>` : ''}
-                            ${discount > 0 ? `<span style="background: var(--gold); color: #FFF; font-size: 0.8rem; font-weight: 700; padding: 4px 8px; border-radius: 4px;">SAVE ${discount}%</span>` : ''}
+                            ${discount > 0 ? `<span class="product-price-save">SAVE ${discount}%</span>` : ''}
                         </div>
                         <div id="productStockBadge" class="stock-badge" data-stock-state="loading" style="display:none;"></div>
 
