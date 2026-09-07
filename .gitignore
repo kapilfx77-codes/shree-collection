@@ -10,3 +10,4 @@ tools/inspect_*.py
 tools/dbg_*.py
 tools/dbg_*.png
 node_modules/
+SESSION_HANDOFF.md
