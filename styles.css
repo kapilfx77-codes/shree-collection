@@ -687,6 +687,10 @@ button {
     background: url('https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=1600&q=80') center/cover no-repeat;
     mask-image: linear-gradient(to left, rgba(245,240,232,0.92) 0%, rgba(245,240,232,0.4) 60%, transparent 100%);
     -webkit-mask-image: linear-gradient(to left, rgba(245,240,232,0.92) 0%, rgba(245,240,232,0.4) 60%, transparent 100%);
+    opacity: 0;
+    transform: scale(1.04);
+    animation: heroImageReveal 1.1s cubic-bezier(0.22, 0.61, 0.36, 1) 0.15s forwards;
+    will-change: opacity, transform;
 }
 
 .hero-content {
@@ -788,6 +792,13 @@ button {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes heroImageReveal {
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 
