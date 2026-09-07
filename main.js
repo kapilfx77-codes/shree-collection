@@ -236,3 +236,59 @@ if (document.getElementById('heritageImage')) {
     loadHeritageImage();
 }
 
+// Load Homepage Images from Supabase (public select, cached 5 min)
+let homeImagesCache = null;
+let homeImagesCacheTTL = 0;
+const HOME_CACHE_DURATION = 5 * 60 * 1000;
+
+async function loadHomepageImages(bypassCache = false) {
+    if (!isSupabaseReady || typeof isSupabaseReady !== 'function') return;
+    if (!isSupabaseReady()) return;
+    const now = Date.now();
+    if (!bypassCache && homeImagesCache && now < homeImagesCacheTTL) {
+        applyHomepageImages(homeImagesCache);
+        return;
+    }
+    try {
+        const { data, error } = await supabaseClient
+            .from('homepage_images')
+            .select('slot, image_url')
+            .order('slot', { ascending: true });
+        if (error) throw error;
+        const mapped = {};
+        (data || []).forEach(r => { mapped[r.slot] = r.image_url; });
+        homeImagesCache = mapped;
+        homeImagesCacheTTL = now + HOME_CACHE_DURATION;
+        applyHomepageImages(mapped);
+    } catch (err) {
+        console.error('Homepage images load failed:', err);
+    }
+}
+
+function applyHomepageImages(mapped) {
+    const heroEl = document.getElementById('heroBgImage');
+    if (heroEl && mapped.hero) heroEl.style.backgroundImage = 'url(' + mapped.hero + ')';
+    ['category_saree', 'category_kurta', 'category_lehenga'].forEach(slot => {
+        const img = document.querySelector('img[data-hp-img="' + slot + '"]');
+        if (img && mapped[slot]) img.src = mapped[slot];
+    });
+    const heritageImg = document.getElementById('heritageImage');
+    const heritagePlaceholder = document.getElementById('heritageImagePlaceholder');
+    if (heritageImg && heritagePlaceholder && mapped.about_heritage) {
+        heritageImg.src = mapped.about_heritage;
+        heritageImg.style.display = 'block';
+        heritagePlaceholder.style.display = 'none';
+    }
+    const promoSec = document.getElementById('promoBannerSection');
+    const promoImg = document.getElementById('promoBannerImage');
+    if (promoSec && promoImg && mapped.promo_banner) {
+        promoImg.src = mapped.promo_banner;
+        promoSec.style.display = 'block';
+    }
+}
+
+if (document.getElementById('heroBgImage') || document.getElementById('heritageImage')) {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(loadHomepageImages, 300);
+    });
+}

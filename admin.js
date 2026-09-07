@@ -173,6 +173,7 @@ function routeToPage(page) {
         inventory: 'Inventory',
         customers: 'Customers',
         settings: 'Settings',
+        'homepage-images': 'Homepage Images',
     };
     const t = document.getElementById('topbarTitle');
     if (t) t.textContent = titleMap[page] || 'Admin';
@@ -362,6 +363,7 @@ async function loadPageData(page) {
         else if (page === 'inventory') await loadInventory();
         else if (page === 'customers') await loadCustomers();
         else if (page === 'settings') loadSettings();
+        else if (page === 'homepage-images') await loadHomepageImages();
     } catch (err) {
         console.error(`loadPageData(${page}) failed:`, err);
         showApiError(err);
@@ -1713,4 +1715,126 @@ function showApiError(err) {
         msg = 'API endpoint not found. Make sure serverless functions are deployed.';
     }
     showToast(msg, 'error');
+}
+
+// ============================================================================
+// HOMEPAGE IMAGES — admin page (no new serverless functions; uses Supabase
+// anon read + service-role write via adminFetch to /api/admin/upload-image
+// ============================================================================
+
+const HOME_IMAGE_SLOTS = [
+    { slot: 'hero',            label: 'Hero Background',         desc: 'Full-width hero background image' },
+    { slot: 'category_saree',  label: 'Saree Category',         desc: 'Category card — Silk Sarees' },
+    { slot: 'category_kurta',  label: 'Kurta Category',         desc: 'Category card — Designer Kurtas' },
+    { slot: 'category_lehenga',label: 'Lehenga Category',       desc: 'Category card — Bridal Lehengas' },
+    { slot: 'about_heritage',  label: 'About Heritage',         desc: 'Heritage section image' },
+    { slot: 'promo_banner',    label: 'Promo Banner',           desc: 'Optional promotional banner below about' },
+];
+
+async function loadHomepageImages() {
+    const grid = document.getElementById('homepageImagesGrid');
+    if (!grid) return;
+    grid.innerHTML = '<div class="state-block"><div class="spinner"></div><p class="state-title" style="margin-top:12px;">Loading images…</p></div>';
+    try {
+        // Read from public Supabase table via anon key (no adminFetch needed for reads)
+        const { data, error } = await supabaseClient
+            .from('homepage_images')
+            .select('slot, image_url, updated_at')
+            .order('slot', { ascending: true });
+        if (error) throw error;
+        const rows = data || [];
+        const current = {};
+        rows.forEach(r => { current[r.slot] = r.image_url; });
+        renderHomepageImages(current, rows);
+    } catch (err) {
+        console.error('Homepage images load error:', err);
+        grid.innerHTML = '<div class="state-block error"><div class="state-icon">⚠</div><div class="state-title">Failed to load images</div><div class="state-detail">Check that sql/018_homepage_images.sql has been run in Supabase.</div></div>';
+    }
+}
+
+function renderHomepageImages(current, rows) {
+    const grid = document.getElementById('homepageImagesGrid');
+    if (!grid) return;
+    const html = HOME_IMAGE_SLOTS.map(slot => {
+        const url = current[slot.slot] || '';
+        const row = rows.find(r => r.slot === slot.slot);
+        return `
+        <div class="hp-card" style="background:#fff; border:1px solid var(--border); border-radius:var(--radius-md); padding:16px;">
+            <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+                <div style="flex:1; min-width:220px;">
+                    <h4 style="font-family:var(--font-heading); font-size:1.05rem; margin-bottom:4px;">${slot.label}</h4>
+                    <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:10px;">${slot.desc}</p>
+                    <img src="${url || PLACEHOLDER_IMAGE}" alt="${slot.label}" style="width:168px; height:168px; object-fit:cover; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--bg-subtle); display:block; margin-bottom:10px;" onerror="this.src='${PLACEHOLDER_IMAGE}'">
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <label style="position:relative; overflow:hidden; display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:0.82rem; cursor:pointer; font-weight:500; background:#fff; color:var(--text-ink); transition:var(--transition-fast);" onmouseover="this.style.borderColor='var(--gold)';" onmouseout="this.style.borderColor='var(--border)';">
+                            <input type="file" accept="image/*" style="position:absolute; left:-9999px;" onchange="handleHomepageImageUpload(this,'${slot.slot}')">
+                            Change image
+                        </label>
+                        <button onclick="resetHomepageImage('${slot.slot}')" class="btn btn-ghost btn-sm" style="font-size:0.82rem; padding:6px 10px;">Reset to default</button>
+                    </div>
+                    <p id="hpStatus-${slot.slot}" style="font-size:0.78rem; color:var(--text-muted); margin-top:6px; min-height:1.2em;"></p>
+                </div>
+                <div style="flex:1; min-width:240px; font-size:0.85rem; color:var(--text-medium);">
+                    <div style="margin-bottom:4px;"><strong style="color:var(--text-ink);">Slot key</strong>: <code style="font-size:0.9em; background:var(--bg-subtle); padding:2px 4px; border-radius:3px;">${slot.slot}</code></div>
+                    <div style="margin-bottom:4px;"><strong style="color:var(--text-ink);">URL</strong>: <span style="word-break:break-all; color:var(--gold-dark);">${url || 'Not set'}</span></div>
+                    <div><strong style="color:var(--text-ink);">Updated</strong>: ${row && row.updated_at ? new Date(row.updated_at).toLocaleString() : '—'}</div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+    grid.innerHTML = html;
+}
+
+async function handleHomepageImageUpload(input, slot) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const statusEl = document.getElementById('hpStatus-' + slot);
+    if (statusEl) { statusEl.textContent = 'Uploading…'; statusEl.style.color = 'var(--text-medium)'; }
+    const result = await uploadImage(file);
+    if (result.error) {
+        if (statusEl) { statusEl.textContent = 'Upload failed: ' + result.error; statusEl.style.color = '#DC2626'; }
+        return;
+    }
+    // Save URL to Supabase via service-role (use the admin endpoint for writes)
+    try {
+        const resp = await fetch('/api/admin/homepage-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (getAdminToken() || '') },
+            body: JSON.stringify({ slot, image_url: result.url }),
+        });
+        const text = await resp.text();
+        const data = text ? JSON.parse(text) : {};
+        if (!resp.ok) throw new Error((data && data.error) || 'Write failed');
+        if (statusEl) { statusEl.textContent = 'Saved ✓'; statusEl.style.color = '#047857'; }
+        // Refresh grid
+        await loadHomepageImages();
+    } catch (err) {
+        if (statusEl) { statusEl.textContent = 'Save failed: ' + (err.message || err); statusEl.style.color = '#DC2626'; }
+    }
+    input.value = '';
+}
+
+async function resetHomepageImage(slot) {
+    const statusEl = document.getElementById('hpStatus-' + slot);
+    if (statusEl) { statusEl.textContent = 'Resetting...'; }
+    const defaults = {
+        hero: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=1600&q=80',
+        category_saree: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80',
+        category_kurta: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&q=80',
+        category_lehenga: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&q=80',
+        about_heritage: 'https://images.unsplash.com/photo-1567225557594-88d73e55f2cb?w=800&q=80',
+        promo_banner: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&q=80',
+    };
+    try {
+        const resp = await fetch('/api/admin/homepage-images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (getAdminToken() || '') },
+            body: JSON.stringify({ slot, image_url: defaults[slot] || '' }),
+        });
+        if (!resp.ok) throw new Error('Reset failed');
+        if (statusEl) { statusEl.textContent = 'Reset OK'; statusEl.style.color = '#047857'; }
+        await loadHomepageImages();
+    } catch (err) {
+        if (statusEl) { statusEl.textContent = 'Reset failed'; statusEl.style.color = '#DC2626'; }
+    }
 }
