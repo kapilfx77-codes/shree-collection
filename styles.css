@@ -2684,8 +2684,6 @@ button {
 }
 
 @media (max-width: 768px) {
-    :root {
-
     .section {
         padding: var(--space-2xl) 0;
     }
@@ -2959,6 +2957,65 @@ button {
     .cart-item img {
         width: 60px;
         height: 72px;
+    }
+
+    /* T5 - small mobile spacing */
+    .section {
+        padding: var(--space-xl) 0;
+    }
+
+    .container {
+        padding-left: var(--space-md);
+        padding-right: var(--space-md);
+    }
+
+    .cart-drawer {
+        max-width: 100%;
+    }
+
+    .cart-drawer-header,
+    .cart-drawer-body {
+        padding: var(--space-md);
+    }
+
+    .cart-item {
+        grid-template-columns: 70px 1fr;
+        gap: var(--space-sm);
+    }
+
+    .cart-item-image {
+        width: 70px;
+        height: 90px;
+    }
+
+    .footer {
+        padding: var(--space-xl) 0 var(--space-md);
+    }
+
+    .footer-content {
+        gap: var(--space-lg);
+    }
+
+    .contact-content {
+        margin: var(--space-xl) auto;
+        gap: var(--space-xl);
+    }
+
+    .contact-card {
+        padding: var(--space-md);
+    }
+
+    .whatsapp-cta-box {
+        padding: var(--space-md);
+        margin: var(--space-lg) 0;
+    }
+
+    .map-container {
+        height: 240px;
+    }
+
+    .form-input {
+        font-size: 16px; /* prevents iOS auto-zoom on focus */
     }
 }
 
@@ -3487,6 +3544,7 @@ button {
 
 .form-input {
     width: 100%;
+    min-height: 48px;
     padding: 12px 14px;
     border: 1.5px solid var(--border);
     border-radius: var(--radius-sm);
@@ -3497,10 +3555,18 @@ button {
     transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
+.form-input:hover:not(:focus):not(.error) {
+    border-color: var(--border-strong, var(--primary-light, #D6CFC2));
+}
+
 .form-input:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(194, 98, 26, 0.12);
+}
+
+.form-input:focus-visible {
+    outline: none;
 }
 
 .form-input::placeholder {
@@ -3509,21 +3575,55 @@ button {
 
 .form-input.error {
     border-color: #DC2626;
+    background: rgba(220, 38, 38, 0.02);
+}
+
+.form-input.error:focus {
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12);
+}
+
+.form-input.success {
+    border-color: #16A34A;
+}
+
+.form-input.success:focus {
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.form-input:disabled,
+.form-input[readonly] {
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    opacity: 0.8;
 }
 
 .form-error {
     font-size: 0.8125rem;
     color: #DC2626;
     display: none;
+    line-height: 1.4;
 }
 
 .form-input.error + .form-error {
     display: block;
 }
 
+.form-success {
+    font-size: 0.8125rem;
+    color: #16A34A;
+    display: none;
+    line-height: 1.4;
+}
+
+.form-input.success + .form-success {
+    display: block;
+}
+
 .form-hint {
     font-size: 0.8125rem;
     color: var(--text-muted);
+    line-height: 1.4;
 }
 
 /* Payment Methods */
