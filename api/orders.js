@@ -208,12 +208,11 @@ async function handleCreate(req, res) {
   // authoritative decrement happens after the order insert.
   const invKeys = items.map((i) => `${i.id}|${colorKey(i.color)}|${colorKey(i.size)}`);
   const invUnique = Array.from(new Set(invKeys));
+  // Build product-id list and query with in() (PostgREST returns all rows with in, unlike OR which limits to 1)
+  const pids = Array.from(new Set(invUnique.map((k) => k.split('|')[0])));
   const inv = await sbFetch(
     `inventory?select=product_id,color,size,quantity,available` +
-    `&or=${invUnique.map((k) => {
-      const [pid, c, s] = k.split('|');
-      return `(and(product_id.eq.${pid},color.eq.${encodeURIComponent(c)},size.eq.${encodeURIComponent(s)}))`;
-    }).join(',')}`
+    `&product_id=in.(${pids.join(',')})`
   );
   if (inv.status >= 400) {
     return res.status(inv.status).json({ error: 'Could not load inventory', detail: inv.data || inv.raw });
