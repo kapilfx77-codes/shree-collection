@@ -21,7 +21,7 @@ const STORE_CONFIG = {
     location: {
         short: 'Butwal, Nepal',
         medium: 'Butwal, Rupandehi',
-        full: 'Butwal, Rupandehi, Lumbini Province, Nepal',
+        full: 'Shreeraj Paudel house, MCCR+9XC, Butwal 32907',
         mapEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3532.0!2d83.4596!3d27.6986!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39968b3a44c92e4d%3A0x6f1b8e8c5e7d4c3a!2sRaniganj%2C%20Butwal!5e0!3m2!1sen!2snp!4v1640000000000!5m2!1sen!2snp'
     },
 
