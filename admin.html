@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Supabase (for cloud database) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -465,12 +465,12 @@
         }
         .btn-primary:disabled { background: var(--text-muted); border-color: var(--text-muted); cursor: not-allowed; opacity: 0.7; }
 
-        .btn-gold {
+        .btn-accent {
             background: var(--gold);
             color: var(--primary-dark);
             border-color: var(--gold);
         }
-        .btn-gold:hover { background: var(--gold-dark); border-color: var(--gold-dark); }
+        .btn-accent:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
 
         .btn-ghost {
             background: transparent;
@@ -914,7 +914,7 @@
             <form id="adminLoginForm">
                 <input type="password" id="adminPasswordInput" class="admin-login-input" placeholder="Password" required autocomplete="current-password">
                 <div id="loginErrorMsg">Incorrect password. Please try again.</div>
-                <button type="submit" class="btn btn-gold" style="width: 100%; padding: 12px;">Unlock Dashboard</button>
+                <button type="submit" class="btn btn-accent" style="width: 100%; padding: 12px;">Unlock Dashboard</button>
             </form>
             <p class="login-foot">
                 <a href="index.html">← Return to Storefront</a>
@@ -1077,7 +1077,7 @@
 
                     <div style="display: flex; gap: 10px; justify-content: flex-end;">
                         <button type="button" class="btn btn-ghost" onclick="closeProductModal()">Cancel</button>
-                        <button type="submit" class="btn btn-gold" id="productSaveBtn">Save Product</button>
+                        <button type="submit" class="btn btn-accent" id="productSaveBtn">Save Product</button>
                     </div>
                 </form>
             </div>
@@ -1252,7 +1252,7 @@
                             <h2>Products</h2>
                             <p>Add, edit, and remove products from your catalog</p>
                         </div>
-                        <button class="btn btn-gold" id="addProductBtn">
+                        <button class="btn btn-accent" id="addProductBtn">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                             Add Product
                         </button>

@@ -20,7 +20,8 @@
       "Read(//Users/kapil/.claude/**)",
       "Read(//Users/kapil/.config/claude-code/**)",
       "Read(//Users/**)",
-      "PowerShell(Get-ChildItem env: | Where-Object { $_.Name -match \"PROXY|BASE_URL|SOCKS|OMNI\" } | Format-Table -AutoSize)"
+      "PowerShell(Get-ChildItem env: | Where-Object { $_.Name -match \"PROXY|BASE_URL|SOCKS|OMNI\" } | Format-Table -AutoSize)",
+      "Bash(grep -o '--[a-zA-Z-]*')"
     ]
   }
 }
