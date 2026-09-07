@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize search
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
+        // Pre-fill the search box from ?category=… so that clicking a
+        // "Shop by Category" tile on the home page (saree / kurta / lehenga)
+        // lands the catalog already filtered to that category.
+        const urlCategory = new URLSearchParams(window.location.search).get('category');
+        if (urlCategory) {
+            searchInput.value = urlCategory;
+        }
         searchInput.addEventListener('input', debounce(applyFilters, 300));
     }
 
