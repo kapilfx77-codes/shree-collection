@@ -1288,20 +1288,7 @@ button {
     margin: 0 auto;
 }
 
-/* --------------------------------------------------------------------------
-   Promo Banner — full-width image between About and Final CTA
-   -------------------------------------------------------------------------- */
-.promo-banner {
-    padding: var(--space-2xl) 0;
-    background: var(--bg-subtle);
-}
-.promo-banner img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-}
+/* Promo banner styles removed — banner deleted from homepage */
 
 /* --------------------------------------------------------------------------
    Footer

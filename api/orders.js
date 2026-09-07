@@ -53,7 +53,7 @@ function stripPhone(p) {
 // transform meaning — just collapse whitespace so "Red " and "Red" both
 // match the same row. The DB stores these trimmed too.
 function colorKey(v) {
-  return String(v || '').trim();
+  return String(v || '').trim().toLowerCase();
 }
 
 function badRequest(res, message, code = 'invalid_request') {

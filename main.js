@@ -267,7 +267,9 @@ async function loadHomepageImages(bypassCache = false) {
 
 function applyHomepageImages(mapped) {
     const heroEl = document.getElementById('heroBgImage');
+    if (heroEl) heroEl.style.display = 'block';
     if (heroEl && mapped.hero) heroEl.style.backgroundImage = 'url(' + mapped.hero + ')';
+    else if (heroEl) heroEl.style.backgroundImage = '';
     ['category_saree', 'category_kurta', 'category_lehenga'].forEach(slot => {
         const img = document.querySelector('img[data-hp-img="' + slot + '"]');
         if (img && mapped[slot]) img.src = mapped[slot];
@@ -278,12 +280,6 @@ function applyHomepageImages(mapped) {
         heritageImg.src = mapped.about_heritage;
         heritageImg.style.display = 'block';
         heritagePlaceholder.style.display = 'none';
-    }
-    const promoSec = document.getElementById('promoBannerSection');
-    const promoImg = document.getElementById('promoBannerImage');
-    if (promoSec && promoImg && mapped.promo_banner) {
-        promoImg.src = mapped.promo_banner;
-        promoSec.style.display = 'block';
     }
 }
 

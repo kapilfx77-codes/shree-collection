@@ -1728,7 +1728,6 @@ const HOME_IMAGE_SLOTS = [
     { slot: 'category_kurta',  label: 'Kurta Category',         desc: 'Category card — Designer Kurtas' },
     { slot: 'category_lehenga',label: 'Lehenga Category',       desc: 'Category card — Bridal Lehengas' },
     { slot: 'about_heritage',  label: 'About Heritage',         desc: 'Heritage section image' },
-    { slot: 'promo_banner',    label: 'Promo Banner',           desc: 'Optional promotional banner below about' },
 ];
 
 async function loadHomepageImages() {
@@ -1823,7 +1822,6 @@ async function resetHomepageImage(slot) {
         category_kurta: 'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&q=80',
         category_lehenga: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&q=80',
         about_heritage: 'https://images.unsplash.com/photo-1567225557594-88d73e55f2cb?w=800&q=80',
-        promo_banner: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=1200&q=80',
     };
     try {
         const resp = await fetch('/api/admin/homepage-images', {
