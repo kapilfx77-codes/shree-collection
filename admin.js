@@ -1723,11 +1723,11 @@ function showApiError(err) {
 // ============================================================================
 
 const HOME_IMAGE_SLOTS = [
-    { slot: 'hero',            label: 'Hero Background',         desc: 'Full-width hero background image' },
-    { slot: 'category_saree',  label: 'Saree Category',         desc: 'Category card — Silk Sarees' },
-    { slot: 'category_kurta',  label: 'Kurta Category',         desc: 'Category card — Designer Kurtas' },
-    { slot: 'category_lehenga',label: 'Lehenga Category',       desc: 'Category card — Bridal Lehengas' },
-    { slot: 'about_heritage',  label: 'About Heritage',         desc: 'Heritage section image' },
+    { slot: 'hero',             label: 'Hero Background',  desc: 'Full-width hero background image',    recommended: 'Recommended: 1600 × 900 px · 16:9' },
+    { slot: 'category_saree',   label: 'Saree Category',   desc: 'Category card — Silk Sarees',         recommended: 'Recommended: 800 × 400 px · 2:1' },
+    { slot: 'category_kurta',   label: 'Kurta Category',   desc: 'Category card — Designer Kurtas',     recommended: 'Recommended: 800 × 400 px · 2:1' },
+    { slot: 'category_lehenga', label: 'Lehenga Category', desc: 'Category card — Bridal Lehengas',     recommended: 'Recommended: 800 × 400 px · 2:1' },
+    { slot: 'about_heritage',   label: 'About Heritage',   desc: 'Heritage section image',              recommended: 'Recommended: 800 × 500 px · 8:5' },
 ];
 
 async function loadHomepageImages() {
@@ -1771,6 +1771,7 @@ function renderHomepageImages(current, rows) {
                         </label>
                         <button onclick="resetHomepageImage('${slot.slot}')" class="btn btn-ghost btn-sm" style="font-size:0.82rem; padding:6px 10px;">Reset to default</button>
                     </div>
+                    <p style="font-size:0.78rem; color:var(--text-muted); margin-top:6px;">${slot.recommended}</p>
                     <p id="hpStatus-${slot.slot}" style="font-size:0.78rem; color:var(--text-muted); margin-top:6px; min-height:1.2em;"></p>
                 </div>
                 <div style="flex:1; min-width:240px; font-size:0.85rem; color:var(--text-medium);">

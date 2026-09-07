@@ -11,3 +11,10 @@ tools/dbg_*.py
 tools/dbg_*.png
 node_modules/
 SESSION_HANDOFF.md
+memory.md
+# Ad-hoc debug/inspect scripts at repo root
+debug_*.js
+inspect_*.js
+run_tests.js
+test_query.js
+verify_fix.js
