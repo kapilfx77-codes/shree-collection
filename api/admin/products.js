@@ -245,10 +245,14 @@ async function handleSoftDelete(req, res) {
             body: JSON.stringify({ in_stock: false, instock: false, updated_at: new Date().toISOString() }),
         });
         if (r.status >= 400) return res.status(r.status).json(r.data || { error: r.raw });
+        try { await sbFetch(`inventory?product_id=eq.${body.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
+        try { await sbFetch(`inventory_cost_batches?product_id=eq.${body.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
         return res.status(200).json({ ok: true, soft_deleted: true, product: (r.data || [])[0] });
     }
 
     // No historical orders → safe to hard delete.
+    try { await sbFetch(`inventory_cost_batches?product_id=eq.${body.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
+    try { await sbFetch(`inventory?product_id=eq.${body.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
     const r = await sbFetch(`products?id=eq.${encodeURIComponent(body.id)}`, {
         method: 'DELETE',
         headers: { Prefer: 'return=representation' },
