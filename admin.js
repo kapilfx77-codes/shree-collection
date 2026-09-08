@@ -665,13 +665,20 @@ async function loadCustomers() {
 // ==========================================================================
 
 function renderDashStats(products, orders) {
-    const totalSales = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const completedStatuses = new Set(['completed', 'delivered', 'shipped', 'processing', 'pending']);
+    const totalSales = orders.reduce((sum, o) => {
+        const s = (o.status || '').toString().toLowerCase();
+        return completedStatuses.has(s) ? sum + (Number(o.total) || 0) : sum;
+    }, 0);
     const inStock = products.filter(p => isInStock(p)).length;
     const outOfStock = products.length - inStock;
 
     // Last 7 days sales
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const completedStatuses = new Set(['completed', 'delivered', 'shipped', 'processing', 'pending']);
     const recentOrders = orders.filter(o => {
+        const s = (o.status || '').toString().toLowerCase();
+        if (!completedStatuses.has(s)) return false;
         const t = new Date(o.created_at).getTime();
         return t >= sevenDaysAgo;
     });

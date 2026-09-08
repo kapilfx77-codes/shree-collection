@@ -21,7 +21,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // "Shop by Category" tile on the home page (saree / kurta / lehenga)
         // lands the catalog already filtered to that category.
         const urlCategory = new URLSearchParams(window.location.search).get('category');
-        if (urlCategory) {
+        const urlSearch = new URLSearchParams(window.location.search).get('search');
+        if (urlSearch) {
+            searchInput.value = urlSearch;
+        } else if (urlCategory) {
             searchInput.value = urlCategory;
         }
         searchInput.addEventListener('input', debounce(applyFilters, 300));

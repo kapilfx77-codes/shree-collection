@@ -234,7 +234,7 @@ function initDesktopSearch() {
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             const term = input.value.trim();
-            if (term) window.location.href = 'catalog.html?q=' + encodeURIComponent(term);
+            if (term) window.location.href = 'catalog.html?search=' + encodeURIComponent(term);
         }
     });
 

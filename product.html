@@ -261,7 +261,7 @@
     <nav class="navbar">
         <div class="nav-container">
             <a href="index.html" class="logo" aria-label="Shree Collection home">
-                <img src="assets/logo-shree-collection.png" alt="Shree Collection" style="height:28px;width:auto;display:block;">
+                <img src="assets/logo-shree-collection.png" alt="Shree Collection" style="height:32px;width:auto;max-width:140px;object-fit:contain;display:block;">
                 <span class="logo-main" data-config="store-name-upper">SHREE COLLECTION</span>
                 <span class="logo-sub" data-config="location-short">Butwal, Nepal</span>
             </a>
@@ -658,7 +658,7 @@
                                 <button type="button" class="qty-btn qty-decrease" onclick="adjustQuantity(-1)" aria-label="Decrease quantity">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                 </button>
-                                <input type="number" class="qty-input" id="productQuantity" value="1" min="1" max="10" onchange="updateQuantity(this.value)" aria-label="Quantity">
+                                <input type="number" class="qty-input" id="productQuantity" value="1" min="1" max="10" onchange="setProductQuantity(this.value)" aria-label="Quantity">
                                 <button type="button" class="qty-btn qty-increase" onclick="adjustQuantity(1)" aria-label="Increase quantity">
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                                 </button>
@@ -877,7 +877,7 @@
             input.value = newVal;
         }
 
-        function updateQuantity(val) {
+        function setProductQuantity(val) {
             const input = document.getElementById('productQuantity');
             input.value = Math.max(1, Math.min(10, parseInt(val) || 1));
         }
