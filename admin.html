@@ -1228,6 +1228,10 @@
                     </div>
 
                     <div class="toolbar">
+                        <button class="btn btn-accent" id="recordOfflineSaleBtn" onclick="openOfflineSaleModal()" style="margin-right:12px;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                            Record Offline Sale
+                        </button>
                         <div class="search-input">
                             <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                             <input type="search" id="orderSearch" placeholder="Search by order ID, name, phone, or city…">
@@ -1394,6 +1398,24 @@
                 </div>
 
             </main>
+        </div>
+    </div>
+
+    <div id="offlineSaleModal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:14px;padding:28px 32px;max-width:420px;width:92%;box-shadow:0 24px 60px rgba(0,0,0,0.25);font-family:Inter,sans-serif;">
+            <h3 style="margin:0 0 14px;font-size:1.15rem;">Record Offline Sale</h3>
+            <div style="display:grid;gap:10px;">
+                <label style="font-size:.82rem;color:#555;">Product <select id="offlineProductSelect" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;"></select></label>
+                <label style="font-size:.82rem;color:#555;">Color <input id="offlineColor" type="text" placeholder="e.g. Red" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;"></label>
+                <label style="font-size:.82rem;color:#555;">Size <input id="offlineSize" type="text" placeholder="e.g. M" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;"></label>
+                <label style="font-size:.82rem;color:#555;">Quantity <input id="offlineQty" type="number" value="1" min="1" max="10" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;"></label>
+                <label style="font-size:.82rem;color:#555;">Amount Paid (NPR) <input id="offlineAmount" type="number" value="0" step="1" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;"></label>
+                <label style="font-size:.82rem;color:#555;">Source <input id="offlineSource" type="text" value="physical" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;"></label>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end;">
+                <button onclick="closeOfflineSaleModal()" style="padding:7px 14px;border:1px solid #ccc;border-radius:6px;background:#fff;cursor:pointer;">Cancel</button>
+                <button onclick="submitOfflineSale()" style="padding:7px 14px;border:none;border-radius:6px;background:#C9A050;color:#fff;cursor:pointer;font-weight:600;">Save Sale</button>
+            </div>
         </div>
     </div>
 
