@@ -236,21 +236,7 @@ async function handleSoftDelete(req, res) {
         hasOrder = ordersRes.data.some(o => Array.isArray(o.items) && o.items.some(i => Number(i.id) === Number(body.id)));
     }
 
-    if (hasOrder) {
-        // Soft-disable: keep the row, mark out of stock. The storefront filter
-        // already hides in_stock=false items from the customer catalog.
-        const r = await sbFetch(`products?id=eq.${encodeURIComponent(body.id)}`, {
-            method: 'PATCH',
-            headers: { Prefer: 'return=representation' },
-            body: JSON.stringify({ in_stock: false, instock: false, updated_at: new Date().toISOString() }),
-        });
-        if (r.status >= 400) return res.status(r.status).json(r.data || { error: r.raw });
-        try { await sbFetch(`inventory?product_id=eq.${body.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
-        try { await sbFetch(`inventory_cost_batches?product_id=eq.${body.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
-        return res.status(200).json({ ok: true, soft_deleted: true, product: (r.data || [])[0] });
-    }
-
-    // No historical orders → safe to hard delete.
+    // Hard delete always — remove from products and clean inventory/batches.
     try { await sbFetch(`inventory_cost_batches?product_id=eq.${body.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
     try { await sbFetch(`inventory?product_id=eq.${body.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); } catch (e) {}
     const r = await sbFetch(`products?id=eq.${encodeURIComponent(body.id)}`, {
@@ -258,5 +244,5 @@ async function handleSoftDelete(req, res) {
         headers: { Prefer: 'return=representation' },
     });
     if (r.status >= 400) return res.status(r.status).json(r.data || { error: r.raw });
-    return res.status(200).json({ ok: true, hard_deleted: true, product: (r.data || [])[0] });
+    return res.status(200).json({ ok: true, deleted: true, product_id: body.id });
 }
