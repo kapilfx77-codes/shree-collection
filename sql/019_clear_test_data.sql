@@ -1,0 +1,63 @@
+-- ==========================================================================
+-- sql/019_clear_test_data.sql
+-- DESTRUCTIVE: Wipes all test/fixture data from the Shree Collection DB
+-- in preparation for real products.  Preserves schema, columns, indexes,
+-- constraints, RLS, functions/RPCs, admin config, storage, migrations,
+-- and the homepage_images configuration (the carefully chosen Unsplash
+-- URLs that the storefront falls back to when admin has not uploaded yet).
+--
+-- TABLES CLEARED (in this exact order):
+--   1. orders              — top-level order records (no FK children)
+--   2. products            — catalog entries
+--      └─ CASCADE deletes:
+--         • inventory               (variant stock levels)
+--         • inventory_cost_batches  (FIFO cost batches)
+--
+-- TABLES PRESERVED (do NOT touch):
+--   • homepage_images   — the 6-row config table (hero, 3 categories, etc.)
+--   • admin_settings    — admin password + config
+--   • admin_sessions    — active admin login sessions
+--   • auth.users        — Supabase-managed auth
+--   • storage.objects   — uploaded images
+--
+-- HOW TO RUN
+--   1. Open https://supabase.com/dashboard
+--   2. Select project xztfoauqecnmznszghcj
+--   3. SQL Editor → New Query
+--   4. Paste this entire file
+--   5. Click Run
+--   6. Verify the verification block at the end reports 0 / 6
+--
+-- TO ROLL BACK: not possible — DELETE is final.  If you need to recover,
+-- restore from a Supabase point-in-time backup (Dashboard → Database →
+-- Backups → "Restore to point in time", available on Pro plan).
+-- ==========================================================================
+
+-- Step 1: Orders
+-- No FK children — safe to delete directly. (order_items lives as JSONB
+-- inside the orders.items column, so nothing else to clean up.)
+DELETE FROM orders;
+
+-- Step 2: Products
+-- ON DELETE CASCADE on the inventory and inventory_cost_batches tables
+-- (see sql/000_full_init.sql:102, sql/015_inventory_cost_batches.sql:25)
+-- means this single statement wipes products + all related stock + FIFO
+-- batches in one transaction.  The cascade is part of the schema, not a
+-- trigger, so it runs inside the same statement and is atomic.
+DELETE FROM products;
+
+-- ==========================================================================
+-- VERIFICATION
+-- Run this block separately after the deletes to confirm a clean slate.
+-- Expected: orders=0, products=0, inventory=0, batches=0, homepage=6
+-- ==========================================================================
+-- SELECT 'orders'               AS tbl, COUNT(*) AS rows FROM orders
+-- UNION ALL
+-- SELECT 'products',                  COUNT(*)       FROM products
+-- UNION ALL
+-- SELECT 'inventory',                 COUNT(*)       FROM inventory
+-- UNION ALL
+-- SELECT 'inventory_cost_batches',    COUNT(*)       FROM inventory_cost_batches
+-- UNION ALL
+-- SELECT 'homepage_images (kept)',    COUNT(*)       FROM homepage_images;
+-- ==========================================================================

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found - Shree Collection</title>
+    <meta name="description" content="The page you are looking for does not exist on Shree Collection. Please check the URL or navigate back to the homepage.">
+    <link rel="canonical" href="https://shree-collection-opal.vercel.app/">
+    <meta name="theme-color" content="#18181B">
+
+    <!-- Open Graph -->
+    <meta property="og:site_name" content="Shree Collection">
+    <meta property="og:locale" content="en_NP">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://shree-collection-opal.vercel.app/404.html">
+    <meta property="og:title" content="Page Not Found - Shree Collection">
+    <meta property="og:description" content="The page you are looking for does not exist on Shree Collection. Please check the URL or navigate back to the homepage.">
+    <meta property="og:image" content="https://shree-collection-opal.vercel.app/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Shree Collection - women's clothing store in Butwal, Nepal">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Page Not Found - Shree Collection">
+    <meta name="twitter:description" content="The page you are looking for does not exist on Shree Collection. Please check the URL or navigate back to the homepage.">
+    <meta name="twitter:image" content="https://shree-collection-opal.vercel.app/assets/og-image.png">
+
+    <!-- Icons -->
+    <link rel="icon" href="assets/favicon.ico" sizes="32x32">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <link rel="manifest" href="site.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
+    <div class="scroll-progress" id="scrollProgress"></div>
+
+    <!-- Announcement Bar -->
+    <div class="announcement-bar">
+        <div class="announcement-track">
+            <div class="announcement-content">
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    Page Not Found
+                </span>
+                <span class="announcement-sep">•</span>
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    Home
+                </span>
+                <span class="announcement-sep">•</span>
+                <span class="announcement-item">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    Shop / Catalog
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">
+                <span class="logo-main">SHREE COLLECTION</span>
+                <span class="logo-sub">Butwal, Nepal</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="hero-section">
+            <div class="hero-bg-pattern"></div>
+            <div class="hero-bg-image" style="background-image:none;display:none;"></div>
+            <div class="hero-overlay"></div>
+            <div class="hero-content">
+                <div class="hero-tag">
+                    <span class="hero-tag-line"></span>
+                    Page Not Found
+                </div>
+                <h1 class="hero-title">Page Not Found</h1>
+                <p class="hero-subtitle">
+                    The page you're looking for doesn't exist. Please go back to the <a href="catalog.html">Shop</a> or <a href="index.html">Home</a>.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3 data-config="store-name-upper">SHREE COLLECTION</h3>
+                    <p>Premium women's fashion from Butwal, Nepal. Curated ethnic wear with elegance and tradition.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <a href="index.html">Home</a>
+                    <a href="catalog.html">Catalog</a>
+                    <a href="contact.html">Contact</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Shree Collection. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="db.js"></script>
+    <script src="cart.js"></script>
+    <script src="main.js"></script>
+    <script>
+        (function() {
+            var bar = document.getElementById('scrollProgress');
+            if (!bar) return;
+            function update() {
+                var scrollTop = window.scrollY || document.documentElement.scrollTop;
+                var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                var pct = docHeight > 0 ? (scrollTop / docHeight * 100) : 0;
+                bar.style.width = pct + '%';
+            }
+            window.addEventListener('scroll', update, { passive: true });
+            update();
+        })();
+    </script>
+</body>
+</html>

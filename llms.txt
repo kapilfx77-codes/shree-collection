@@ -1,0 +1,18 @@
+# Shree Collection — llms.txt
+
+Shree Collection is a women's clothing retail store in Butwal, Nepal. We source garments from various brands and wholesalers and resell them to customers. We do not manufacture, design, or handcraft the clothing we sell.
+
+## Products
+Silk sarees, kurtas, lehengas, ethnic wear, and contemporary women's clothing.
+
+## Location
+Shreeraj Paudel house, MCCR+9XC, Butwal 32907, Nepal
+
+## Contact
+WhatsApp / Phone: +977 9841735450
+
+## Website
+https://shree-collection-opal.vercel.app
+
+## Ordering
+Orders are placed via WhatsApp or through the website checkout (COD / eSewa QR). Delivery is available all over Nepal.
