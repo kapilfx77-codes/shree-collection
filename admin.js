@@ -44,6 +44,47 @@ document.addEventListener('DOMContentLoaded', () => {
 // AUTH
 // ==========================================================================
 
+function openOfflineSaleModal() {
+    const m = document.getElementById('offlineSaleModal');
+    if (m) { m.style.display = 'flex'; }
+    // Pre-fill product list when modal opens
+    loadOfflineSaleProducts();
+}
+
+function closeOfflineSaleModal() {
+    const m = document.getElementById('offlineSaleModal');
+    if (m) { m.style.display = 'none'; }
+}
+
+async function loadOfflineSaleProducts() {
+    const sel = document.getElementById('offlineProductSelect');
+    if (!sel) return;
+    try {
+        const resp = await fetch('/api/admin/products?limit=200', { headers: { 'Authorization': 'Bearer ' + getAdminToken() } });
+        const data = await resp.json();
+        const list = Array.isArray(data) ? data : (Array.isArray(data.products) ? data.products : []);
+        sel.innerHTML = '<option value="">Select product…</option>' + list.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    } catch (e) { sel.innerHTML = '<option value="">Failed to load</option>'; }
+}
+
+function submitOfflineSale() {
+    const productId = parseInt(document.getElementById('offlineProductSelect').value);
+    const color = (document.getElementById('offlineColor').value || '').trim();
+    const size = (document.getElementById('offlineSize').value || '').trim();
+    const qty = parseInt(document.getElementById('offlineQty').value || 1);
+    const amount = parseFloat(document.getElementById('offlineAmount').value || 0);
+    const source = (document.getElementById('offlineSource').value || 'physical').trim();
+    if (!productId || !color || !size || !qty || amount < 0) { alert('Fill all fields correctly'); return; }
+    fetch('/api/admin/offline-sale', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getAdminToken() },
+        body: JSON.stringify({ product_id: productId, color, size, quantity: qty, amount_paid: amount, source })
+    }).then(r => r.json()).then(d => {
+        if (d.ok) { alert('Offline sale recorded: ' + d.order_id + ' (profit NPR ' + d.profit + ')'); closeOfflineSaleModal(); loadPageData('orders'); }
+        else { alert('Failed: ' + (d.error || 'Unknown error')); }
+    }).catch(() => alert('Request failed'));
+}
+
 function setupAuth() {
     if (typeof sessionStorage === 'undefined') return;
     const authed = sessionStorage.getItem('shree_admin_auth') === 'true'
