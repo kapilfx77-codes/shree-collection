@@ -15,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initHomePage();
     initMobileMenu();
     initScrollAnimations();
-    initDesktopSearch();
 });
 
 // Home Page Featured Products
@@ -216,54 +215,7 @@ window.addEventListener('scroll', () => {
     lastScroll = currentScroll;
 });
 
-// Desktop search toggle
-function initDesktopSearch() {
-    const btn = document.getElementById('searchToggle');
-    const dropdown = document.getElementById('searchDropdown');
-    const input = document.getElementById('navSearchInput');
-    if (!btn || !dropdown || !input) return;
-
-    btn.addEventListener('click', () => {
-        dropdown.classList.toggle('active');
-        if (dropdown.classList.contains('active')) {
-            setTimeout(() => input.focus(), 50);
-        }
-    });
-
-    // Search functionality using existing catalog filter logic
-    input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            const term = input.value.trim();
-            if (term) window.location.href = 'catalog.html?q=' + encodeURIComponent(term);
-        }
-    });
-
-    // Close on outside click
-    document.addEventListener('click', (e) => {
-        if (!_clickInside(e, btn, dropdown)) dropdown.classList.remove('active');
-    });
-}
-function _clickInside(e, btn, dropdown) {
-    return btn.contains(e.target) || dropdown.contains(e.target);
-}
-
-// Product opening transition (subtle, respects reduced-motion)
-document.addEventListener('click', (e) => {
-    const link = e.target.closest('a[href^="product.html"]');
-    if (!link) return;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const img = link.querySelector('img');
-    const imgWrap = img ? img.closest('.product-image-wrap, .category-card, .product-card') : null;
-    if (!imgWrap) return;
-    // Subtle scale + fade transition effect on the image container
-    imgWrap.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
-    imgWrap.style.transform = 'scale(0.98)';
-    imgWrap.style.opacity = '0.92';
-    setTimeout(() => {
-        imgWrap.style.transform = '';
-        imgWrap.style.opacity = '';
-    }, 250);
-}, true);
+// Load Heritage Image from localStorage
 function loadHeritageImage() {
     const heritageImg = document.getElementById('heritageImage');
     const placeholder = document.getElementById('heritageImagePlaceholder');
@@ -315,56 +267,24 @@ async function loadHomepageImages(bypassCache = false) {
 
 function applyHomepageImages(mapped) {
     const heroEl = document.getElementById('heroBgImage');
-    if (heroEl) {
-        heroEl.style.display = 'none';
-        if (mapped.hero) {
-            heroEl.style.backgroundImage = 'url(' + mapped.hero + ')';
-            heroEl.style.opacity = '0';
-            heroEl.style.transition = 'opacity 0.4s ease';
-            heroEl.style.display = 'block';
-            setTimeout(() => { heroEl.style.opacity = '1'; }, 50);
-        } else {
-            heroEl.style.backgroundImage = '';
-        }
-    }
+    if (heroEl) heroEl.style.display = 'block';
+    if (heroEl && mapped.hero) heroEl.style.backgroundImage = 'url(' + mapped.hero + ')';
+    else if (heroEl) heroEl.style.backgroundImage = '';
     ['category_saree', 'category_kurta', 'category_lehenga'].forEach(slot => {
         const img = document.querySelector('img[data-hp-img="' + slot + '"]');
-        if (!img) return;
-        // Prevent old/default image flash: hide until new src loaded
-        img.style.opacity = '0';
-        img.style.transition = 'opacity 0.4s ease';
-        if (mapped[slot]) {
-            img.src = mapped[slot];
-            img.onload = () => { img.style.opacity = '1'; };
-            // Safety: if onload doesn't fire quickly, reveal anyway
-            setTimeout(() => { img.style.opacity = '1'; }, 800);
-        } else {
-            img.style.opacity = '1';
-        }
+        if (img && mapped[slot]) img.src = mapped[slot];
     });
     const heritageImg = document.getElementById('heritageImage');
     const heritagePlaceholder = document.getElementById('heritageImagePlaceholder');
-    if (heritageImg && heritagePlaceholder) {
-        if (mapped.about_heritage) {
-            heritageImg.src = mapped.about_heritage;
-            heritageImg.style.display = 'block';
-            // Prevent old/default flash: show only after src applied
-            heritageImg.style.opacity = '0';
-            heritageImg.style.transition = 'opacity 0.4s ease';
-            setTimeout(() => { heritageImg.style.opacity = '1'; }, 50);
-            heritagePlaceholder.style.display = 'none';
-        } else {
-            heritageImg.style.display = 'none';
-            heritagePlaceholder.style.display = 'block';
-            // Customer-facing fallback instead of admin text
-            heritagePlaceholder.querySelector('p').textContent = 'Shree Collection — Curated Ethnic Wear';
-        }
+    if (heritageImg && heritagePlaceholder && mapped.about_heritage) {
+        heritageImg.src = mapped.about_heritage;
+        heritageImg.style.display = 'block';
+        heritagePlaceholder.style.display = 'none';
     }
 }
 
 if (document.getElementById('heroBgImage') || document.getElementById('heritageImage')) {
     document.addEventListener('DOMContentLoaded', () => {
-        // Load homepage images in parallel with featured products (not sequential)
-        loadHomepageImages();
+        setTimeout(loadHomepageImages, 300);
     });
 }
