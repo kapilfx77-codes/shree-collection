@@ -59,6 +59,16 @@ async function addToCart(productId, size = null, color = null, quantity = 1, ava
         ? Math.min(MAX_PER_LINE, variantStock)
         : MAX_PER_LINE;
 
+    // Block out-of-stock products entirely
+    if (product.in_stock === false) {
+        showToast(`"${product.name}" is out of stock.`, 'warning');
+        return;
+    }
+    if (variantStock !== null && variantStock <= 0) {
+        showToast(`"${product.name}" (${selectedColor} / ${selectedSize}) is out of stock.`, 'warning');
+        return;
+    }
+
     const existingIndex = cart.findIndex(
         item => item.id === product.id && item.size === selectedSize && item.color === selectedColor
     );
