@@ -675,7 +675,6 @@ function renderDashStats(products, orders) {
 
     // Last 7 days sales
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const completedStatuses = new Set(['completed', 'delivered', 'shipped', 'processing', 'pending']);
     const recentOrders = orders.filter(o => {
         const s = (o.status || '').toString().toLowerCase();
         if (!completedStatuses.has(s)) return false;
