@@ -17,4 +17,4 @@ debug_*.js
 inspect_*.js
 run_tests.js
 test_query.js
-verify_fix.js
+verify_fix.js.claude/
