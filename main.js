@@ -285,6 +285,7 @@ function applyHomepageImages(mapped) {
 
 if (document.getElementById('heroBgImage') || document.getElementById('heritageImage')) {
     document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(loadHomepageImages, 300);
+        // Load homepage images in parallel with featured products (not sequential)
+        loadHomepageImages();
     });
 }

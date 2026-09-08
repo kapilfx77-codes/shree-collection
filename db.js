@@ -153,7 +153,9 @@ async function getFeaturedProducts() {
             .eq('featured', true)
             .order('id', { ascending: true });
         if (error) throw error;
-        return data || [];
+        const result = data || [];
+        window.__featuredCache = { data: result, ttl: Date.now() + CACHE_DURATION };
+        return result;
     } catch (err) {
         console.error('Error fetching featured products:', err);
         return [];
