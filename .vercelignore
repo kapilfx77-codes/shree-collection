@@ -1,0 +1,5 @@
+.claude/
+Products Images/
+.git/
+.env.local
+.vercel/
