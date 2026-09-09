@@ -129,6 +129,7 @@ async function handleAdjust(req, res, session) {
     // Use batch-aware atomic RPCs. Positive delta → add_inventory_batch (needs
     // a unit cost — fetched from product cost_price). Negative delta →
     // consume_fifo_batches (FIFO oldest-first, rolls back on insufficient stock).
+    const qty = Math.abs(delta);
     if (delta > 0) {
         // Fetch product cost_price for the batch.
         const prodRes = await sbFetch(`products?select=id,cost_price&id=eq.${encodeURIComponent(productId)}`);
