@@ -1554,7 +1554,9 @@ function renderInventory() {
             <div class="card">
                 <div class="card-head">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <img src="${(p.images && p.images[0]) ? p.images[0] : PLACEHOLDER_IMAGE}" alt="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}';">
+                        ${(p.images && p.images[0])
+                            ? `<img src="${escapeHtml(p.images[0])}" alt="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); flex-shrink: 0; display: block;">`
+                            : `<div class="inventory-image-placeholder" style="width:48px;height:48px;border-radius:6px;border:1px solid var(--border);background:#F0EBE4;color:#8B7D6B;font-size:9px;display:flex;align-items:center;justify-content:center;text-align:center;flex-shrink:0;line-height:1.1;">No image</div>`}
                         <div>
                             <h3 style="margin: 0;">${escapeHtml(p.name)}</h3>
                             <div class="subtle">${variantCount} variant${variantCount === 1 ? '' : 's'} · Total stock: <strong>${totalStock}</strong> · NPR ${Number(p.price || 0).toLocaleString('en-IN')}</div>
