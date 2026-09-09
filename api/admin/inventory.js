@@ -126,40 +126,67 @@ async function handleAdjust(req, res, session) {
         return res.status(400).json({ error: 'delta must be a non-zero integer (positive to add, negative to remove)' });
     }
 
-    // Use the atomic RPC. Positive delta → restore_inventory; negative
-    // delta → decrement_inventory. The CHECK (quantity >= 0) constraint
-    // guarantees we can never go negative; an over-decrement attempt
-    // raises an error and the RPC returns 4xx.
-    const rpc = delta > 0 ? 'restore_inventory' : 'decrement_inventory';
-    const qty = Math.abs(delta);
-    const r = await sbFetch(`rpc/${rpc}`, {
-        method: 'POST',
-        headers: { Prefer: 'return=representation' },
-        body: JSON.stringify({
-            p_product_id: productId,
-            p_color: color,
-            p_size: size,
-            p_qty: qty,
-        }),
-    });
-    if (r.status >= 400) {
-        // decrement_inventory returns 0 rows when stock would go
-        // negative; PostgREST represents that as a 200 with empty
-        // array, not an error. The 4xx here is a true failure (RPC
-        // raised, e.g. CHECK violation, or the variant row was
-        // missing).
-        return res.status(r.status).json(r.data || { error: r.raw });
-    }
-    const rows = Array.isArray(r.data) ? r.data : [];
-    if (rows.length === 0) {
-        return res.status(409).json({
-            error: 'Insufficient stock for this adjustment.',
-            code: 'insufficient_stock',
-            product_id: productId,
-            color,
-            size,
-            delta,
+    // Use batch-aware atomic RPCs. Positive delta → add_inventory_batch (needs
+    // a unit cost — fetched from product cost_price). Negative delta →
+    // consume_fifo_batches (FIFO oldest-first, rolls back on insufficient stock).
+    if (delta > 0) {
+        // Fetch product cost_price for the batch.
+        const prodRes = await sbFetch(`products?select=id,cost_price&id=eq.${encodeURIComponent(productId)}`);
+        const productRow = Array.isArray(prodRes.data) ? prodRes.data[0] : null;
+        const unitCost = (productRow && productRow.cost_price != null)
+            ? Number(productRow.cost_price)
+            : 0;
+        const r = await sbFetch('rpc/add_inventory_batch', {
+            method: 'POST',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+                p_product_id: productId,
+                p_color: color,
+                p_size: size,
+                p_qty: qty,
+                p_unit_cost: unitCost,
+            }),
         });
+        if (r.status >= 400) {
+            return res.status(r.status).json(r.data || { error: r.raw });
+        }
+        const rows = Array.isArray(r.data) ? r.data : [];
+        return res.status(200).json({ ok: true, row: { product_id: productId, color, size, quantity: rows[0] ? rows[0].total_available : qty }, by: (session && session.sub) || 'admin' });
+    } else {
+        // Negative delta: consume FIFO batches atomically.
+        const r = await sbFetch('rpc/consume_fifo_batches', {
+            method: 'POST',
+            headers: { Prefer: 'return=representation' },
+            body: JSON.stringify({
+                p_product_id: productId,
+                p_color: color,
+                p_size: size,
+                p_qty: qty,
+            }),
+        });
+        const rows = Array.isArray(r.data) ? r.data : [];
+        if (r.status >= 400) {
+            return res.status(r.status).json(r.data || { error: r.raw });
+        }
+        // Sentinel: total_cost = -1 means rollback / insufficient stock.
+        const lastRow = rows[rows.length - 1];
+        if (rows.length === 0 || (lastRow && lastRow.total_cost === -1)) {
+            return res.status(409).json({
+                error: 'Insufficient stock for this adjustment.',
+                code: 'insufficient_stock',
+                product_id: productId,
+                color,
+                size,
+                delta,
+            });
+        }
+        // Consume succeeded — find the new inventory quantity.
+        // The RPC updates inventory atomically; read back for the response.
+        const invRes = await sbFetch(
+            `inventory?product_id=eq.${encodeURIComponent(productId)}&color=eq.${encodeURIComponent(color)}&size=eq.${encodeURIComponent(size)}&select=quantity`
+        );
+        const invRows = Array.isArray(invRes.data) ? invRes.data : [];
+        const newQty = invRows.length > 0 ? (invRows[0].quantity || 0) : 0;
+        return res.status(200).json({ ok: true, row: { product_id: productId, color, size, quantity: newQty }, by: (session && session.sub) || 'admin' });
     }
-    return res.status(200).json({ ok: true, row: { product_id: productId, color, size, quantity: rows[0].new_quantity }, by: (session && session.sub) || 'admin' });
 }
