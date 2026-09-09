@@ -1323,7 +1323,7 @@ function renderProducts() {
                 ${list.map(p => `
                     <tr>
                         <td>
-                            <img src="${(p.images && p.images[0]) || PLACEHOLDER_IMAGE}" alt="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+                            <img src="${(p.images && p.images[0]) ? p.images[0] : PLACEHOLDER_IMAGE}" alt="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}';">
                         </td>
                         <td>
                             <div style="font-weight: 600;">${escapeHtml(p.name)}</div>
@@ -1554,7 +1554,7 @@ function renderInventory() {
             <div class="card">
                 <div class="card-head">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <img src="${(p.images && p.images[0]) || PLACEHOLDER_IMAGE}" alt="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);">
+                        <img src="${(p.images && p.images[0]) ? p.images[0] : PLACEHOLDER_IMAGE}" alt="" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border);" onerror="this.onerror=null;this.src='${PLACEHOLDER_IMAGE}';">
                         <div>
                             <h3 style="margin: 0;">${escapeHtml(p.name)}</h3>
                             <div class="subtle">${variantCount} variant${variantCount === 1 ? '' : 's'} · Total stock: <strong>${totalStock}</strong> · NPR ${Number(p.price || 0).toLocaleString('en-IN')}</div>
