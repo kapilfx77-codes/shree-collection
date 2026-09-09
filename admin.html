@@ -951,6 +951,31 @@
         </div>
     </div>
 
+    <!-- Adjust Stock modal -->
+    <div class="modal-backdrop" id="adjustStockModal">
+        <div class="modal" style="max-width: 420px;">
+            <div class="modal-head">
+                <h3 id="adjustStockModalTitle">Adjust Stock</h3>
+                <button class="close" onclick="closeAdjustStockModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="adjustStockDesc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;"></p>
+                <div class="form-field">
+                    <label for="adjustDelta">Adjustment (signed: +5 or -3)</label>
+                    <input type="number" id="adjustDelta" step="1" placeholder="e.g. -3" style="font-family: ui-monospace, monospace;" />
+                </div>
+                <div style="padding: 8px 0; font-size: 0.9rem; color: var(--text-medium);">
+                    <strong>Current Stock:</strong> <span id="adjustCurrentStock">—</span>
+                </div>
+                <p id="adjustError" style="color: #DC2626; font-size: 0.85rem; margin-top: 8px;"></p>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-ghost" onclick="closeAdjustStockModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitAdjustStock()">Adjust Stock</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Add stock with cost modal -->
     <div class="modal-backdrop" id="addStockModal">
         <div class="modal" style="max-width: 480px;">

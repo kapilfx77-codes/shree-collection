@@ -465,6 +465,59 @@ async function loadInventory() {
     }
 }
 
+function openAdjustStockModal(productId, productName) {
+    const modal = document.getElementById('adjustStockModal');
+    if (!modal) return;
+    modal.dataset.productId = productId;
+    document.getElementById('adjustStockModalTitle').textContent = 'Adjust Stock — ' + escapeHtml(productName || String(productId));
+    document.getElementById('adjustDelta').value = '';
+    document.getElementById('adjustError').textContent = '';
+    // Try to show current total stock for the product (sum all variants)
+    let total = 0;
+    try {
+        for (const r of inventoryCacheList || []) {
+            if (Number(r.product_id) === Number(productId)) total += Number(r.quantity || 0);
+        }
+    } catch (e) {}
+    document.getElementById('adjustCurrentStock').textContent = total;
+    document.getElementById('adjustStockDesc').textContent = 'Enter a signed amount. Positive adds stock; negative removes it. The server prevents stock from going below zero.';
+    modal.classList.add('open');
+}
+
+function closeAdjustStockModal() {
+    const modal = document.getElementById('adjustStockModal');
+    if (modal) modal.classList.remove('open');
+}
+
+async function submitAdjustStock() {
+    const modal = document.getElementById('adjustStockModal');
+    if (!modal) return;
+    const productId = Number(modal.dataset.productId);
+    const deltaVal = document.getElementById('adjustDelta').value;
+    const delta = Math.floor(Number(deltaVal));
+    const errEl = document.getElementById('adjustError');
+    if (!Number.isInteger(delta) || delta === 0) {
+        errEl.textContent = 'Enter a signed non-zero integer (e.g. +5 or -3).';
+        return;
+    }
+    // Need a color/size to call PATCH — ask user or default to first variant
+    // For product-level adjustment, use the product's first variant as target
+    const p = productsCacheList.find(x => Number(x.id) === Number(productId));
+    const color = (p && Array.isArray(p.colors) && p.colors[0]) ? String(p.colors[0]).trim() : '';
+    const size = (p && Array.isArray(p.sizes) && p.sizes[0]) ? String(p.sizes[0]).trim() : '';
+    if (!color || !size) {
+        errEl.textContent = 'Product has no variants defined. Define size and color first.';
+        return;
+    }
+    errEl.textContent = '';
+    try {
+        await adjustInventory(productId, color, size, delta);
+        closeAdjustStockModal();
+    } catch (err) {
+        errEl.textContent = err.message || 'Adjustment failed.';
+    }
+}
+
 // Adjust a single variant's stock by a delta (positive or negative).
 // Used by the +/- buttons in the inventory matrix. Wraps the
 // admin/inventory PATCH endpoint which uses the atomic RPCs.
@@ -1511,7 +1564,7 @@ function renderInventory() {
                         ${inStock ? '<span class="badge badge-green">Selling</span>' : '<span class="badge badge-red">Hidden</span>'}
                         <button class="btn btn-ghost btn-sm" style="margin-left: 8px;" onclick="openProductModal(${p.id})">Edit</button>
                         <button class="btn btn-ghost btn-sm" style="margin-left: 4px;" onclick="openProductBatchesModal(${p.id})">Batches</button>
-                        <button class="btn btn-ghost btn-sm" style="margin-left: 4px;" onclick="openAddStockForProduct(${p.id})">+Stock</button>
+                        <button class="btn btn-ghost btn-sm" style="margin-left: 4px;" onclick="openAdjustStockModal(${p.id}, '${escapeHtml(p.name || '')}')">Adjust Stock</button>
                     </div>
                 </div>
                 ${sizes.length === 0 || colors.length === 0 ? `
