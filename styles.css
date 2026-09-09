@@ -426,12 +426,23 @@ button {
 
 .logo {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
     text-decoration: none;
     line-height: 1.1;
     white-space: nowrap;
     flex-shrink: 1;
     min-width: 0;
+}
+
+.logo img {
+    height: 32px;
+    width: auto;
+    max-width: 140px;
+    object-fit: contain;
+    display: block;
+    flex-shrink: 0;
 }
 
 .logo-main {
@@ -442,6 +453,8 @@ button {
     color: var(--primary);
     letter-spacing: 0.5px;
     white-space: nowrap;
+    display: block;
+    line-height: 1.15;
 }
 
 .logo-sub {
@@ -451,7 +464,9 @@ button {
     letter-spacing: 0.25em;
     text-transform: uppercase;
     font-weight: 600;
-    margin-top: 3px;
+    margin-top: 2px;
+    display: block;
+    line-height: 1.15;
 }
 
 .nav-center {
@@ -2752,16 +2767,21 @@ button {
         display: flex;
     }
 
-    /* Logo: shrink so it never wraps on small screens */
+    /* Logo: keep horizontal layout even on mobile, shrink gracefully */
     .logo {
-        flex: 1 1 auto;
+        flex: 0 0 auto;
         min-width: 0;
         overflow: hidden;
+        gap: 6px;
+    }
+
+    .logo img {
+        height: 26px;
     }
 
     .logo-main {
-        font-size: 1.1rem;
-        letter-spacing: 1px;
+        font-size: 1rem;
+        letter-spacing: 0.5px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -2769,7 +2789,7 @@ button {
 
     .logo-sub {
         font-size: 0.55rem;
-        letter-spacing: 2px;
+        letter-spacing: 1px;
     }
 
     .nav-search-dropdown {
